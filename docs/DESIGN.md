@@ -93,7 +93,7 @@ Automated posts can only mention books by database ID, so they can't make up a t
 ### 1.2 Non-goals (for now)
 
 - **Hosting fiction.** We will not build a Royal Road competitor. We link out to where books are read.
-- **Scraping.** Royal Road's terms prohibit automated access, and Amazon pages are off-limits outside its APIs. Data comes from authors, owner entry, readers' suggestions and permitted APIs.
+- **Scraping.** Royal Road's terms prohibit automated access, and Amazon pages are off-limits outside its APIs. The catalog is still filled without typing it in by hand: an AI-generated seed list, bulk open data, publisher feeds, reader library imports and more (§7.15).
 - **Holding money for others.** No author payouts and no marketplace escrow. Authors pay *us*, which keeps us out of Stripe Connect, 1099-K reporting and money-transmission complexity. We can revisit this when we build ARC or co-op products that need it.
 - **Third-party ad networks.** We serve only first-party, directly sold, text-and-cover ads. That's faster and safer, and trackers would erode reader trust.
 - **Native mobile apps.** The site is mobile-first responsive. We can add PWA install later.
@@ -793,6 +793,59 @@ Full schedule: [Appendix B](#appendix-b-job-schedule).
   - cost per book.
 - **Gate:** any prompt or model change must not reduce exclusion-tag recall at all, and must not reduce macro-F1 by more than 2 points. The eval is required before changing `llm.model.classify` in production.
 
+### 7.15 Catalog sourcing without scraping
+
+**Goal:** about 2,000 accurate books live at launch, without scraping and without the owner typing them in. Each source below is either permitted (open data, official APIs, partners) or supplied by the people who own the data (authors, publishers, readers).
+
+| # | Source | What it gives | How it's trusted | When |
+|---|---|---|---|---|
+| 1 | **AI seed list** (Claude, from model knowledge) | The *skeleton*: ~500–800 notable series with author, subgenre, tags, approximate book count and reading order, which is roughly 1,500–2,500 books | **Nothing is published on the model's word alone.** Records start as `source=ai_seed, verified=false` (see rules below) | Pre-launch |
+| 2 | **Open Library bulk data dumps** (free, downloadable) | Titles, authors, ISBNs, dates, subjects. Strongest for print and audio editions; weaker for KDP-only ebooks | Title + author match confirms a seed record | Pre-launch, then monthly |
+| 3 | **Google Books API** | The same, queried per book | Confirms | Pre-launch |
+| 4 | **Research agent** (Claude with the web search tool) | Per series: volume list and order, latest volume, publisher, narrator, audio status, from publisher sites, author sites and press | Must cite a source for each fact. Low volume. **Blocked domains:** `amazon.*`, `audible.*`, `royalroad.com`, `goodreads.com` | Pre-launch, then weekly for stale records |
+| 5 | **Publisher and narrator feeds** (Aethon, Podium, Mountaindale, Soundbooth, Portal, and others) | **Upcoming** release schedules. No model knows these. | Publisher-verified. One partnership is worth hundreds of releases a year | Outreach before launch |
+| 6 | **Sale event organizers** (the annual LitRPG/PF sales list about 350 books) | Curated lists with author contacts | Organizer-curated | Each event |
+| 7 | **"Paste anything" author import** | Authors paste their author-page text, website book list or newsletter. The LLM extracts their whole backlist and upcoming books into a pre-filled submission | Author-owned data, confirmed by the author | Phase 1 (§10.3) |
+| 8 | **Reader library import** (Goodreads / StoryGraph CSV exports: the reader's *own* data) | Titles, authors, ISBNs **plus** the reader's ratings and shelves. It fills catalog gaps and replaces the onboarding quiz with real preference data | A book appearing in many readers' imports is corroborated | Phase 1 (§9.4) |
+| 9 | **Contributor XP** (crowd edits, LitRPG-style) | Readers add missing books, fix dates, confirm tags | Consensus plus contributor level (below) | Phase 1–2 |
+| 10 | **Partnership or acquisition** of an existing database (one public PF database's owner has said it doesn't cover its hosting costs) | Thousands of curated records plus an audience | Licensed | Business development |
+| 11 | **Amazon Creators API**, once eligible | Enumerate Amazon's LitRPG/GameLit categories; price, KU status, rank | Official | After ~10 qualifying sales in 30 days |
+
+**AI seed rules**
+
+- **Series level first.** The model returns series, author, subgenre and tag suggestions with a `confidence` per field, and **must omit** anything it isn't sure of. Volume titles, dates and narrators are often wrong from memory, so they're left out unless marked high confidence.
+- **Never for upcoming releases.** The model's knowledge stops at its training cutoff (mid-2026). The calendar's future comes from authors, publishers and partners.
+- **Publication gate.** A seeded record goes public only after **at least one** independent confirmation:
+  - an Open Library, Google Books or Creators API match on title + author;
+  - a cited source from the research agent;
+  - an author claim;
+  - an owner spot-check.
+- **Candidates pool.** Unconfirmed seeds stay private. They still drive outreach ("We think you wrote *X*. Claim it and fix anything we got wrong.").
+- **Accuracy sampling.** Before launch, the owner spot-checks 50 random published records. More than 2% wrong means tighten the gate and re-verify.
+- **Cost.** Generating the seed costs a few dollars of API time (or nothing, if produced in a Claude Code session). Research-agent verification is about $0.05–0.10 per series (web searches are $10 per 1,000 plus tokens), so **about $50 for 700 series**.
+
+**Reader library import** (Goodreads/StoryGraph CSV)
+
+- The file is parsed in the Worker. Rows are matched to the catalog by ISBN, then by normalized title + author.
+- Unmatched rows are classified in or out of scope from title and author (Haiku, batch). In-scope unmatched rows become catalog candidates.
+- Only matched book IDs, ratings and shelves are kept. **The uploaded file is discarded after processing.**
+- Import is offered as the first step of onboarding ("Import your Goodreads library, or answer 3 quick questions").
+
+**Contributor XP** (on-brand crowdsourcing)
+
+- **XP is earned only for accepted contributions:**
+
+  | Contribution | XP |
+  |---|---|
+  | Added a missing book (accepted) | +50 |
+  | Corrected a release date (confirmed) | +20 |
+  | Reported a broken link (confirmed) | +5 |
+  | Tag vote matching final consensus | +2 |
+
+- **Levels and titles** such as *Novice Archivist → Loremaster → Grand Librarian* appear on the profile. Readers could take part in a leaderboard.
+- **Trust gates:** from a set level, a contributor's factual edits auto-apply like a T1 author's. Subjective edits still need consensus.
+- **Abuse controls:** rate limits, XP only for accepted work, and a revert that removes XP.
+
 ---
 
 ## 8. Owner console and approval workflow
@@ -927,7 +980,9 @@ Every automated or one-click action writes the audit log **with a reversible dif
 
 ### 9.4 Onboarding quiz (preference capture)
 
-Three quick screens after the email is confirmed, and again when an account is created:
+**Option A: import a Goodreads or StoryGraph library** (CSV export, §7.15). Ratings and shelves become preferences instantly.
+
+**Option B:** three quick screens after the email is confirmed, and again when an account is created:
 
 1. **What do you love?** Chips for the top ~30 tags: Dungeon Core, System Apocalypse, Cultivation, Crafting, Kingdom Building, Time Loop, Academy, Monster MC, Cozy, and so on.
 2. **Hard no's.** Harem, heavy romance, explicit content, grimdark, AI-generated books, heavy crunch.
@@ -980,6 +1035,7 @@ A profile can have several members (`owner` and `editors`). Only an `owner` can 
 
 ### 10.3 Book submission flow
 
+0. **Paste anything (optional shortcut):** paste your author-page text, website book list or newsletter. The LLM extracts every book into pre-filled drafts; you confirm each one (§7.15).
 1. **Paste links:** Amazon, Audible, Royal Road, Books2Read, author site. We *parse* identifiers from the URLs and enrich from permitted APIs. We never fetch Amazon or Royal Road pages.
 2. **Details form:**
    - Title, series and position, formats and per-format dates (with precision), KU, narrator(s) and narration type.
@@ -1901,16 +1957,16 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | Milestone | Scope | Est. |
 |---|---|---|
 | **M0: Foundations** | Monorepo, Workers (`web`/`admin`/`jobs`), D1 + Drizzle + migrations, R2, Queues, CI/CD with staging/prod, Better Auth (magic link + passkey), Access on admin, security headers/CSP, policy module + route registry test, settings table + KV cache, heartbeat scheduler, audit log. **Spikes:** caching mechanism, CSP approach, Images binding | 1.5–2 wks |
-| **M1: Catalog core** | Books, editions, releases, series, authors, narrators, links, tags schema. Taxonomy seed. Provenance and precedence. Admin quick-add and CSV import. Entity resolution. Open Library/Google Books enrichment | 1.5–2 wks |
-| **M2: AI pipeline** | Classification schema and prompt, batch Workflow, interactive auto-fill via service binding, validator and consistency rules, publish policy engine, embeddings + similarity, eval harness + golden set, budget guard | 1.5 wks |
+| **M1: Catalog core** | Books, editions, releases, series, authors, narrators, links, tags schema. Taxonomy seed. Provenance and precedence. Admin quick-add and CSV import. Entity resolution. Open Library/Google Books enrichment. **Open Library dump import and AI seed import into the candidates pool** (§7.15) | 2 wks |
+| **M2: AI pipeline** | Classification schema and prompt, batch Workflow, interactive auto-fill via service binding, validator and consistency rules, publish policy engine, embeddings + similarity, eval harness + golden set, budget guard. **Research-agent verification and the publication gate for seeds** | 2 wks |
 | **M3: Public site** | Home, calendar (views and filters), book/series/author/narrator/tag pages, search (FTS), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics | 2 wks |
-| **M4: Readers and email** | Signup (double opt-in), onboarding quiz, follows, preferences, account/privacy (export/delete), SES integration, templates, weekly digest Workflow, release-day alerts, unsubscribe/suppression, SNS webhooks | 1.5–2 wks |
-| **M5: Authors** | Author onboarding, verification methods, submission flow, dashboard (books, to-dos, stats, change history), protected fields, change notifications, release confirmation asks, team members | 1.5–2 wks |
+| **M4: Readers and email** | Signup (double opt-in), onboarding quiz, follows, preferences, account/privacy (export/delete), **Goodreads/StoryGraph library import**, SES integration, templates, weekly digest Workflow, release-day alerts, unsubscribe/suppression, SNS webhooks | 1.5–2 wks |
+| **M5: Authors** | Author onboarding, verification methods, submission flow (including **paste-anything import**), dashboard (books, to-dos, stats, change history), protected fields, change notifications, release confirmation asks, team members | 1.5–2 wks |
 | **M6: Owner console and blog** | Inbox with default actions, bulk actions, undo; blog (post types, editor, shortcodes, validator, editorial calendar, guest pitch/submit/review, interviews, auto roundups); owner digests; house ads + ad engine (slots, inventory, serving, beacons, `/go/`) | 2 wks |
 | **Launch (Phase 1)** | Seed ≥ 1,000 books, legal pages, trust page, pre-launch security checklist, soft launch to a small community group, then public | 1 wk |
 | **M7: Paid promotions (Phase 1.5)** | Stripe Checkout/Billing/Portal, webhooks + reconciliation, order state machine, refunds/credits/comps, advertiser dashboard and reports, creative checks, Author Pro | 3–4 wks |
 
-**Phase 1 total: about 12–14 weeks**, with Phase 1.5 about 4 weeks after launch. Later phases are planned when their predecessor meets its exit criteria (§3).
+**Phase 1 total: about 13–15 weeks**, with Phase 1.5 about 4 weeks after launch. Later phases are planned when their predecessor meets its exit criteria (§3).
 
 **Definition of done for every milestone:**
 
@@ -1924,10 +1980,14 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 
 ## 21. Launch and cold start
 
-1. **Seed the catalog (pre-launch, 2–3 weeks).**
-   - The owner pastes known upcoming and recent releases into Quick-add, a few hundred per sitting, and in the process builds the golden eval set.
-   - Priority: the next 90 days of releases, then the top ~500 series.
-   - We use permitted APIs and manual entry. **No scraping.**
+1. **Seed the catalog (pre-launch, 2–3 weeks), following §7.15.**
+   1. Claude generates the AI seed list: ~500–800 series, roughly 2,000 books.
+   2. It is merged with Open Library dump matches.
+   3. The research agent verifies each series and cites sources.
+   4. The owner spot-checks 50 random records and builds the golden eval set from them.
+   5. Meanwhile, contact publishers, narrators and sale organizers for upcoming-release feeds.
+
+   **No scraping.** The owner's quick-add is only for gaps.
 2. **Claim campaign.** Post in author-facing communities (LitRPG/PF author Discords and Facebook groups, following each group's promo rules): *"Your upcoming book is on ReadLitRPG's release calendar. Claim it free, fix anything wrong, and get notified when readers follow you."* Every unclaimed book page carries the same CTA.
 3. **Reader launch.**
    - Share the calendar where rules allow (r/litrpg and r/ProgressionFantasy have self-promo rules, so participate genuinely).
@@ -1955,6 +2015,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | D10 | **Social login** (Discord) | Not at launch; add Discord in Phase 2 if signup friction shows up in data |
 | D11 | **Brand voice and design system** | Separate design brief (logo, colors, card design). This doc is design-agnostic |
 | D12 | **Owner's own books** (if any) | Promote via reserved house campaigns, labeled "Sponsored" (§11.9) |
+| D13 | **Show AI-seeded records before independent confirmation?** | No. Keep them in the private candidates pool until the §7.15 publication gate passes |
 
 ---
 
