@@ -1,6 +1,6 @@
 # ReadLitRPG.com
 
-The release calendar, discovery database and marketing network for LitRPG, progression fantasy, GameLit and cultivation fiction.
+A free discovery engine, book database and marketing network for LitRPG, progression fantasy, GameLit and cultivation fiction. Tell it three books you loved and it finds your next read. A release calendar grows in behind it.
 
 **Status:** design phase. No application code yet.
 
@@ -9,7 +9,7 @@ The release calendar, discovery database and marketing network for LitRPG, progr
 | Doc | What it covers |
 |---|---|
 | [`docs/DESIGN.md`](docs/DESIGN.md) | The full system design: architecture, data model, AI automation, owner approval inbox, ads and payments, email, blog, security, privacy, costs, and build plan |
-| [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary the classifier chooses from and readers filter by |
+| [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary and the 12 taste dials that the classifier scores and the match engine uses |
 
 ## Stack at a glance
 

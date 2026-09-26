@@ -124,6 +124,8 @@ This is the controlled vocabulary the classifier chooses from and readers filter
 
 ## 6. System presentation: crunch (`crunch_level`, single ordinal)
 
+`crunch_level` is a bucketed view of the `crunch` taste dial (§12): 0 if the dial is ≤ 1, 1 if ≤ 4, 2 if ≤ 7, otherwise 3.
+
 | Value | Label | Signals |
 |---|---|---|
 | `0` | No visible system | No status screens or notifications. Progression is described narratively |
@@ -135,6 +137,8 @@ This is the controlled vocabulary the classifier chooses from and readers filter
 ## 7. Romance and relationships
 
 ### 7a. Romance level (`romance_level`, single ordinal)
+
+`romance_level` is a bucketed view of the `romance` taste dial (§12): 0 if the dial is 0, 1 if ≤ 2, 2 if ≤ 5, 3 if ≤ 8, otherwise 4.
 
 | Value | Label | Signals |
 |---|---|---|
@@ -209,6 +213,33 @@ Set by author attestation, admin, or upheld reader reports. Policy on display, n
 | Length band (novella, novel, long, doorstopper) | `word_count_est` / `page_count` |
 | Royal Road origin | `book_links` contains a Royal Road link |
 | Release status (preorder, out now, delayed) | `releases` |
+
+## 12. Taste dials (how a book feels to read)
+
+Tags say what's *in* a book. Dials say how it *feels* to read. Each dial is scored 0–10 with a confidence value, first by the classifier and then calibrated by reader feel checks ([`DESIGN.md` §6.6](./DESIGN.md#66-taste-dials-the-match-dimensions)). These are ReadLitRPG's own dimensions.
+
+| Dial | 0 | 5 | 10 |
+|---|---|---|---|
+| `pacing` | Lingers: long stretches of downtime, introspection or slice of life | A balanced mix of action and downtime | Relentless: action and escalation nearly every chapter |
+| `tone` | Bleak: cruelty, loss, hopelessness | A mix of light and dark | Warm and hopeful throughout |
+| `humor` | Played completely straight | Regular banter and jokes | Comedy is the point |
+| `crunch` | No visible system | Regular status screens; numbers matter sometimes | Frequent full stat blocks, tables and build math |
+| `power_curve` | Painfully slow, hard-won gains | Steady, earned growth | Overpowered early and escalating fast |
+| `combat` | Almost no fighting: crafting, building, business or daily life | Half fighting, half other activities | Fight after fight |
+| `scope` | Personal stakes: a village, a family, a shop | Regional or national stakes | World-ending or cosmic stakes |
+| `ensemble` | Lone wolf; others barely matter | MC-focused, with a regular supporting cast | The party, team or found family is the heart of the story |
+| `lore` | The setting is a light backdrop | Solid worldbuilding that matters sometimes | Deep lore, history and mysteries drive the plot |
+| `morality` | Selfless hero | Pragmatic, gray choices | Ruthless or outright villainous |
+| `strategy` | Wins on instinct and raw power | Some planning and clever tricks | Planning, min-maxing and system exploits are central |
+| `romance` | None | A real subplot | Romance is central |
+
+**Scoring rules for the classifier**
+
+1. **Score from evidence.** Return `unknown` when the text doesn't support a judgment. `pacing`, `ensemble` and `lore` often can't be judged from a blurb alone.
+2. **Marketing words are weak evidence.** "Action-packed" or "hilarious" caps confidence at `medium` unless a sample chapter confirms it.
+3. **Known books.** When the model recognizes the specific book (`known_work = yes`), its own knowledge may inform a dial, but only at `medium` confidence unless the provided text agrees.
+4. **No genre stereotypes.** Not every cultivation novel is slow, and not every dungeon crawler is grim.
+5. **Stay consistent with the facets.** `harem ≠ none` implies `romance ≥ 1`. `crunch` must agree with any explicit status screens in the sample.
 
 ---
 
