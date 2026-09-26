@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":semanticCommitsDisabled"],
+  "schedule": ["before 6am on monday"],
+  "timezone": "America/New_York",
+  "rangeStrategy": "pin",
+  "vulnerabilityAlerts": { "enabled": true, "schedule": ["at any time"] },
+  "packageRules": [
+    { "groupName": "astro", "matchPackageNames": ["astro", "@astrojs/**"] },
+    { "groupName": "cloudflare", "matchPackageNames": ["wrangler", "@cloudflare/**", "miniflare"] },
+    { "groupName": "drizzle", "matchPackageNames": ["drizzle-orm", "drizzle-kit"] },
+    { "groupName": "better-auth", "matchPackageNames": ["better-auth", "@better-auth/**"] },
+    { "groupName": "github actions", "matchManagers": ["github-actions"] }
+  ]
+}

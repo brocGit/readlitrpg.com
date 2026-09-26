@@ -1,0 +1,36 @@
+{
+  "name": "@rlr/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./audit": "./src/audit/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./db": "./src/db/index.ts",
+    "./policy": "./src/policy/index.ts",
+    "./scheduler": "./src/scheduler/index.ts",
+    "./schema": "./src/db/schema/index.ts",
+    "./security": "./src/security/index.ts",
+    "./settings": "./src/settings/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.6",
+    "@better-auth/passkey": "1.7.6",
+    "better-auth": "1.7.6",
+    "drizzle-orm": "0.45.3",
+    "jose": "6.2.12",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260926.1",
+    "@types/node": "22.20.4",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

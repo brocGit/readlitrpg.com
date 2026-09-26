@@ -1,0 +1,28 @@
+{
+  "name": "readlitrpg",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @rlr/web dev",
+    "dev:admin": "pnpm --filter @rlr/admin dev",
+    "dev:jobs": "pnpm --filter @rlr/jobs dev",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "pnpm --filter @rlr/web exec wrangler d1 migrations apply DB --local",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && node scripts/quiz-tool.mjs check",
+    "quiz": "node scripts/quiz-tool.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "drizzle-kit": "0.31.11",
+    "typescript": "6.0.3"
+  }
+}
