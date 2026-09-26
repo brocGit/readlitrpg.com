@@ -60,13 +60,13 @@ describe("audit log", () => {
   it("the database refuses updates and recent deletes", async () => {
     await appendAudit(db, { actor: admin, action: "a" });
     expect(() => d1.sqlite.exec("UPDATE audit_log SET action = 'x'")).toThrow(/append-only/);
-    expect(() => d1.sqlite.exec("DELETE FROM audit_log")).toThrow(/two years/);
+    expect(() => d1.sqlite.exec("DELETE FROM audit_log")).toThrow(/seven years/);
   });
 
   it("allows deleting rows past retention", () => {
     d1.sqlite.exec(
       `INSERT INTO audit_log (id, seq, actor_type, action, created_at, prev_hash, hash)
-       VALUES ('old', 1, 'system', 'x', '2020-01-01T00:00:00.000Z', '${GENESIS_HASH}', 'h')`,
+       VALUES ('old', 1, 'system', 'x', '2018-01-01T00:00:00.000Z', '${GENESIS_HASH}', 'h')`,
     );
     d1.sqlite.exec("DELETE FROM audit_log WHERE id = 'old'");
     expect(d1.sqlite.prepare("SELECT count(*) AS n FROM audit_log").get()).toEqual({ n: 0 });

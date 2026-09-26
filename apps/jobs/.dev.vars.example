@@ -1,0 +1,6 @@
+# Copy to .dev.vars for local development. Never commit .dev.vars.
+ENVIRONMENT=local
+EMAIL_PROVIDER=console
+# Only needed to test real sending from a laptop (SES sandbox, verified recipients only):
+# SES_ACCESS_KEY_ID=
+# SES_SECRET_ACCESS_KEY=

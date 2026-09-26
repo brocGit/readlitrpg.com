@@ -1,0 +1,50 @@
+// The jobs Worker: no public routes. Cron heartbeat, queue consumers, background work (DESIGN §4.2).
+// Top-level settings are production. Local dev overrides vars from .dev.vars (see .dev.vars.example).
+// Resource IDs are placeholders until the Cloudflare account is set up (docs/runbooks/cloudflare-setup.md).
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "rlr-jobs",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "limits": { "cpu_ms": 120000 },
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "vars": {
+    "ENVIRONMENT": "production",
+    "EMAIL_PROVIDER": "ses",
+    "EMAIL_FROM": "ReadLitRPG <hello@mail.readlitrpg.com>",
+    "SES_REGION": "us-east-1"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "rlr-db",
+      "database_id": "00000000-0000-4000-8000-000000000001",
+      "migrations_dir": "../../migrations"
+    }
+  ],
+  "kv_namespaces": [{ "binding": "CONFIG", "id": "00000000000040008000000000000002" }],
+  "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "rlr-backups" }],
+  "queues": {
+    "producers": [
+      { "binding": "Q_JOBS", "queue": "rlr-jobs" },
+      { "binding": "Q_EMAIL", "queue": "rlr-email" }
+    ],
+    "consumers": [
+      { "queue": "rlr-jobs", "max_batch_size": 1, "max_retries": 3, "dead_letter_queue": "rlr-jobs-dlq" },
+      {
+        "queue": "rlr-email",
+        "max_batch_size": 10,
+        "max_batch_timeout": 1,
+        "max_retries": 5,
+        "retry_delay": 30,
+        "dead_letter_queue": "rlr-email-dlq"
+      },
+      { "queue": "rlr-jobs-dlq", "max_batch_size": 10, "max_retries": 10 },
+      { "queue": "rlr-email-dlq", "max_batch_size": 10, "max_retries": 10 }
+    ]
+  }
+}

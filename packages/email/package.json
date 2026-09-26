@@ -1,0 +1,22 @@
+{
+  "name": "@rlr/email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "aws4fetch": "1.0.20",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260926.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

@@ -151,9 +151,4 @@ export function createAdminAuth(opts: AdminAuthOptions) {
 export type WebAuth = ReturnType<typeof createWebAuth>;
 export type AdminAuth = ReturnType<typeof createAdminAuth>;
 
-/** "jane.doe@gmail.com" → "j***@gmail.com", for "Sign in as …?" confirmations. */
-export function maskEmail(email: string): string {
-  const [local = "", domain = ""] = email.split("@");
-  if (!domain) return "***";
-  return `${local.slice(0, 1)}***@${domain}`;
-}
+export { maskEmail } from "../text";

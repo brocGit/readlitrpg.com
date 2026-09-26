@@ -10,6 +10,12 @@ import { ulid } from "../ids";
 import { nowIso } from "../time";
 
 export const GENESIS_HASH = "0".repeat(64);
+
+/**
+ * Every row is kept seven years (money records need that long). Deleting only some rows would break
+ * the chain, so retention removes whole prefixes: everything older than this, oldest first.
+ */
+export const AUDIT_RETENTION_DAYS = 2557;
 const MAX_ATTEMPTS = 5;
 
 export interface AuditActor {

@@ -8,6 +8,8 @@
     "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
     "./db": "./src/db/index.ts",
+    "./db/backup": "./src/db/backup.ts",
+    "./inbox": "./src/inbox/index.ts",
     "./policy": "./src/policy/index.ts",
     "./scheduler": "./src/scheduler/index.ts",
     "./schema": "./src/db/schema/index.ts",

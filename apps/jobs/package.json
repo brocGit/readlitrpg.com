@@ -1,0 +1,26 @@
+{
+  "name": "@rlr/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled --persist-to ../../.wrangler/state",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "build": "wrangler deploy --dry-run --outdir dist"
+  },
+  "dependencies": {
+    "@rlr/core": "workspace:*",
+    "@rlr/email": "workspace:*",
+    "drizzle-orm": "0.45.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11",
+    "wrangler": "4.141.0"
+  }
+}
