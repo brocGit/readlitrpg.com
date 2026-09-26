@@ -75,6 +75,8 @@ This is the controlled vocabulary the classifier chooses from and readers filter
 | `questing` | Questing | Episodic quests and adventures are the main structure |
 | `heist` | Heists | Planned infiltration and theft capers are major arcs |
 | `teaching` | Teaching / Mentorship | The protagonist trains or mentors others as a major thread |
+| `revenge` | Revenge Arc | Getting even with those who wronged the MC drives a major arc |
+| `face-slapping` | Face-slapping | Arrogant enemies underestimate the MC and are humbled (a cultivation staple; some readers love it, some avoid it) |
 
 ## 4. Protagonist (multi)
 
@@ -95,6 +97,8 @@ This is the controlled vocabulary the classifier chooses from and readers filter
 | `older-mc` | Adult / Older MC | Protagonist is middle-aged or older |
 | `young-mc` | Teen MC | Protagonist is a teenager for most of the book |
 | `support-class-mc` | Support / Non-combat Class | Healer, crafter, buffer or other non-frontline role |
+| `gamer-mc` | Gamer MC | Protagonist is a gamer and uses real game knowledge or instincts to get ahead |
+| `cheat-ability` | Cheat Ability | Protagonist has a unique, rule-breaking advantage no one else has (common in isekai) |
 
 ### 4a. Class archetype (multi; only when clearly established)
 
@@ -121,6 +125,15 @@ This is the controlled vocabulary the classifier chooses from and readers filter
 | `companions-progression` | Companion Progression | Pets, summons or companions level up alongside the MC |
 | `respawn` | Respawn / Death Mechanics | Death has game-like rules (respawn, penalties) |
 | `training-arcs` | Training Arcs | Significant page time on deliberate training and practice |
+
+## 5a. System flavor (multi)
+
+| Slug | Name | Definition |
+|---|---|---|
+| `snarky-system` | Snarky / Sentient System | The System, an AI or an announcer has a personality, often sarcastic, and is a character in its own right |
+| `system-mystery` | System Mystery | Who made the System, and why, is a central mystery the story digs into |
+| `hidden-system` | Hidden System | Only the MC (or a few people) can see or use the System |
+| `system-integration` | Integration Event | The story shows the System arriving and society reacting (often with `system-apocalypse`) |
 
 ## 6. System presentation: crunch (`crunch_level`, single ordinal)
 
@@ -216,7 +229,7 @@ Set by author attestation, admin, or upheld reader reports. Policy on display, n
 
 ## 12. Taste dials (how a book feels to read)
 
-Tags say what's *in* a book. Dials say how it *feels* to read. Each dial is scored 0–10 with a confidence value, first by the classifier and then calibrated by reader feel checks ([`DESIGN.md` §6.6](./DESIGN.md#66-taste-dials-the-match-dimensions)). These are ReadLitRPG's own dimensions.
+Tags say what's *in* a book. Dials say how it *feels* to read. Each dial is scored 0–10 with a confidence value, first by the classifier and then calibrated by reader appraisals ([`DESIGN.md` §6.6](./DESIGN.md#66-taste-dials-the-match-dimensions)). These are ReadLitRPG's own dimensions.
 
 | Dial | 0 | 5 | 10 |
 |---|---|---|---|
@@ -231,6 +244,8 @@ Tags say what's *in* a book. Dials say how it *feels* to read. Each dial is scor
 | `lore` | The setting is a light backdrop | Solid worldbuilding that matters sometimes | Deep lore, history and mysteries drive the plot |
 | `morality` | Selfless hero | Pragmatic, gray choices | Ruthless or outright villainous |
 | `strategy` | Wins on instinct and raw power | Some planning and clever tricks | Planning, min-maxing and system exploits are central |
+| `prose` | Lean, straightforward, fast to read | Clear, with some description | Rich, descriptive, wordy |
+| `danger` | Thick plot armor, cozy safety | Real danger, occasional losses | Anyone can die, and losses stick |
 | `romance` | None | A real subplot | Romance is central |
 
 **Scoring rules for the classifier**
@@ -240,6 +255,35 @@ Tags say what's *in* a book. Dials say how it *feels* to read. Each dial is scor
 3. **Known books.** When the model recognizes the specific book (`known_work = yes`), its own knowledge may inform a dial, but only at `medium` confidence unless the provided text agrees.
 4. **No genre stereotypes.** Not every cultivation novel is slow, and not every dungeon crawler is grim.
 5. **Stay consistent with the facets.** `harem ≠ none` implies `romance ≥ 1`. `crunch` must agree with any explicit status screens in the sample.
+
+## 13. Book stats (the status screen: what readers go looking for)
+
+Unlike dials, more is more: each stat measures how strongly a book delivers a payoff LitRPG readers love. See [`DESIGN.md` §6.7](./DESIGN.md#67-book-stats-the-books-status-screen) for the display rules.
+
+- **Judgment** stats are shown publicly only after enough reader appraisals.
+- **Descriptive** stats may show an AI estimate labeled "Estimated".
+- Authors can't set stats.
+
+| Stat | Type | 0 | 5 | 10 |
+|---|---|---|---|---|
+| `competent_mc` (Competent MC) | Judgment | Baffling decisions; the plot depends on the MC being dumb | Usually sensible, with some frustrating choices | Consistently sharp; learns from mistakes; no idiot ball |
+| `rule_of_cool` (Rule of Cool) | Descriptive | Mundane abilities and set pieces | Regular cool moments | Constant "hell yes" abilities, gear and spectacle |
+| `number_go_up` (Number Go Up) | Descriptive | Progression is rare or vague | A satisfying gain every few chapters | Frequent, tangible, satisfying gains |
+| `build_payoff` (Build Payoff) | Descriptive | Choices about skills, stats or classes don't matter | Some choices matter | Build choices are meaningful, clever and pay off |
+| `earned_power` (Earned Power) | Judgment | Frequent handouts and ass-pulls | Mostly earned, with some lucky breaks | Every gain earned through effort, risk or cleverness |
+| `system_consistency` (Consistent System) | Judgment | Rules and numbers contradict themselves | Minor slips | Airtight; the author respects the system's logic |
+| `hype` (Hype Moments) | Judgment | Flat | Some satisfying payoffs | Cathartic wins, setups that land, arrogant foes humbled |
+| `low_drama` (Low Drama) | Judgment | Constant manufactured conflict and misunderstandings | Some interpersonal friction | Drama-free; conflict comes from the plot, not pettiness |
+| `party_chemistry` (Party Chemistry) | Judgment | Flat or annoying companions | Likable companions | Banter, trust and found family that work |
+| `rootable_mc` (Rootable MC) | Judgment | Hard to root for | Mixed | Firmly in their corner (villain MCs can score high) |
+| `fast_start` (Fast Start) | Descriptive | Long slow intro; the system arrives very late | Progression starts within the first act | Hooks on page one; progression starts immediately |
+| `satisfying_endings` (Satisfying Endings) | Descriptive | Every book ends on a cliffhanger | Main arc mostly resolved, with a hook | Each book resolves its main arc |
+
+**Scoring rules for the classifier**
+
+1. Score stats only from evidence: a sample chapter, or the model's knowledge of that specific book when `known_work = yes`, capped at `medium` confidence. Otherwise return `unknown`. **A blurb alone is almost never enough** for judgment stats.
+2. Never infer a stat from genre (not every isekai has a cheat ability that makes gains unearned).
+3. Judgment-stat values from the classifier are internal priors. Readers decide what's shown.
 
 ---
 
