@@ -1,0 +1,230 @@
+{
+  "slug": "which-dcc-character-are-you",
+  "kind": "fun",
+  "status": "draft",
+  "series": "Dungeon Crawler Carl",
+  "series_author": "Matt Dinniman",
+  "title": "Which Dungeon Crawler Carl Character Are You?",
+  "dek": "The buildings just fell. The dungeon is open. The galaxy is watching. Who are you down here?",
+  "intro": "Seven questions, seven possible results, all from the first book.",
+  "estimated_seconds": 70,
+  "is_official": false,
+  "spoiler_boundary": "Book 1 (Dungeon Crawler Carl). Nothing from later books.",
+  "disclaimer": "Unofficial fan quiz. Not affiliated with or endorsed by Matt Dinniman or his publishers. Go read the books.",
+  "sources": [
+    "https://dungeon-crawler-carl.fandom.com/wiki/Carl",
+    "https://dungeon-crawler-carl.fandom.com/wiki/Donut",
+    "https://dungeon-crawler-carl.fandom.com/wiki/Mordecai",
+    "https://dungeon-crawler-carl.fandom.com/wiki/Mongo",
+    "https://dungeon-crawler-carl.fandom.com/wiki/Elle_McGibbons",
+    "https://dungeon-crawler-carl.fandom.com/wiki/Loot_Boxes",
+    "https://crawlerscookbook.com/characters/"
+  ],
+  "outcomes": [
+    {
+      "key": "carl",
+      "name": "Carl",
+      "tagline": "No pants. No plan. No quit.",
+      "description": "You walked into the end of the world in your boxers and decided that was a them problem. You're sarcastic, stubborn and fiercely protective of your people, and your favorite weapon is whatever the dungeon didn't expect you to use: the terrain, a trap, something that goes boom. The showrunners are learning to regret you.",
+      "loves": ["Dark humor", "Clever improvisation", "Protective MCs", "Sticking it to the system"],
+      "watch_out": "Heroes who follow the rules they were handed.",
+      "profile_seed": {
+        "dials": { "humor": { "target": 8, "importance": 0.6 }, "danger": { "target": 7, "importance": 0.5 }, "strategy": { "target": 7, "importance": 0.5 } },
+        "stats": { "rootable_mc": 8, "competent_mc": 7 },
+        "tags": { "dungeon-crawler": 2, "dark-humor": 2, "system-exploitation": 1 }
+      },
+      "share_text": "I got Carl on the Dungeon Crawler Carl quiz. No pants, no plan, no quit. Who are you?"
+    },
+    {
+      "key": "donut",
+      "name": "Princess Donut",
+      "tagline": "The galaxy is watching, and you look fabulous.",
+      "description": "You were born for the spotlight and you know it. You're dramatic, magnificent and far sharper than you let on, and you'd fight the whole dungeon for the people you've decided are yours. You also have strong opinions about your party's name.",
+      "loves": ["Rule of Cool", "Big personalities", "Found family", "Spectacle"],
+      "watch_out": "Quiet, low-drama stories where nobody gets a grand entrance.",
+      "profile_seed": {
+        "dials": { "humor": { "target": 8, "importance": 0.5 }, "ensemble": { "target": 7, "importance": 0.4 } },
+        "stats": { "rule_of_cool": 8, "hype": 7 },
+        "tags": { "humorous": 2, "party-focused": 1, "class-mage": 1 }
+      },
+      "share_text": "I got Princess Donut on the Dungeon Crawler Carl quiz. The galaxy is watching, and I look fabulous. Who are you?"
+    },
+    {
+      "key": "mordecai",
+      "name": "Mordecai",
+      "tagline": "Gruff guide. Knows every rule. Cares more than he admits.",
+      "description": "You've seen it all, you've read every rule, and you have absolutely no patience for people who haven't. You'll complain the whole time you're keeping everyone alive, but you'll keep them alive. Every good party needs someone who actually knows how this works.",
+      "loves": ["Mentors", "Knowing the rules", "Crunchy systems", "Competent characters"],
+      "watch_out": "MCs who never read the tooltip.",
+      "profile_seed": {
+        "dials": { "strategy": { "target": 8, "importance": 0.6 }, "crunch": { "target": 7, "importance": 0.5 }, "lore": { "target": 7, "importance": 0.4 } },
+        "stats": { "competent_mc": 8, "system_consistency": 7 },
+        "tags": { "teaching": 2, "clever-mc": 1 }
+      },
+      "share_text": "I got Mordecai on the Dungeon Crawler Carl quiz. Gruff, knows every rule, cares more than I admit. Who are you?"
+    },
+    {
+      "key": "mongo",
+      "name": "Mongo",
+      "tagline": "Screech first. Ask questions never.",
+      "description": "You're pure enthusiasm with teeth. Point you at a problem and you'll charge it, preferably at full volume, then look for snacks. You're loyal to the bone, and anyone who threatens your people finds that out the hard way.",
+      "loves": ["Nonstop action", "Animal companions", "Loyalty", "Fights that don't need a plan"],
+      "watch_out": "Slow chapters with no one to bite.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 9, "importance": 0.7 }, "pacing": { "target": 8, "importance": 0.5 }, "humor": { "target": 7, "importance": 0.3 } },
+        "stats": { "rule_of_cool": 7 },
+        "tags": { "animal-companion": 2, "monster-mc": 1 }
+      },
+      "share_text": "I got Mongo on the Dungeon Crawler Carl quiz. Screech first, ask questions never. Who are you?"
+    },
+    {
+      "key": "imani",
+      "name": "Imani",
+      "tagline": "Someone has to keep everyone alive. It's you.",
+      "description": "While everyone else panics, you're counting heads, patching wounds and making a plan for tomorrow. You lead because somebody has to, and people follow you because you've earned it. The dungeon is brutal; your group is still standing.",
+      "loves": ["Found family", "Healers and support roles", "Steady leaders", "Hope under pressure"],
+      "watch_out": "Lone-wolf MCs who leave people behind.",
+      "profile_seed": {
+        "dials": { "ensemble": { "target": 9, "importance": 0.7 }, "tone": { "target": 6, "importance": 0.3 } },
+        "stats": { "party_chemistry": 8, "rootable_mc": 7 },
+        "tags": { "found-family": 2, "support-class-mc": 1, "class-healer": 1 }
+      },
+      "share_text": "I got Imani on the Dungeon Crawler Carl quiz. Someone has to keep everyone alive. Who are you?"
+    },
+    {
+      "key": "elle",
+      "name": "Elle",
+      "tagline": "Ninety-nine years old. Zero patience for nonsense.",
+      "description": "You've outlived more fools than the dungeon has monsters, and you say exactly what you think, exactly when you think it. Nobody, human or otherwise, gets away with anything on your watch, and you're not about to let the end of the world slow you down.",
+      "loves": ["Salty characters", "Older heroes", "Blunt humor", "Underestimated fighters"],
+      "watch_out": "Characters who whine instead of acting.",
+      "profile_seed": {
+        "dials": { "humor": { "target": 8, "importance": 0.5 }, "power_fantasy": { "target": 4, "importance": 0.3 } },
+        "stats": { "hype": 7, "rootable_mc": 7 },
+        "tags": { "older-mc": 2, "humorous": 1 }
+      },
+      "share_text": "I got Elle on the Dungeon Crawler Carl quiz. Ninety-nine years old, zero patience for nonsense. Who are you?"
+    },
+    {
+      "key": "system-ai",
+      "name": "The System AI",
+      "tagline": "You're not in the dungeon. You're running the commentary.",
+      "description": "Congratulations, you're the voice. You hand out achievements with a smirk, you have very specific opinions about everyone's feet, and you know exactly how to make a crawler's worst moment into great television. Nobody can stop listening to you.",
+      "loves": ["Snarky Systems", "Satire", "Dark humor", "Chaos with an audience"],
+      "watch_out": "Books where the System is just a menu.",
+      "profile_seed": {
+        "dials": { "humor": { "target": 9, "importance": 0.8 }, "tone": { "target": 4, "importance": 0.3 } },
+        "stats": { "rule_of_cool": 6 },
+        "tags": { "snarky-system": 3, "satire": 2, "dark-humor": 1 }
+      },
+      "share_text": "I got The System AI on the Dungeon Crawler Carl quiz. I'm not in the dungeon, I'm the commentary. Who are you?"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "flavor": "[NEW ACHIEVEMENT!]",
+      "prompt": "The buildings just collapsed. You're at the dungeon entrance wearing...",
+      "options": [
+        { "id": "a", "label": "Boxers. No pants, no shoes. We move.", "points": { "carl": 2, "elle": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "dark-humor": 1 } } },
+        { "id": "b", "label": "Whatever makes the best entrance. The cameras are rolling.", "points": { "donut": 2, "system-ai": 1 },
+          "effects": { "stats": { "rule_of_cool": 2 }, "tags": { "humorous": 1 } } },
+        { "id": "c", "label": "Sensible gear. I read the rules before I got dressed.", "points": { "mordecai": 2, "imani": 1 },
+          "effects": { "dials": { "strategy": 2, "crunch": 1 } } },
+        { "id": "d", "label": "Whatever I grabbed, plus supplies for everyone else.", "points": { "imani": 2, "mordecai": 1 },
+          "effects": { "dials": { "ensemble": 2 }, "tags": { "found-family": 1 } } }
+      ]
+    },
+    {
+      "id": "q2",
+      "flavor": "[LOOT BOX RECEIVED]",
+      "prompt": "A loot box drops at your feet. First thing you check?",
+      "options": [
+        { "id": "a", "label": "How many viewers watched me open it.", "points": { "donut": 2, "mongo": 1 },
+          "effects": { "stats": { "hype": 1 }, "tags": { "humorous": 1 } } },
+        { "id": "b", "label": "Every item description. Twice. Then the fine print.", "points": { "mordecai": 2, "system-ai": 1 },
+          "effects": { "dials": { "crunch": 2 }, "stats": { "build_payoff": 1 } } },
+        { "id": "c", "label": "Whether any of it is edible.", "points": { "mongo": 2, "donut": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "animal-companion": 1 } } },
+        { "id": "d", "label": "Whether any of it's a weapon, and who gets it first.", "points": { "elle": 2, "carl": 1 },
+          "effects": { "dials": { "combat": 1, "humor": 1 }, "tags": { "loot": 1 } } }
+      ]
+    },
+    {
+      "id": "q3",
+      "flavor": "[SAFE ROOM]",
+      "prompt": "You finally reach a safe room. What do you do?",
+      "options": [
+        { "id": "a", "label": "Explain, for the third time, how the floor timer works.", "points": { "mordecai": 2, "elle": 1 },
+          "effects": { "dials": { "lore": 1, "rigour": 1 }, "tags": { "teaching": 1 } } },
+        { "id": "b", "label": "Eat. Then eat more. Then nap on someone.", "points": { "mongo": 2, "carl": 1 },
+          "effects": { "dials": { "humor": 1, "tone": 1 }, "tags": { "animal-companion": 1 } } },
+        { "id": "c", "label": "Patch everyone up and plan for tomorrow.", "points": { "imani": 2, "mordecai": 1 },
+          "effects": { "dials": { "ensemble": 2 }, "stats": { "party_chemistry": 1 } } },
+        { "id": "d", "label": "Rate everyone's snoring for the audience.", "points": { "system-ai": 2, "donut": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "snarky-system": 1 } } }
+      ]
+    },
+    {
+      "id": "q4",
+      "flavor": "[BOSS BATTLE]",
+      "prompt": "A neighborhood boss is blocking the stairwell. Your move?",
+      "options": [
+        { "id": "a", "label": "Charge. Screech. Bite. In that order.", "points": { "mongo": 2, "donut": 1 },
+          "effects": { "dials": { "combat": 2, "pacing": 1 } } },
+        { "id": "b", "label": "Keep the whole group alive while the fighters handle it.", "points": { "imani": 2, "elle": 1 },
+          "effects": { "dials": { "ensemble": 1 }, "tags": { "support-class-mc": 1, "class-healer": 1 } } },
+        { "id": "c", "label": "Tell it exactly what I think of it. Loudly.", "points": { "elle": 2, "imani": 1 },
+          "effects": { "dials": { "humor": 2 }, "stats": { "hype": 1 } } },
+        { "id": "d", "label": "Use the terrain, a trap and something that goes boom.", "points": { "carl": 2, "mongo": 1 },
+          "effects": { "dials": { "strategy": 2 }, "tags": { "system-exploitation": 1 } } }
+      ]
+    },
+    {
+      "id": "q5",
+      "flavor": "[PARTY NAME REQUIRED]",
+      "prompt": "Your party needs a name. You suggest...",
+      "options": [
+        { "id": "a", "label": "Something that says we look after each other.", "points": { "imani": 2, "carl": 1 },
+          "effects": { "dials": { "ensemble": 2, "tone": 1 } } },
+        { "id": "b", "label": "I'm ninety-nine. I've earned the right to name it whatever I want.", "points": { "elle": 2, "mordecai": 1 },
+          "effects": { "dials": { "humor": 1 }, "tags": { "older-mc": 1 } } },
+        { "id": "c", "label": "Something embarrassing. It's for the viewers.", "points": { "system-ai": 2, "carl": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "satire": 1 } } },
+        { "id": "d", "label": "The Royal Court of me, obviously.", "points": { "donut": 2, "system-ai": 1 },
+          "effects": { "stats": { "rule_of_cool": 1 }, "tags": { "humorous": 1 } } }
+      ]
+    },
+    {
+      "id": "q6",
+      "flavor": "[ACHIEVEMENT UNLOCKED]",
+      "prompt": "Which achievement do you want most?",
+      "options": [
+        { "id": "a", "label": "[Oldest Crawler Still Swinging]", "points": { "elle": 2, "imani": 1 },
+          "effects": { "stats": { "hype": 1 }, "tags": { "older-mc": 1 } } },
+        { "id": "b", "label": "None. I'd rather be the one writing them.", "points": { "system-ai": 2, "mordecai": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "snarky-system": 2 } } },
+        { "id": "c", "label": "[Stomped a Boss Flat in Bare Feet]", "points": { "carl": 2, "mongo": 1 },
+          "effects": { "dials": { "combat": 1, "humor": 1 }, "stats": { "rule_of_cool": 1 } } },
+        { "id": "d", "label": "[Kept an Idiot Alive for an Entire Floor]", "points": { "mordecai": 2, "imani": 1 },
+          "effects": { "dials": { "strategy": 1 }, "stats": { "competent_mc": 1 }, "tags": { "teaching": 1 } } }
+      ]
+    },
+    {
+      "id": "q7",
+      "flavor": "[FINAL ANNOUNCEMENT]",
+      "prompt": "How do you want the galaxy to remember you?",
+      "options": [
+        { "id": "a", "label": "As the voice they couldn't stop listening to.", "points": { "system-ai": 2, "donut": 1 },
+          "effects": { "dials": { "humor": 1 }, "tags": { "snarky-system": 1 } } },
+        { "id": "b", "label": "As the one who gave the showrunners a very bad day.", "points": { "carl": 2, "elle": 1 },
+          "effects": { "dials": { "danger": 1 }, "stats": { "hype": 1, "rootable_mc": 1 } } },
+        { "id": "c", "label": "As a star. Obviously.", "points": { "donut": 2, "mongo": 1 },
+          "effects": { "stats": { "rule_of_cool": 1, "hype": 1 } } },
+        { "id": "d", "label": "As a very good boy who ate a lot of monsters.", "points": { "mongo": 2, "carl": 1 },
+          "effects": { "dials": { "combat": 1, "humor": 1 }, "tags": { "animal-companion": 1 } } }
+      ]
+    }
+  ]
+}

@@ -107,6 +107,7 @@ function validateQuiz(quiz) {
   for (const field of ["slug", "title", "dek", "kind", "status", "questions", "outcomes"]) {
     if (!quiz[field]) fail(at, `missing "${field}"`);
   }
+  checkSeriesFields(quiz);
   const outcomeKeys = new Set();
   for (const o of quiz.outcomes ?? []) {
     if (outcomeKeys.has(o.key)) fail(at, `duplicate outcome "${o.key}"`);
@@ -144,6 +145,15 @@ function validateQuiz(quiz) {
   for (const [k, n] of Object.entries(primaries)) {
     if (n < minPrimary) fail(at, `outcome "${k}" is the top pick of only ${n} options; needs at least ${minPrimary}`);
   }
+}
+
+// Series fan quizzes must state their spoiler boundary, carry the unofficial-fan-quiz
+// disclaimer, and cite the research behind them (QUIZZES.md §6.1).
+function checkSeriesFields(quiz) {
+  if (!quiz.series) return;
+  if (!quiz.spoiler_boundary) fail(quiz.file, "series quizzes need a spoiler_boundary");
+  if (!/unofficial fan quiz/i.test(quiz.disclaimer ?? "")) fail(quiz.file, "series quizzes need the unofficial fan quiz disclaimer");
+  if (!(quiz.sources?.length > 0)) fail(quiz.file, "series quizzes need research sources");
 }
 
 // The outcome an option favors most (its "primary").
@@ -243,6 +253,10 @@ function renderPreview(quiz, sim) {
     "",
     `Status: **${quiz.status}** · ${quiz.questions.length} questions · ${quiz.outcomes.length} outcomes · about ${quiz.estimated_seconds} seconds`,
     "",
+    ...(quiz.series
+      ? [`**Series:** *${quiz.series}* · **Spoiler boundary:** ${quiz.spoiler_boundary}`, "", `> ${quiz.disclaimer}`, ""]
+      : []),
+    ...(quiz.intro ? [quiz.intro, ""] : []),
     "## Questions",
     "",
     "Each answer shows the outcomes it scores for (★ = 2 points, ☆ = 1 point) and the hidden taste signal it adds to the reader's profile (DESIGN.md §9.3).",
@@ -283,6 +297,7 @@ function renderPreview(quiz, sim) {
     ...sim.shares.map(([k, s]) => `| ${name(k)} | ${(s * 100).toFixed(1)}% |`),
     "",
   );
+  if (quiz.sources?.length) lines.push("## Research sources", "", ...quiz.sources.map((u) => `- ${u}`), "");
   return lines.join("\n");
 }
 

@@ -73,7 +73,7 @@
         "stats": { "number_go_up": 6, "build_payoff": 5 },
         "tags": { "kingdom-building": 3, "settlement-building": 2, "politics": 1, "war": 1 }
       },
-      "calibration_books": [],
+      "calibration_books": ["The Mayor of Noobtown (Ryan Rimmel)"],
       "share_text": "My LitRPG class is The Kingdom Builder. Why level a hero when you can level a nation? What's yours?"
     },
     {

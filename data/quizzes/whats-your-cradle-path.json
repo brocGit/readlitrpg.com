@@ -1,0 +1,229 @@
+{
+  "slug": "whats-your-cradle-path",
+  "kind": "fun",
+  "status": "draft",
+  "series": "Cradle",
+  "series_author": "Will Wight",
+  "title": "What's Your Cradle Path?",
+  "dek": "Seven questions. Seven Paths. Find the sacred art that fits your soul.",
+  "intro": "In Cradle, sacred artists cycle aura into their madra and follow a Path: a set of techniques built on particular aspects like fire, sword, light or dream. Which one would be yours?",
+  "estimated_seconds": 70,
+  "is_official": false,
+  "spoiler_boundary": "Books 1–3 (Unsouled, Soulsmith, Blackflame). Nothing from later books.",
+  "disclaimer": "Unofficial fan quiz. Not affiliated with or endorsed by Will Wight or his publishers. Go read the books.",
+  "sources": [
+    "https://wiki.abidanarchive.com/index.php/List_of_all_named_Paths",
+    "https://wiki.abidanarchive.com/index.php/Madra",
+    "https://wiki.abidanarchive.com/index.php/Path_of_the_White_Fox",
+    "https://wiki.abidanarchive.com/index.php/Path_of_the_Endless_Sword",
+    "https://wiki.abidanarchive.com/index.php/Path_of_the_Stellar_Spear",
+    "https://blackforestbasilisks.com/cradle-by-will-wight-book-summaries/"
+  ],
+  "outcomes": [
+    {
+      "key": "black-flame",
+      "name": "Path of Black Flame",
+      "tagline": "Burn hotter than anything that stands in your way.",
+      "description": "Fire and destruction, woven together into one of the most feared Paths there is. You don't do subtle. You do relentless: every obstacle is fuel, every setback makes the fire hotter, and people who underestimate you tend to regret it very quickly.",
+      "loves": ["Relentless MCs", "Hype moments", "Big power jumps", "High stakes"],
+      "watch_out": "Cozy stories where nothing is on fire.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 8, "importance": 0.5 }, "danger": { "target": 7, "importance": 0.4 }, "power_fantasy": { "target": 6, "importance": 0.3 } },
+        "stats": { "hype": 8, "number_go_up": 7 },
+        "tags": { "progression-fantasy": 2, "ranks-tiers": 1 }
+      },
+      "share_text": "My Cradle Path is the Path of Black Flame. I burn hotter than anything in my way. What's yours?"
+    },
+    {
+      "key": "endless-sword",
+      "name": "Path of the Endless Sword",
+      "tagline": "Everything can be cut.",
+      "description": "Sword madra, sharpened to a single purpose. You're blunt, direct and absolutely relentless, and you'd rather cut through a problem than talk around it. Your loyalty is just as sharp as your edge, even if you'd never say so out loud.",
+      "loves": ["Weapon masters", "Earned power", "Blunt characters", "Training arcs"],
+      "watch_out": "Endless politics and scheming.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 8, "importance": 0.6 }, "strategy": { "target": 4, "importance": 0.3 } },
+        "stats": { "earned_power": 8, "hype": 7 },
+        "tags": { "class-warrior": 2, "training-arcs": 1, "ranks-tiers": 1 }
+      },
+      "share_text": "My Cradle Path is the Path of the Endless Sword. Everything can be cut. What's yours?"
+    },
+    {
+      "key": "white-fox",
+      "name": "Path of the White Fox",
+      "tagline": "Reality is more of a suggestion.",
+      "description": "Dream madra and illusions, from a Path founded by a sacred white fox. You win with misdirection, patience and the look on someone's face when they realize the thing they were fighting was never there.",
+      "loves": ["Clever MCs", "Mind games", "Magic with rules", "Lore"],
+      "watch_out": "Brute-force stories.",
+      "profile_seed": {
+        "dials": { "strategy": { "target": 8, "importance": 0.6 }, "lore": { "target": 6, "importance": 0.3 } },
+        "stats": { "competent_mc": 7, "rule_of_cool": 6 },
+        "tags": { "clever-mc": 2, "progression-fantasy": 1 }
+      },
+      "share_text": "My Cradle Path is the Path of the White Fox. Reality is more of a suggestion. What's yours?"
+    },
+    {
+      "key": "heavens-glory",
+      "name": "Path of Heaven's Glory",
+      "tagline": "Light, as a weapon.",
+      "description": "Burning light madra, taught at a school on the mountain. You like structure: clear ranks, real teachers and a proper way of doing things. You climb by discipline, and your techniques shine bright enough to hurt.",
+      "loves": ["Academy stories", "Clear power systems", "Heroic tone"],
+      "watch_out": "Lawless chaos with no rules.",
+      "profile_seed": {
+        "dials": { "rigour": { "target": 7, "importance": 0.4 }, "tone": { "target": 6, "importance": 0.3 } },
+        "stats": { "system_consistency": 7 },
+        "tags": { "academy": 2, "class-mage": 1, "ranks-tiers": 1 }
+      },
+      "share_text": "My Cradle Path is the Path of Heaven's Glory. Light, as a weapon. What's yours?"
+    },
+    {
+      "key": "stellar-spear",
+      "name": "Path of the Stellar Spear",
+      "tagline": "Strike first. Strike true. Remember everything.",
+      "description": "The signature spear art of a proud clan. You're precise, ambitious and you never, ever forget a slight. Your rivals should know that every defeat you suffer is just the first chapter of your comeback.",
+      "loves": ["Rivalries", "Revenge arcs", "Precise fighters", "Dark tone"],
+      "watch_out": "MCs who forgive too easily.",
+      "profile_seed": {
+        "dials": { "danger": { "target": 7, "importance": 0.4 }, "morality": { "target": 6, "importance": 0.3 }, "tone": { "target": 4, "importance": 0.3 } },
+        "stats": { "hype": 7 },
+        "tags": { "revenge": 2, "class-warrior": 1 }
+      },
+      "share_text": "My Cradle Path is the Path of the Stellar Spear. Strike first, strike true, remember everything. What's yours?"
+    },
+    {
+      "key": "fisherman",
+      "name": "Path of the Fisherman",
+      "tagline": "Why fight it when you can build something better?",
+      "description": "Force madra with a gentle pull, perfect for soulsmithing. You're the crafter: the one who turns scraps into constructs and makes everyone else's gear actually work. You're cranky about it, sure. You're also indispensable.",
+      "loves": ["Crafting", "Soulsmithing and item creation", "Grumpy mentors", "Build payoff"],
+      "watch_out": "Stories that are all fighting and no making.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 4, "importance": 0.4 }, "strategy": { "target": 7, "importance": 0.3 } },
+        "stats": { "build_payoff": 8 },
+        "tags": { "crafting": 3, "teaching": 1 }
+      },
+      "share_text": "My Cradle Path is the Path of the Fisherman. Why fight it when you can build something better? What's yours?"
+    },
+    {
+      "key": "pure-madra",
+      "name": "Pure Madra (Heart of Twin Stars)",
+      "tagline": "They called you Unsouled. They were wrong.",
+      "description": "You started with the weakest madra there is and no Path at all, so you made your own advantages: a split core, a technique that disrupts an enemy's madra, and a plan for every situation. Nobody out-prepares you, and nobody works harder.",
+      "loves": ["Underdogs", "Clever MCs", "Earned power", "Weak to strong"],
+      "watch_out": "MCs born with every advantage.",
+      "profile_seed": {
+        "dials": { "power_fantasy": { "target": 2, "importance": 0.6 }, "strategy": { "target": 9, "importance": 0.6 } },
+        "stats": { "earned_power": 9, "competent_mc": 8 },
+        "tags": { "weak-to-strong": 3, "clever-mc": 1, "progression-fantasy": 1 }
+      },
+      "share_text": "My Cradle Path is Pure Madra. They called me Unsouled. They were wrong. What's yours?"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "flavor": "[CYCLING]",
+      "prompt": "You sit down to cycle. What aura do you want to draw in?",
+      "options": [
+        { "id": "a", "label": "Fire and destruction. Power that burns everything down.", "points": { "black-flame": 2, "pure-madra": 1 },
+          "effects": { "dials": { "combat": 1, "danger": 1 }, "stats": { "hype": 1 } } },
+        { "id": "b", "label": "Sword aura. Everything can be cut.", "points": { "endless-sword": 2, "stellar-spear": 1 },
+          "effects": { "dials": { "combat": 2 }, "tags": { "class-warrior": 1 } } },
+        { "id": "c", "label": "Dream aura. Reality is more of a suggestion.", "points": { "white-fox": 2, "heavens-glory": 1 },
+          "effects": { "dials": { "strategy": 1, "lore": 1 }, "tags": { "clever-mc": 1 } } },
+        { "id": "d", "label": "Starlight, sharpened into a spear point.", "points": { "stellar-spear": 2, "endless-sword": 1 },
+          "effects": { "stats": { "rule_of_cool": 1 }, "tags": { "class-warrior": 1 } } }
+      ]
+    },
+    {
+      "id": "q2",
+      "flavor": "[TECHNIQUE]",
+      "prompt": "Which kind of technique do you master first?",
+      "options": [
+        { "id": "a", "label": "A Striker technique that sends my blade's edge across the room.", "points": { "endless-sword": 2, "stellar-spear": 1 },
+          "effects": { "dials": { "combat": 2 } } },
+        { "id": "b", "label": "A Ruler technique that fills the room with illusions.", "points": { "white-fox": 2, "heavens-glory": 1 },
+          "effects": { "dials": { "strategy": 2 } } },
+        { "id": "c", "label": "A Striker technique made of burning light.", "points": { "heavens-glory": 2, "white-fox": 1 },
+          "effects": { "dials": { "combat": 1 }, "tags": { "class-mage": 1 } } },
+        { "id": "d", "label": "A Forger technique: tools and constructs made of madra.", "points": { "fisherman": 2, "pure-madra": 1 },
+          "effects": { "dials": { "combat": -1 }, "tags": { "crafting": 2 } } }
+      ]
+    },
+    {
+      "id": "q3",
+      "flavor": "[SACRED VALLEY]",
+      "prompt": "Which clan or school do you want to join?",
+      "options": [
+        { "id": "a", "label": "The clan whose Path was founded by a sacred white fox.", "points": { "white-fox": 2, "heavens-glory": 1 },
+          "effects": { "dials": { "lore": 1 }, "tags": { "clever-mc": 1 } } },
+        { "id": "b", "label": "The school on the mountain, where light is a weapon.", "points": { "heavens-glory": 2, "white-fox": 1 },
+          "effects": { "dials": { "rigour": 1 }, "tags": { "academy": 2 } } },
+        { "id": "c", "label": "The proud clan of spear artists with long memories.", "points": { "stellar-spear": 2, "black-flame": 1 },
+          "effects": { "dials": { "morality": 1 }, "tags": { "revenge": 1 } } },
+        { "id": "d", "label": "None of them. I'll find my own way, even if they call me Unsouled.", "points": { "pure-madra": 2, "fisherman": 1 },
+          "effects": { "dials": { "power_fantasy": -2 }, "tags": { "weak-to-strong": 2 } } }
+      ]
+    },
+    {
+      "id": "q4",
+      "flavor": "[STRONGER OPPONENT]",
+      "prompt": "You face someone a full stage above you. Your plan?",
+      "options": [
+        { "id": "a", "label": "Overwhelm them with radiant attacks from range.", "points": { "heavens-glory": 2, "endless-sword": 1 },
+          "effects": { "dials": { "combat": 1 }, "stats": { "rule_of_cool": 1 } } },
+        { "id": "b", "label": "Strike first, strike precisely, and never forget the insult.", "points": { "stellar-spear": 2, "black-flame": 1 },
+          "effects": { "dials": { "danger": 1 }, "tags": { "revenge": 1 } } },
+        { "id": "c", "label": "Out-build them. My constructs do the heavy lifting.", "points": { "fisherman": 2, "pure-madra": 1 },
+          "effects": { "dials": { "strategy": 1 }, "tags": { "crafting": 1 } } },
+        { "id": "d", "label": "Burn hotter than they can take.", "points": { "black-flame": 2, "endless-sword": 1 },
+          "effects": { "dials": { "power_fantasy": 1 }, "stats": { "hype": 2 } } }
+      ]
+    },
+    {
+      "id": "q5",
+      "flavor": "[MENTOR]",
+      "prompt": "What kind of teacher do you want?",
+      "options": [
+        { "id": "a", "label": "A clan elder who demands perfection.", "points": { "stellar-spear": 2, "heavens-glory": 1 },
+          "effects": { "dials": { "rigour": 1 }, "stats": { "earned_power": 1 } } },
+        { "id": "b", "label": "A cranky old soulsmith who's secretly proud of me.", "points": { "fisherman": 2, "pure-madra": 1 },
+          "effects": { "tags": { "crafting": 1, "teaching": 1 } } },
+        { "id": "c", "label": "Anyone who'll teach me. I'll take every scrap I can get.", "points": { "pure-madra": 2, "fisherman": 1 },
+          "effects": { "stats": { "earned_power": 2 }, "tags": { "weak-to-strong": 1 } } },
+        { "id": "d", "label": "A legendary swordmaster who pushes me past every limit.", "points": { "endless-sword": 2, "stellar-spear": 1 },
+          "effects": { "tags": { "training-arcs": 2 } } }
+      ]
+    },
+    {
+      "id": "q6",
+      "flavor": "[TREASURE]",
+      "prompt": "You find a treasure in an ancient ruin. Which one do you take?",
+      "options": [
+        { "id": "a", "label": "Rare materials to build something incredible.", "points": { "fisherman": 2, "pure-madra": 1 },
+          "effects": { "stats": { "build_payoff": 1 }, "tags": { "crafting": 1 } } },
+        { "id": "b", "label": "A cycling manual everyone else ignored.", "points": { "pure-madra": 2, "fisherman": 1 },
+          "effects": { "dials": { "strategy": 1, "lore": 1 }, "stats": { "build_payoff": 1 } } },
+        { "id": "c", "label": "A dangerous power everyone warns me not to take.", "points": { "black-flame": 2, "stellar-spear": 1 },
+          "effects": { "dials": { "danger": 2 }, "stats": { "hype": 1 } } },
+        { "id": "d", "label": "A charm that lets me walk through dreams.", "points": { "white-fox": 2, "heavens-glory": 1 },
+          "effects": { "dials": { "lore": 1 }, "stats": { "rule_of_cool": 1 } } }
+      ]
+    },
+    {
+      "id": "q7",
+      "flavor": "[ADVANCEMENT]",
+      "prompt": "How do you advance?",
+      "options": [
+        { "id": "a", "label": "Outthink everyone. Every advantage counts when you start with nothing.", "points": { "pure-madra": 2, "white-fox": 1 },
+          "effects": { "dials": { "strategy": 2 }, "stats": { "competent_mc": 1 } } },
+        { "id": "b", "label": "Relentlessly. I'll burn through every stage.", "points": { "black-flame": 2, "endless-sword": 1 },
+          "effects": { "dials": { "progression_speed": 1 }, "stats": { "number_go_up": 1 } } },
+        { "id": "c", "label": "Directly. Find the problem and cut through it.", "points": { "endless-sword": 2, "black-flame": 1 },
+          "effects": { "dials": { "combat": 1 }, "stats": { "earned_power": 1 } } },
+        { "id": "d", "label": "By the rules. Train, test, climb the ranks.", "points": { "heavens-glory": 2, "stellar-spear": 1 },
+          "effects": { "dials": { "rigour": 1 }, "tags": { "ranks-tiers": 1 } } }
+      ]
+    }
+  ]
+}

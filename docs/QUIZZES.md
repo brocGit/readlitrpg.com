@@ -28,7 +28,9 @@ Quizzes do three jobs at once:
 | [Would You Survive the Tutorial?](./quizzes/would-you-survive-the-tutorial.md) | Humor-first; pace, danger and strategy signal | 6 questions, ~60 s | 6 fates | Draft, balanced |
 | Match Quiz | Precision tool, not a personality quiz ([`DESIGN.md` §9.1](./DESIGN.md#91-match-engine-the-headline-feature)) | 9 steps, skippable | Ranked matches | Specified |
 | [How Well Do You Know LitRPG?](./quizzes/how-well-do-you-know-litrpg.md) | **Trivia.** Genre lingo and history, with shareable rank tiers | 10 questions, ~90 s | 4 rank tiers | Draft, checked |
-| Series fan quizzes: DCC, He Who Fights With Monsters, Cradle | Unofficial fan quizzes (§6) | ~8 questions each | Characters / essences / Paths | In progress: waiting on research factsheets |
+| [Which Dungeon Crawler Carl Character Are You?](./quizzes/which-dcc-character-are-you.md) | **Series fan quiz** (book 1 spoiler boundary) | 7 questions, ~70 s | 7 characters | Draft, balanced, accuracy review in progress |
+| [What Would Your Essences Be?](./quizzes/what-would-your-essences-be.md) | **Series fan quiz**, *He Who Fights With Monsters* (book 1) | 8 questions, ~75 s | 8 essence builds | Draft, balanced, accuracy review in progress |
+| [What's Your Cradle Path?](./quizzes/whats-your-cradle-path.md) | **Series fan quiz** (books 1–3) | 7 questions, ~70 s | 7 Paths | Draft, balanced, accuracy review in progress |
 
 **Backlog ideas** (for the quiz factory once the launch set proves out):
 
@@ -283,7 +285,13 @@ This voice is set here, applies to quizzes, result pages, emails and site copy, 
 
 ## 6. Series fan quizzes and the quiz catalog
 
-Some very large sites were built on pop-culture quizzes: "Which *Harry Potter* house are you?", "How well do you know *The Office*?". We run the same playbook for LitRPG, a fandom-heavy genre that nobody serves with quizzes today.
+Some very large sites were built on pop-culture quizzes: "Which *Harry Potter* house are you?", "How well do you know *The Office*?".
+
+- **Playbuzz** reached about 58M monthly unique visitors within 10 months of launching in 2014 ([Martech](https://martech.org/playbuzz-com-attracted-58-million-unique-monthly-visitors-within-10-months-launching/)).
+- **Sporcle** reports billions of quiz plays ([Wikipedia](https://en.wikipedia.org/wiki/Sporcle)).
+- **BuzzFeed** built a large part of its traffic on them.
+
+We run the same playbook for LitRPG, a fandom-heavy genre that nobody serves with quizzes today.
 
 ### 6.1 Policy: unofficial fan quizzes, no permission step
 
@@ -324,9 +332,9 @@ Within six months, the top ~25 series by reader follows each get at least one pe
 
 | Series | Quiz concepts |
 |---|---|
-| *Dungeon Crawler Carl* | Which DCC character are you? *(drafted)* · How well do you know DCC? |
-| *He Who Fights With Monsters* | What would your essences be? *(drafted)* · trivia |
-| *Cradle* | What's your Path? *(drafted)* · trivia |
+| *Dungeon Crawler Carl* | [Which DCC character are you?](./quizzes/which-dcc-character-are-you.md) *(drafted)* · How well do you know DCC? |
+| *He Who Fights With Monsters* | [What would your essences be?](./quizzes/what-would-your-essences-be.md) *(drafted)* · trivia |
+| *Cradle* | [What's your Path?](./quizzes/whats-your-cradle-path.md) *(drafted)* · trivia |
 | *The Primal Hunter* | What would your class and profession be? · trivia |
 | *Defiance of the Fall* | Which Dao would you walk? · trivia |
 | *The Wandering Inn* | What would your [Class] be? · trivia |
@@ -339,7 +347,15 @@ Within six months, the top ~25 series by reader follows each get at least one pe
 
 ### 6.5 Drafted series quizzes
 
-In progress. The first three (DCC, He Who Fights With Monsters, Cradle) are being written from research factsheets with cited sources.
+All three are written from a research factsheet (sources are listed in each quiz file and preview), balanced by the checker, and go through an independent accuracy review before publishing. The accuracy calls that shaped them:
+
+| Quiz | Kept | Left out, and why |
+|---|---|---|
+| **Which DCC Character Are You?** (book 1) | Carl, Princess Donut, Mordecai, Mongo, Imani, Elle, and the System AI as a wildcard result. Premise terms: floors, stairwells, safe rooms, loot boxes, achievements, viewers | Katia and Bautista: book 2 or later. Mordecai's book 2 change and everyone's floor-3 races and classes: spoilers. Sponsors: routine only from book 3 |
+| **What Would Your Essences Be?** (book 1) | Eight three-essence builds. Confluences are **named only** for the two canonical book 1 builds verified with high confidence: Jason Asano's Dark + Blood + Sin → Doom and Humphrey Geller's Might + Wing + Magic → Dragon | The other builds get a "your confluence would lean toward…" line instead of a name, because documented combinations beyond those two weren't verified to our standard. Belinda's build is from book 2 |
+| **What's Your Cradle Path?** (books 1–3) | Black Flame, Endless Sword, White Fox, Heaven's Glory, Stellar Spear, Fisherman, and Pure Madra (Heart of Twin Stars) | Path of the Hollow King: its name isn't revealed until book 8. "Path of Seven Pale Stars": couldn't be verified. Stages above Underlord: first mention unconfirmed |
+
+The checker enforces the rules for every series quiz: a `spoiler_boundary`, the unofficial-fan-quiz `disclaimer`, and research `sources`.
 
 ## 7. Implementation notes
 

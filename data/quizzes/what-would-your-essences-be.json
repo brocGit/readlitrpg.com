@@ -1,0 +1,258 @@
+{
+  "slug": "what-would-your-essences-be",
+  "kind": "fun",
+  "status": "draft",
+  "series": "He Who Fights With Monsters",
+  "series_author": "Shirtaloon (Travis Deverell)",
+  "title": "What Would Your Essences Be?",
+  "dek": "Absorb three essences, form a confluence, become an adventurer. Eight questions to find your build.",
+  "intro": "In He Who Fights With Monsters, adventurers absorb three essences, and the combination forms a fourth: the confluence. Your result is a three-essence build and the confluence it points toward.",
+  "estimated_seconds": 75,
+  "is_official": false,
+  "spoiler_boundary": "Book 1. Named confluences are only the canonical book 1 builds of Jason Asano and Humphrey Geller.",
+  "disclaimer": "Unofficial fan quiz. Not affiliated with or endorsed by Shirtaloon (Travis Deverell) or his publishers. Go read the books.",
+  "sources": [
+    "https://he-who-fights-with-monsters.fandom.com/wiki/Essences",
+    "https://he-who-fights-with-monsters.fandom.com/wiki/Category:Confluence_Essence",
+    "https://he-who-fights-with-monsters.fandom.com/wiki/Jason_Asano",
+    "https://he-who-fights-with-monsters.fandom.com/wiki/Humphrey_Geller"
+  ],
+  "outcomes": [
+    {
+      "key": "affliction",
+      "name": "Dark, Blood and Sin → Doom",
+      "tagline": "You win slowly, horribly and on purpose.",
+      "description": "Shadows, bleeding and curses that punish anyone who crosses you, all feeding into the Doom confluence. It's the same build Jason Asano made infamous: stack afflictions, stay slippery, and let your enemies fall apart on their own schedule. Monsters learn to fear you. So do some adventurers.",
+      "loves": ["Clever, unconventional builds", "Dark humor", "Antihero energy", "Build payoff"],
+      "watch_out": "Straightforward hit-it-until-it-dies fights.",
+      "profile_seed": {
+        "dials": { "strategy": { "target": 7, "importance": 0.5 }, "morality": { "target": 6, "importance": 0.3 }, "humor": { "target": 7, "importance": 0.3 } },
+        "stats": { "build_payoff": 8, "rule_of_cool": 7 },
+        "tags": { "isekai": 1, "dark-humor": 1, "clever-mc": 1 }
+      },
+      "share_text": "My HWFWM essences: Dark, Blood and Sin → Doom. I win slowly, horribly and on purpose. What would yours be?"
+    },
+    {
+      "key": "dragon",
+      "name": "Might, Wing and Magic → Dragon",
+      "tagline": "Hit very hard. Preferably from above.",
+      "description": "Raw strength, flight and spellcraft, combining into the Dragon confluence, the same build as Humphrey Geller. You're the front line and the air support at the same time: first into the fight, last one standing, and very hard to argue with.",
+      "loves": ["Frontline heroes", "Rule of Cool", "Heroic tone", "Party chemistry"],
+      "watch_out": "MCs who never step up to the front.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 8, "importance": 0.6 }, "power_fantasy": { "target": 7, "importance": 0.4 }, "morality": { "target": 2, "importance": 0.3 } },
+        "stats": { "rule_of_cool": 8, "party_chemistry": 7 },
+        "tags": { "heroic": 1, "party-focused": 1, "class-warrior": 1 }
+      },
+      "share_text": "My HWFWM essences: Might, Wing and Magic → Dragon. I hit very hard, preferably from above. What would yours be?"
+    },
+    {
+      "key": "wind-dancer",
+      "name": "Swift, Wind and Balance",
+      "tagline": "Nobody has managed to hit you yet.",
+      "description": "Speed, moving air and perfect poise. Your confluence would lean toward untouchable movement: you're everywhere and nowhere, and every attack finds only the space you used to be in. Fights with you in them look like choreography.",
+      "loves": ["Agile fighters", "Technique over brute force", "Fast pacing"],
+      "watch_out": "Slow, grinding slugfests.",
+      "profile_seed": {
+        "dials": { "pacing": { "target": 8, "importance": 0.5 }, "combat": { "target": 7, "importance": 0.4 } },
+        "stats": { "rule_of_cool": 7, "hype": 6 },
+        "tags": { "class-rogue": 1 }
+      },
+      "share_text": "My HWFWM essences: Swift, Wind and Balance. Nobody has managed to hit me yet. What would yours be?"
+    },
+    {
+      "key": "guardian",
+      "name": "Shield, Growth and Renewal",
+      "tagline": "Nobody dies on your watch.",
+      "description": "Barriers, buffs and healing. Your confluence would lean toward keeping a whole team alive and thriving: you make everyone around you stronger, tougher and harder to kill. The party would be lost without you, and they know it.",
+      "loves": ["Support classes", "Found family", "Party chemistry", "Low drama"],
+      "watch_out": "Stories where allies are disposable.",
+      "profile_seed": {
+        "dials": { "ensemble": { "target": 9, "importance": 0.7 }, "tone": { "target": 7, "importance": 0.3 } },
+        "stats": { "party_chemistry": 8, "low_drama": 6 },
+        "tags": { "support-class-mc": 2, "class-healer": 1, "found-family": 1 }
+      },
+      "share_text": "My HWFWM essences: Shield, Growth and Renewal. Nobody dies on my watch. What would yours be?"
+    },
+    {
+      "key": "siege",
+      "name": "Fire, Earth and Potent",
+      "tagline": "You don't win fights. You end them.",
+      "description": "Flame, stone and raw amplification. Your confluence would lean toward slow, devastating, heavily armored magic: you plant your feet, the ground starts to glow, and the battlefield stops being a place anyone else wants to stand.",
+      "loves": ["Big magic", "Rule of Cool", "Overwhelming power"],
+      "watch_out": "Stealth missions.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 8, "importance": 0.5 }, "scope": { "target": 6, "importance": 0.3 } },
+        "stats": { "rule_of_cool": 8, "hype": 7 },
+        "tags": { "class-mage": 2 }
+      },
+      "share_text": "My HWFWM essences: Fire, Earth and Potent. I don't win fights, I end them. What would yours be?"
+    },
+    {
+      "key": "runesmith",
+      "name": "Magic, Rune and Balance",
+      "tagline": "An hour of preparation. One second of victory.",
+      "description": "Spellcraft, rituals and equilibrium. Your confluence would lean toward preparation and control: circles drawn in advance, rules of magic bent to your purpose, and a fight that was decided before anyone threw a punch.",
+      "loves": ["Magic theory", "Deep lore", "Clever preparation", "Consistent systems"],
+      "watch_out": "Magic with no rules.",
+      "profile_seed": {
+        "dials": { "strategy": { "target": 8, "importance": 0.5 }, "lore": { "target": 8, "importance": 0.5 }, "rigour": { "target": 7, "importance": 0.4 } },
+        "stats": { "system_consistency": 7, "build_payoff": 7 },
+        "tags": { "class-mage": 1, "clever-mc": 1 }
+      },
+      "share_text": "My HWFWM essences: Magic, Rune and Balance. An hour of preparation, one second of victory. What would yours be?"
+    },
+    {
+      "key": "trapper",
+      "name": "Trap, Adept and Swift",
+      "tagline": "The fight was over before they walked in.",
+      "description": "Traps, technique and speed. Your confluence would lean toward control of the battlefield: you choose where the fight happens, you arrive first, and the enemy discovers the plan one tripwire at a time.",
+      "loves": ["Strategy", "Competent MCs", "Setups that pay off"],
+      "watch_out": "Heroes who charge in without a plan.",
+      "profile_seed": {
+        "dials": { "strategy": { "target": 9, "importance": 0.7 } },
+        "stats": { "competent_mc": 8, "hype": 6 },
+        "tags": { "clever-mc": 2 }
+      },
+      "share_text": "My HWFWM essences: Trap, Adept and Swift. The fight was over before they walked in. What would yours be?"
+    },
+    {
+      "key": "blade",
+      "name": "Sword, Adept and Balance",
+      "tagline": "The best technique in the room.",
+      "description": "Blades, skill and poise. Your confluence would lean toward pure technique: no tricks, no curses, just a weapon in the right hands and years of practice behind every cut. Other adventurers stop to watch you train.",
+      "loves": ["Weapon masters", "Earned power", "Training arcs", "Honorable duels"],
+      "watch_out": "Power that comes from nowhere.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 8, "importance": 0.5 } },
+        "stats": { "earned_power": 8, "hype": 6 },
+        "tags": { "class-warrior": 2, "training-arcs": 1 }
+      },
+      "share_text": "My HWFWM essences: Sword, Adept and Balance. The best technique in the room. What would yours be?"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "flavor": "[ESSENCE ABSORBED]",
+      "prompt": "Your first monster fight as a new adventurer. How do you want to win?",
+      "options": [
+        { "id": "a", "label": "Stack curses and poisons, then watch it fall apart.", "points": { "affliction": 2, "trapper": 1 },
+          "effects": { "dials": { "strategy": 1, "morality": 1 }, "stats": { "build_payoff": 1 } } },
+        { "id": "b", "label": "Hit it very hard, preferably from above.", "points": { "dragon": 2, "siege": 1 },
+          "effects": { "dials": { "combat": 2, "power_fantasy": 1 } } },
+        { "id": "c", "label": "Be somewhere else every time it swings.", "points": { "wind-dancer": 2, "blade": 1 },
+          "effects": { "dials": { "pacing": 1, "combat": 1 }, "tags": { "class-rogue": 1 } } },
+        { "id": "d", "label": "Make sure nobody on my team gets hurt.", "points": { "guardian": 2, "runesmith": 1 },
+          "effects": { "dials": { "ensemble": 2 }, "tags": { "support-class-mc": 1 } } }
+      ]
+    },
+    {
+      "id": "q2",
+      "flavor": "[AWAKENING STONE]",
+      "prompt": "You can awaken one new ability. Pick:",
+      "options": [
+        { "id": "a", "label": "A ritual that takes an hour to set up and ends the fight in a second.", "points": { "runesmith": 2, "trapper": 1 },
+          "effects": { "dials": { "strategy": 2, "lore": 1 } } },
+        { "id": "b", "label": "Wings. Obviously.", "points": { "dragon": 2, "wind-dancer": 1 },
+          "effects": { "stats": { "rule_of_cool": 2 } } },
+        { "id": "c", "label": "A burst of speed nobody can follow.", "points": { "wind-dancer": 2, "blade": 1 },
+          "effects": { "dials": { "pacing": 2 } } },
+        { "id": "d", "label": "An attack that melts the ground they're standing on.", "points": { "siege": 2, "dragon": 1 },
+          "effects": { "dials": { "combat": 1 }, "tags": { "class-mage": 1 } } }
+      ]
+    },
+    {
+      "id": "q3",
+      "flavor": "[ADVENTURE SOCIETY]",
+      "prompt": "Which contract do you take from the notice board?",
+      "options": [
+        { "id": "a", "label": "Hunt the monster everyone else is afraid of.", "points": { "affliction": 2, "dragon": 1 },
+          "effects": { "dials": { "danger": 2 }, "stats": { "hype": 1 } } },
+        { "id": "b", "label": "A duel with a rival adventurer, for bragging rights.", "points": { "blade": 2, "wind-dancer": 1 },
+          "effects": { "dials": { "combat": 1 }, "tags": { "tournament": 1 } } },
+        { "id": "c", "label": "Escort a caravan and bring everyone home.", "points": { "guardian": 2, "siege": 1 },
+          "effects": { "dials": { "ensemble": 1, "tone": 1 }, "tags": { "heroic": 1 } } },
+        { "id": "d", "label": "Investigate a strange magical site nobody understands.", "points": { "runesmith": 2, "affliction": 1 },
+          "effects": { "dials": { "lore": 2 }, "tags": { "exploration": 1 } } }
+      ]
+    },
+    {
+      "id": "q4",
+      "flavor": "[AMBUSH]",
+      "prompt": "Monsters surround your team. You...",
+      "options": [
+        { "id": "a", "label": "Smile. I set traps here an hour ago.", "points": { "trapper": 2, "runesmith": 1 },
+          "effects": { "dials": { "strategy": 2 }, "stats": { "competent_mc": 1 } } },
+        { "id": "b", "label": "Plant my feet and turn the ground into lava.", "points": { "siege": 2, "guardian": 1 },
+          "effects": { "stats": { "rule_of_cool": 1 }, "tags": { "class-mage": 1 } } },
+        { "id": "c", "label": "Slip through the gap and hit them from behind.", "points": { "wind-dancer": 2, "trapper": 1 },
+          "effects": { "dials": { "pacing": 1, "strategy": 1 } } },
+        { "id": "d", "label": "Let them come. Everything that touches me starts to wither.", "points": { "affliction": 2, "siege": 1 },
+          "effects": { "dials": { "morality": 1, "tone": -1 } } }
+      ]
+    },
+    {
+      "id": "q5",
+      "flavor": "[DOWNTIME]",
+      "prompt": "Between contracts, you spend your time...",
+      "options": [
+        { "id": "a", "label": "Studying magic theory until the candles run out.", "points": { "runesmith": 2, "affliction": 1 },
+          "effects": { "dials": { "lore": 2, "rigour": 1 } } },
+        { "id": "b", "label": "Checking on everyone and restocking the healing potions.", "points": { "guardian": 2, "dragon": 1 },
+          "effects": { "dials": { "ensemble": 2 }, "stats": { "party_chemistry": 1 } } },
+        { "id": "c", "label": "Scouting the next dungeon and mapping every corridor.", "points": { "trapper": 2, "wind-dancer": 1 },
+          "effects": { "dials": { "strategy": 1 }, "tags": { "exploration": 1, "dungeon-crawler": 1 } } },
+        { "id": "d", "label": "Training until my armor is too hot to touch.", "points": { "siege": 2, "blade": 1 },
+          "effects": { "stats": { "earned_power": 1 }, "tags": { "training-arcs": 1 } } }
+      ]
+    },
+    {
+      "id": "q6",
+      "flavor": "[TEAM ROLE]",
+      "prompt": "What's your job on the team?",
+      "options": [
+        { "id": "a", "label": "Front line. Take the hits, deal the hits.", "points": { "dragon": 2, "blade": 1 },
+          "effects": { "dials": { "combat": 2 }, "tags": { "class-tank": 1 } } },
+        { "id": "b", "label": "Support caster. I make everyone else's magic work better.", "points": { "runesmith": 2, "guardian": 1 },
+          "effects": { "dials": { "ensemble": 1, "strategy": 1 }, "tags": { "support-class-mc": 1 } } },
+        { "id": "c", "label": "The one with the best technique in the room.", "points": { "blade": 2, "wind-dancer": 1 },
+          "effects": { "stats": { "earned_power": 1 }, "tags": { "class-warrior": 1 } } },
+        { "id": "d", "label": "Healer and barrier. Nobody dies on my watch.", "points": { "guardian": 2, "trapper": 1 },
+          "effects": { "dials": { "danger": -1 }, "tags": { "class-healer": 2 } } }
+      ]
+    },
+    {
+      "id": "q7",
+      "flavor": "[RIVAL]",
+      "prompt": "A rival adventurer challenges you. You...",
+      "options": [
+        { "id": "a", "label": "Accept, and bring overwhelming force.", "points": { "siege": 2, "affliction": 1 },
+          "effects": { "dials": { "power_fantasy": 2 } } },
+        { "id": "b", "label": "Accept, and make it a show.", "points": { "dragon": 2, "blade": 1 },
+          "effects": { "stats": { "hype": 2 } } },
+        { "id": "c", "label": "Accept, and pick the battlefield myself.", "points": { "trapper": 2, "runesmith": 1 },
+          "effects": { "dials": { "strategy": 2 } } },
+        { "id": "d", "label": "Accept. Steel to steel, fair and square.", "points": { "blade": 2, "dragon": 1 },
+          "effects": { "dials": { "morality": -1 }, "stats": { "earned_power": 1 } } }
+      ]
+    },
+    {
+      "id": "q8",
+      "flavor": "[LEGEND]",
+      "prompt": "What do the bards sing about you?",
+      "options": [
+        { "id": "a", "label": "The adventurer the monsters are afraid of.", "points": { "affliction": 2, "siege": 1 },
+          "effects": { "dials": { "danger": 1, "morality": 1 } } },
+        { "id": "b", "label": "The one nobody ever managed to hit.", "points": { "wind-dancer": 2, "trapper": 1 },
+          "effects": { "dials": { "pacing": 1 }, "stats": { "rule_of_cool": 1 } } },
+        { "id": "c", "label": "The one who won before the fight started.", "points": { "trapper": 2, "affliction": 1 },
+          "effects": { "dials": { "strategy": 2 }, "stats": { "competent_mc": 1 } } },
+        { "id": "d", "label": "The finest blade of their generation.", "points": { "blade": 2, "wind-dancer": 1 },
+          "effects": { "stats": { "earned_power": 1, "hype": 1 } } },
+        { "id": "e", "label": "The one who brought everyone home.", "points": { "guardian": 2, "dragon": 1 },
+          "effects": { "dials": { "ensemble": 2, "tone": 1 }, "tags": { "found-family": 1 } } }
+      ]
+    }
+  ]
+}

@@ -167,6 +167,7 @@ Walls, farms, trade routes, armies, and a council that mostly listens. You love 
 - **You'll love:** Settlement and kingdom building · Strategy · Big scope · Politics with teeth
 - **Watch out for:** Stories that never let the MC settle down.
 - **Starting profile:** scope → 7, strategy → 7, ensemble → 6 · number_go_up ≥ 6, build_payoff ≥ 5 · #kingdom-building #settlement-building #politics #war
+- **Calibration books (define the class; never shown to readers as-is):** The Mayor of Noobtown (Ryan Rimmel)
 - **Share text:** "My LitRPG class is The Kingdom Builder. Why level a hero when you can level a nation? What's yours?"
 
 ### The Lore Seeker
