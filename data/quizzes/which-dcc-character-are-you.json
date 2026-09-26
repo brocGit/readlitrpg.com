@@ -81,8 +81,8 @@
       "key": "imani",
       "name": "Imani",
       "tagline": "Someone has to keep everyone alive. It's you.",
-      "description": "While everyone else panics, you're counting heads, patching wounds and making a plan for tomorrow. You lead because somebody has to, and people follow you because you've earned it. The dungeon is brutal; your group is still standing.",
-      "loves": ["Found family", "Healers and support roles", "Steady leaders", "Hope under pressure"],
+      "description": "You came in for a night shift, ended up in a dungeon, and never stopped taking care of people. While everyone else panics, you're counting heads, patching wounds and making a plan for tomorrow. The dungeon is brutal; your people are still standing because of you.",
+      "loves": ["Found family", "Healers and support roles", "Caregivers who never quit", "Hope under pressure"],
       "watch_out": "Lone-wolf MCs who leave people behind.",
       "profile_seed": {
         "dials": { "ensemble": { "target": 9, "importance": 0.7 }, "tone": { "target": 6, "importance": 0.3 } },
@@ -94,16 +94,16 @@
     {
       "key": "elle",
       "name": "Elle",
-      "tagline": "Ninety-nine years old. Zero patience for nonsense.",
-      "description": "You've outlived more fools than the dungeon has monsters, and you say exactly what you think, exactly when you think it. Nobody, human or otherwise, gets away with anything on your watch, and you're not about to let the end of the world slow you down.",
-      "loves": ["Salty characters", "Older heroes", "Blunt humor", "Underestimated fighters"],
-      "watch_out": "Characters who whine instead of acting.",
+      "tagline": "Ninety-nine years old. Unimpressed by the apocalypse.",
+      "description": "Ninety-nine years in, the end of the world is just one more thing to sit through. You've seen everything, you're not easily rattled, and you'd like everyone to stop fussing. Readers love you because you're a reminder that the people everyone overlooks are still in this story.",
+      "loves": ["Older heroes", "Underestimated elders", "Dry humor", "Characters who refuse to be rushed"],
+      "watch_out": "Stories that treat older characters as set dressing.",
       "profile_seed": {
-        "dials": { "humor": { "target": 8, "importance": 0.5 }, "power_fantasy": { "target": 4, "importance": 0.3 } },
-        "stats": { "hype": 7, "rootable_mc": 7 },
+        "dials": { "humor": { "target": 7, "importance": 0.5 }, "power_fantasy": { "target": 3, "importance": 0.3 } },
+        "stats": { "rootable_mc": 7, "low_drama": 5 },
         "tags": { "older-mc": 2, "humorous": 1 }
       },
-      "share_text": "I got Elle on the Dungeon Crawler Carl quiz. Ninety-nine years old, zero patience for nonsense. Who are you?"
+      "share_text": "I got Elle on the Dungeon Crawler Carl quiz. Ninety-nine years old, unimpressed by the apocalypse. Who are you?"
     },
     {
       "key": "system-ai",
@@ -126,7 +126,7 @@
       "flavor": "[NEW ACHIEVEMENT!]",
       "prompt": "The buildings just collapsed. You're at the dungeon entrance wearing...",
       "options": [
-        { "id": "a", "label": "Boxers. No pants, no shoes. We move.", "points": { "carl": 2, "elle": 1 },
+        { "id": "a", "label": "Boxers, a leather jacket and my ex's pink Crocs. We move.", "points": { "carl": 2, "elle": 1 },
           "effects": { "dials": { "humor": 2 }, "tags": { "dark-humor": 1 } } },
         { "id": "b", "label": "Whatever makes the best entrance. The cameras are rolling.", "points": { "donut": 2, "system-ai": 1 },
           "effects": { "stats": { "rule_of_cool": 2 }, "tags": { "humorous": 1 } } },
@@ -147,8 +147,8 @@
           "effects": { "dials": { "crunch": 2 }, "stats": { "build_payoff": 1 } } },
         { "id": "c", "label": "Whether any of it is edible.", "points": { "mongo": 2, "donut": 1 },
           "effects": { "dials": { "humor": 2 }, "tags": { "animal-companion": 1 } } },
-        { "id": "d", "label": "Whether any of it's a weapon, and who gets it first.", "points": { "elle": 2, "carl": 1 },
-          "effects": { "dials": { "combat": 1, "humor": 1 }, "tags": { "loot": 1 } } }
+        { "id": "d", "label": "Whether any of it is worth all this fuss.", "points": { "elle": 2, "carl": 1 },
+          "effects": { "dials": { "humor": 1, "tone": 1 }, "tags": { "older-mc": 1 } } }
       ]
     },
     {
@@ -175,8 +175,8 @@
           "effects": { "dials": { "combat": 2, "pacing": 1 } } },
         { "id": "b", "label": "Keep the whole group alive while the fighters handle it.", "points": { "imani": 2, "elle": 1 },
           "effects": { "dials": { "ensemble": 1 }, "tags": { "support-class-mc": 1, "class-healer": 1 } } },
-        { "id": "c", "label": "Tell it exactly what I think of it. Loudly.", "points": { "elle": 2, "imani": 1 },
-          "effects": { "dials": { "humor": 2 }, "stats": { "hype": 1 } } },
+        { "id": "c", "label": "Stay put and let the young people sort it out.", "points": { "elle": 2, "imani": 1 },
+          "effects": { "dials": { "humor": 2, "combat": -1 }, "tags": { "older-mc": 1 } } },
         { "id": "d", "label": "Use the terrain, a trap and something that goes boom.", "points": { "carl": 2, "mongo": 1 },
           "effects": { "dials": { "strategy": 2 }, "tags": { "system-exploitation": 1 } } }
       ]
@@ -201,7 +201,7 @@
       "flavor": "[ACHIEVEMENT UNLOCKED]",
       "prompt": "Which achievement do you want most?",
       "options": [
-        { "id": "a", "label": "[Oldest Crawler Still Swinging]", "points": { "elle": 2, "imani": 1 },
+        { "id": "a", "label": "[Oldest Crawler in the Dungeon]", "points": { "elle": 2, "imani": 1 },
           "effects": { "stats": { "hype": 1 }, "tags": { "older-mc": 1 } } },
         { "id": "b", "label": "None. I'd rather be the one writing them.", "points": { "system-ai": 2, "mordecai": 1 },
           "effects": { "dials": { "humor": 2 }, "tags": { "snarky-system": 2 } } },

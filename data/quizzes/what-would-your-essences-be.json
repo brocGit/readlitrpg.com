@@ -9,7 +9,7 @@
   "intro": "In He Who Fights With Monsters, adventurers absorb three essences, and the combination forms a fourth: the confluence. Your result is a three-essence build and the confluence it points toward.",
   "estimated_seconds": 75,
   "is_official": false,
-  "spoiler_boundary": "Book 1. Named confluences are only the canonical book 1 builds of Jason Asano and Humphrey Geller.",
+  "spoiler_boundary": "Book 1. Named confluences are only the canonical book 1 builds of Jason Asano, Humphrey Geller and Farrah Hurin. Other results use trios with no known canon owner, so no later-book builds are revealed.",
   "disclaimer": "Unofficial fan quiz. Not affiliated with or endorsed by Shirtaloon (Travis Deverell) or his publishers. Go read the books.",
   "sources": [
     "https://he-who-fights-with-monsters.fandom.com/wiki/Essences",
@@ -48,9 +48,9 @@
     },
     {
       "key": "wind-dancer",
-      "name": "Swift, Wind and Balance",
+      "name": "Swift, Wind and Adept",
       "tagline": "Nobody has managed to hit you yet.",
-      "description": "Speed, moving air and perfect poise. Your confluence would lean toward untouchable movement: you're everywhere and nowhere, and every attack finds only the space you used to be in. Fights with you in them look like choreography.",
+      "description": "Speed, moving air and hard-won skill. Your confluence would lean toward untouchable movement: you're everywhere and nowhere, and every attack finds only the space you used to be in. Fights with you in them look like choreography.",
       "loves": ["Agile fighters", "Technique over brute force", "Fast pacing"],
       "watch_out": "Slow, grinding slugfests.",
       "profile_seed": {
@@ -58,13 +58,13 @@
         "stats": { "rule_of_cool": 7, "hype": 6 },
         "tags": { "class-rogue": 1 }
       },
-      "share_text": "My HWFWM essences: Swift, Wind and Balance. Nobody has managed to hit me yet. What would yours be?"
+      "share_text": "My HWFWM essences: Swift, Wind and Adept. Nobody has managed to hit me yet. What would yours be?"
     },
     {
       "key": "guardian",
-      "name": "Shield, Growth and Renewal",
+      "name": "Shield, Renewal and Balance",
       "tagline": "Nobody dies on your watch.",
-      "description": "Barriers, buffs and healing. Your confluence would lean toward keeping a whole team alive and thriving: you make everyone around you stronger, tougher and harder to kill. The party would be lost without you, and they know it.",
+      "description": "Barriers, healing and steady poise. Your confluence would lean toward keeping a whole team alive and on its feet: you make everyone around you tougher and harder to kill. The party would be lost without you, and they know it.",
       "loves": ["Support classes", "Found family", "Party chemistry", "Low drama"],
       "watch_out": "Stories where allies are disposable.",
       "profile_seed": {
@@ -72,13 +72,13 @@
         "stats": { "party_chemistry": 8, "low_drama": 6 },
         "tags": { "support-class-mc": 2, "class-healer": 1, "found-family": 1 }
       },
-      "share_text": "My HWFWM essences: Shield, Growth and Renewal. Nobody dies on my watch. What would yours be?"
+      "share_text": "My HWFWM essences: Shield, Renewal and Balance. Nobody dies on my watch. What would yours be?"
     },
     {
       "key": "siege",
-      "name": "Fire, Earth and Potent",
+      "name": "Fire, Earth and Potent → Volcano",
       "tagline": "You don't win fights. You end them.",
-      "description": "Flame, stone and raw amplification. Your confluence would lean toward slow, devastating, heavily armored magic: you plant your feet, the ground starts to glow, and the battlefield stops being a place anyone else wants to stand.",
+      "description": "Flame, stone and raw amplification, combining into the Volcano confluence, the same build as Farrah Hurin. Fast, devastating, heavily armored magic that burns through mana: you plant your feet, the ground starts to glow, and the battlefield stops being a place anyone else wants to stand.",
       "loves": ["Big magic", "Rule of Cool", "Overwhelming power"],
       "watch_out": "Stealth missions.",
       "profile_seed": {
@@ -86,13 +86,13 @@
         "stats": { "rule_of_cool": 8, "hype": 7 },
         "tags": { "class-mage": 2 }
       },
-      "share_text": "My HWFWM essences: Fire, Earth and Potent. I don't win fights, I end them. What would yours be?"
+      "share_text": "My HWFWM essences: Fire, Earth and Potent → Volcano. I don't win fights, I end them. What would yours be?"
     },
     {
       "key": "runesmith",
-      "name": "Magic, Rune and Balance",
+      "name": "Magic, Rune and Adept",
       "tagline": "An hour of preparation. One second of victory.",
-      "description": "Spellcraft, rituals and equilibrium. Your confluence would lean toward preparation and control: circles drawn in advance, rules of magic bent to your purpose, and a fight that was decided before anyone threw a punch.",
+      "description": "Spellcraft, rituals and practiced skill. Your confluence would lean toward preparation and control: circles drawn in advance, rules of magic bent to your purpose, and a fight that was decided before anyone threw a punch.",
       "loves": ["Magic theory", "Deep lore", "Clever preparation", "Consistent systems"],
       "watch_out": "Magic with no rules.",
       "profile_seed": {
@@ -100,7 +100,7 @@
         "stats": { "system_consistency": 7, "build_payoff": 7 },
         "tags": { "class-mage": 1, "clever-mc": 1 }
       },
-      "share_text": "My HWFWM essences: Magic, Rune and Balance. An hour of preparation, one second of victory. What would yours be?"
+      "share_text": "My HWFWM essences: Magic, Rune and Adept. An hour of preparation, one second of victory. What would yours be?"
     },
     {
       "key": "trapper",

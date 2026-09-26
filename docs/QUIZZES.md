@@ -28,9 +28,9 @@ Quizzes do three jobs at once:
 | [Would You Survive the Tutorial?](./quizzes/would-you-survive-the-tutorial.md) | Humor-first; pace, danger and strategy signal | 6 questions, ~60 s | 6 fates | Draft, balanced |
 | Match Quiz | Precision tool, not a personality quiz ([`DESIGN.md` §9.1](./DESIGN.md#91-match-engine-the-headline-feature)) | 9 steps, skippable | Ranked matches | Specified |
 | [How Well Do You Know LitRPG?](./quizzes/how-well-do-you-know-litrpg.md) | **Trivia.** Genre lingo and history, with shareable rank tiers | 10 questions, ~90 s | 4 rank tiers | Draft, checked |
-| [Which Dungeon Crawler Carl Character Are You?](./quizzes/which-dcc-character-are-you.md) | **Series fan quiz** (book 1 spoiler boundary) | 7 questions, ~70 s | 7 characters | Draft, balanced, accuracy review in progress |
-| [What Would Your Essences Be?](./quizzes/what-would-your-essences-be.md) | **Series fan quiz**, *He Who Fights With Monsters* (book 1) | 8 questions, ~75 s | 8 essence builds | Draft, balanced, accuracy review in progress |
-| [What's Your Cradle Path?](./quizzes/whats-your-cradle-path.md) | **Series fan quiz** (books 1–3) | 7 questions, ~70 s | 7 Paths | Draft, balanced, accuracy review in progress |
+| [Which Dungeon Crawler Carl Character Are You?](./quizzes/which-dcc-character-are-you.md) | **Series fan quiz** (book 1 spoiler boundary) | 7 questions, ~70 s | 7 characters | Draft, balanced, accuracy-reviewed |
+| [What Would Your Essences Be?](./quizzes/what-would-your-essences-be.md) | **Series fan quiz**, *He Who Fights With Monsters* (book 1) | 8 questions, ~75 s | 8 essence builds | Draft, balanced, accuracy-reviewed |
+| [What's Your Cradle Path?](./quizzes/whats-your-cradle-path.md) | **Series fan quiz** (books 1–3) | 7 questions, ~70 s | 7 Paths | Draft, balanced, accuracy-reviewed |
 
 **Backlog ideas** (for the quiz factory once the launch set proves out):
 
@@ -347,13 +347,13 @@ Within six months, the top ~25 series by reader follows each get at least one pe
 
 ### 6.5 Drafted series quizzes
 
-All three are written from a research factsheet (sources are listed in each quiz file and preview), balanced by the checker, and go through an independent accuracy review before publishing. The accuracy calls that shaped them:
+All three are written from a research factsheet (sources are listed in each quiz file and preview), balanced by the checker, and corrected after an independent accuracy review. The accuracy calls that shaped them:
 
 | Quiz | Kept | Left out, and why |
 |---|---|---|
-| **Which DCC Character Are You?** (book 1) | Carl, Princess Donut, Mordecai, Mongo, Imani, Elle, and the System AI as a wildcard result. Premise terms: floors, stairwells, safe rooms, loot boxes, achievements, viewers | Katia and Bautista: book 2 or later. Mordecai's book 2 change and everyone's floor-3 races and classes: spoilers. Sponsors: routine only from book 3 |
-| **What Would Your Essences Be?** (book 1) | Eight three-essence builds. Confluences are **named only** for the two canonical book 1 builds verified with high confidence: Jason Asano's Dark + Blood + Sin → Doom and Humphrey Geller's Might + Wing + Magic → Dragon | The other builds get a "your confluence would lean toward…" line instead of a name, because documented combinations beyond those two weren't verified to our standard. Belinda's build is from book 2 |
-| **What's Your Cradle Path?** (books 1–3) | Black Flame, Endless Sword, White Fox, Heaven's Glory, Stellar Spear, Fisherman, and Pure Madra (Heart of Twin Stars) | Path of the Hollow King: its name isn't revealed until book 8. "Path of Seven Pale Stars": couldn't be verified. Stages above Underlord: first mention unconfirmed |
+| **Which DCC Character Are You?** (book 1) | Carl, Princess Donut, Mordecai, Mongo, Imani, Elle, and the System AI as a wildcard result. Elle and Imani are written as their book 1 selves. Premise terms: floors, stairwells, safe rooms, loot boxes, achievements, viewers | Katia and Bautista: book 2 or later. Mordecai's book 2 change, everyone's floor-3 races and classes, Elle's later fighting turn, and Imani's later leadership role (which would hint at another character's fate): spoilers. Sponsors: routine only from book 3 |
+| **What Would Your Essences Be?** (book 1) | Eight three-essence builds. Confluences are **named only** for the canonical book 1 builds: Jason Asano's Dark + Blood + Sin → Doom, Humphrey Geller's Might + Wing + Magic → Dragon, and Farrah Hurin's Fire + Earth + Potent → Volcano | The other five use trios with no known canon owner and get a "your confluence would lean toward…" line. The review caught that three of the first drafts matched canon builds (Sophie's and Neil's from book 2, and Clive's), so those were changed by one essence. Belinda's build is from book 2 |
+| **What's Your Cradle Path?** (books 1–3) | Black Flame, Endless Sword, White Fox, Heaven's Glory, Stellar Spear (the Jai clan, not a Sacred Valley clan), Fisherman, and Pure Madra (Heart of Twin Stars). Constructs are credited to soulsmithing, not Forger techniques | Path of the Hollow King: its name isn't revealed until book 8. "Path of Seven Pale Stars": couldn't be verified. Stages above Underlord: first mention unconfirmed |
 
 The checker enforces the rules for every series quiz: a `spoiler_boundary`, the unofficial-fan-quiz `disclaimer`, and research `sources`.
 

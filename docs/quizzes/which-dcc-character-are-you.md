@@ -20,7 +20,7 @@ Each answer shows the outcomes it scores for (★ = 2 points, ☆ = 1 point) and
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
-| a | Boxers. No pants, no shoes. We move. | ★ Carl<br>☆ Elle | humor ↑↑, #dark-humor |
+| a | Boxers, a leather jacket and my ex's pink Crocs. We move. | ★ Carl<br>☆ Elle | humor ↑↑, #dark-humor |
 | b | Whatever makes the best entrance. The cameras are rolling. | ★ Princess Donut<br>☆ The System AI | rule_of_cool must-have+, #humorous |
 | c | Sensible gear. I read the rules before I got dressed. | ★ Mordecai<br>☆ Imani | strategy ↑↑, crunch ↑ |
 | d | Whatever I grabbed, plus supplies for everyone else. | ★ Imani<br>☆ Mordecai | ensemble ↑↑, #found-family |
@@ -32,7 +32,7 @@ Each answer shows the outcomes it scores for (★ = 2 points, ☆ = 1 point) and
 | a | How many viewers watched me open it. | ★ Princess Donut<br>☆ Mongo | hype must-have, #humorous |
 | b | Every item description. Twice. Then the fine print. | ★ Mordecai<br>☆ The System AI | crunch ↑↑, build_payoff must-have |
 | c | Whether any of it is edible. | ★ Mongo<br>☆ Princess Donut | humor ↑↑, #animal-companion |
-| d | Whether any of it's a weapon, and who gets it first. | ★ Elle<br>☆ Carl | combat ↑, humor ↑, #loot |
+| d | Whether any of it is worth all this fuss. | ★ Elle<br>☆ Carl | humor ↑, tone ↑, #older-mc |
 
 ### 3. `[SAFE ROOM]` You finally reach a safe room. What do you do?
 
@@ -49,7 +49,7 @@ Each answer shows the outcomes it scores for (★ = 2 points, ☆ = 1 point) and
 |---|---|---|---|
 | a | Charge. Screech. Bite. In that order. | ★ Mongo<br>☆ Princess Donut | combat ↑↑, pacing ↑ |
 | b | Keep the whole group alive while the fighters handle it. | ★ Imani<br>☆ Elle | ensemble ↑, #support-class-mc, #class-healer |
-| c | Tell it exactly what I think of it. Loudly. | ★ Elle<br>☆ Imani | humor ↑↑, hype must-have |
+| c | Stay put and let the young people sort it out. | ★ Elle<br>☆ Imani | humor ↑↑, combat ↓, #older-mc |
 | d | Use the terrain, a trap and something that goes boom. | ★ Carl<br>☆ Mongo | strategy ↑↑, #system-exploitation |
 
 ### 5. `[PARTY NAME REQUIRED]` Your party needs a name. You suggest...
@@ -65,7 +65,7 @@ Each answer shows the outcomes it scores for (★ = 2 points, ☆ = 1 point) and
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
-| a | [Oldest Crawler Still Swinging] | ★ Elle<br>☆ Imani | hype must-have, #older-mc |
+| a | [Oldest Crawler in the Dungeon] | ★ Elle<br>☆ Imani | hype must-have, #older-mc |
 | b | None. I'd rather be the one writing them. | ★ The System AI<br>☆ Mordecai | humor ↑↑, #snarky-system |
 | c | [Stomped a Boss Flat in Bare Feet] | ★ Carl<br>☆ Mongo | combat ↑, humor ↑, rule_of_cool must-have |
 | d | [Kept an Idiot Alive for an Entire Floor] | ★ Mordecai<br>☆ Imani | strategy ↑, competent_mc must-have, #teaching |
@@ -129,23 +129,23 @@ You're pure enthusiasm with teeth. Point you at a problem and you'll charge it, 
 
 **Someone has to keep everyone alive. It's you.**
 
-While everyone else panics, you're counting heads, patching wounds and making a plan for tomorrow. You lead because somebody has to, and people follow you because you've earned it. The dungeon is brutal; your group is still standing.
+You came in for a night shift, ended up in a dungeon, and never stopped taking care of people. While everyone else panics, you're counting heads, patching wounds and making a plan for tomorrow. The dungeon is brutal; your people are still standing because of you.
 
-- **You'll love:** Found family · Healers and support roles · Steady leaders · Hope under pressure
+- **You'll love:** Found family · Healers and support roles · Caregivers who never quit · Hope under pressure
 - **Watch out for:** Lone-wolf MCs who leave people behind.
 - **Starting profile:** ensemble → 9, tone → 6 · party_chemistry ≥ 8, rootable_mc ≥ 7 · #found-family #support-class-mc #class-healer
 - **Share text:** "I got Imani on the Dungeon Crawler Carl quiz. Someone has to keep everyone alive. Who are you?"
 
 ### Elle
 
-**Ninety-nine years old. Zero patience for nonsense.**
+**Ninety-nine years old. Unimpressed by the apocalypse.**
 
-You've outlived more fools than the dungeon has monsters, and you say exactly what you think, exactly when you think it. Nobody, human or otherwise, gets away with anything on your watch, and you're not about to let the end of the world slow you down.
+Ninety-nine years in, the end of the world is just one more thing to sit through. You've seen everything, you're not easily rattled, and you'd like everyone to stop fussing. Readers love you because you're a reminder that the people everyone overlooks are still in this story.
 
-- **You'll love:** Salty characters · Older heroes · Blunt humor · Underestimated fighters
-- **Watch out for:** Characters who whine instead of acting.
-- **Starting profile:** humor → 8, power_fantasy → 4 · hype ≥ 7, rootable_mc ≥ 7 · #older-mc #humorous
-- **Share text:** "I got Elle on the Dungeon Crawler Carl quiz. Ninety-nine years old, zero patience for nonsense. Who are you?"
+- **You'll love:** Older heroes · Underestimated elders · Dry humor · Characters who refuse to be rushed
+- **Watch out for:** Stories that treat older characters as set dressing.
+- **Starting profile:** humor → 7, power_fantasy → 3 · rootable_mc ≥ 7, low_drama ≥ 5 · #older-mc #humorous
+- **Share text:** "I got Elle on the Dungeon Crawler Carl quiz. Ninety-nine years old, unimpressed by the apocalypse. Who are you?"
 
 ### The System AI
 

@@ -6,7 +6,7 @@
 
 Status: **draft** · 8 questions · 8 outcomes · about 75 seconds
 
-**Series:** *He Who Fights With Monsters* · **Spoiler boundary:** Book 1. Named confluences are only the canonical book 1 builds of Jason Asano and Humphrey Geller.
+**Series:** *He Who Fights With Monsters* · **Spoiler boundary:** Book 1. Named confluences are only the canonical book 1 builds of Jason Asano, Humphrey Geller and Farrah Hurin. Other results use trios with no known canon owner, so no later-book builds are revealed.
 
 > Unofficial fan quiz. Not affiliated with or endorsed by Shirtaloon (Travis Deverell) or his publishers. Go read the books.
 
@@ -21,73 +21,73 @@ Each answer shows the outcomes it scores for (★ = 2 points, ☆ = 1 point) and
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
 | a | Stack curses and poisons, then watch it fall apart. | ★ Dark, Blood and Sin → Doom<br>☆ Trap, Adept and Swift | strategy ↑, morality ↑, build_payoff must-have |
-| b | Hit it very hard, preferably from above. | ★ Might, Wing and Magic → Dragon<br>☆ Fire, Earth and Potent | combat ↑↑, power_fantasy ↑ |
-| c | Be somewhere else every time it swings. | ★ Swift, Wind and Balance<br>☆ Sword, Adept and Balance | pacing ↑, combat ↑, #class-rogue |
-| d | Make sure nobody on my team gets hurt. | ★ Shield, Growth and Renewal<br>☆ Magic, Rune and Balance | ensemble ↑↑, #support-class-mc |
+| b | Hit it very hard, preferably from above. | ★ Might, Wing and Magic → Dragon<br>☆ Fire, Earth and Potent → Volcano | combat ↑↑, power_fantasy ↑ |
+| c | Be somewhere else every time it swings. | ★ Swift, Wind and Adept<br>☆ Sword, Adept and Balance | pacing ↑, combat ↑, #class-rogue |
+| d | Make sure nobody on my team gets hurt. | ★ Shield, Renewal and Balance<br>☆ Magic, Rune and Adept | ensemble ↑↑, #support-class-mc |
 
 ### 2. `[AWAKENING STONE]` You can awaken one new ability. Pick:
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
-| a | A ritual that takes an hour to set up and ends the fight in a second. | ★ Magic, Rune and Balance<br>☆ Trap, Adept and Swift | strategy ↑↑, lore ↑ |
-| b | Wings. Obviously. | ★ Might, Wing and Magic → Dragon<br>☆ Swift, Wind and Balance | rule_of_cool must-have+ |
-| c | A burst of speed nobody can follow. | ★ Swift, Wind and Balance<br>☆ Sword, Adept and Balance | pacing ↑↑ |
-| d | An attack that melts the ground they're standing on. | ★ Fire, Earth and Potent<br>☆ Might, Wing and Magic → Dragon | combat ↑, #class-mage |
+| a | A ritual that takes an hour to set up and ends the fight in a second. | ★ Magic, Rune and Adept<br>☆ Trap, Adept and Swift | strategy ↑↑, lore ↑ |
+| b | Wings. Obviously. | ★ Might, Wing and Magic → Dragon<br>☆ Swift, Wind and Adept | rule_of_cool must-have+ |
+| c | A burst of speed nobody can follow. | ★ Swift, Wind and Adept<br>☆ Sword, Adept and Balance | pacing ↑↑ |
+| d | An attack that melts the ground they're standing on. | ★ Fire, Earth and Potent → Volcano<br>☆ Might, Wing and Magic → Dragon | combat ↑, #class-mage |
 
 ### 3. `[ADVENTURE SOCIETY]` Which contract do you take from the notice board?
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
 | a | Hunt the monster everyone else is afraid of. | ★ Dark, Blood and Sin → Doom<br>☆ Might, Wing and Magic → Dragon | danger ↑↑, hype must-have |
-| b | A duel with a rival adventurer, for bragging rights. | ★ Sword, Adept and Balance<br>☆ Swift, Wind and Balance | combat ↑, #tournament |
-| c | Escort a caravan and bring everyone home. | ★ Shield, Growth and Renewal<br>☆ Fire, Earth and Potent | ensemble ↑, tone ↑, #heroic |
-| d | Investigate a strange magical site nobody understands. | ★ Magic, Rune and Balance<br>☆ Dark, Blood and Sin → Doom | lore ↑↑, #exploration |
+| b | A duel with a rival adventurer, for bragging rights. | ★ Sword, Adept and Balance<br>☆ Swift, Wind and Adept | combat ↑, #tournament |
+| c | Escort a caravan and bring everyone home. | ★ Shield, Renewal and Balance<br>☆ Fire, Earth and Potent → Volcano | ensemble ↑, tone ↑, #heroic |
+| d | Investigate a strange magical site nobody understands. | ★ Magic, Rune and Adept<br>☆ Dark, Blood and Sin → Doom | lore ↑↑, #exploration |
 
 ### 4. `[AMBUSH]` Monsters surround your team. You...
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
-| a | Smile. I set traps here an hour ago. | ★ Trap, Adept and Swift<br>☆ Magic, Rune and Balance | strategy ↑↑, competent_mc must-have |
-| b | Plant my feet and turn the ground into lava. | ★ Fire, Earth and Potent<br>☆ Shield, Growth and Renewal | rule_of_cool must-have, #class-mage |
-| c | Slip through the gap and hit them from behind. | ★ Swift, Wind and Balance<br>☆ Trap, Adept and Swift | pacing ↑, strategy ↑ |
-| d | Let them come. Everything that touches me starts to wither. | ★ Dark, Blood and Sin → Doom<br>☆ Fire, Earth and Potent | morality ↑, tone ↓ |
+| a | Smile. I set traps here an hour ago. | ★ Trap, Adept and Swift<br>☆ Magic, Rune and Adept | strategy ↑↑, competent_mc must-have |
+| b | Plant my feet and turn the ground into lava. | ★ Fire, Earth and Potent → Volcano<br>☆ Shield, Renewal and Balance | rule_of_cool must-have, #class-mage |
+| c | Slip through the gap and hit them from behind. | ★ Swift, Wind and Adept<br>☆ Trap, Adept and Swift | pacing ↑, strategy ↑ |
+| d | Let them come. Everything that touches me starts to wither. | ★ Dark, Blood and Sin → Doom<br>☆ Fire, Earth and Potent → Volcano | morality ↑, tone ↓ |
 
 ### 5. `[DOWNTIME]` Between contracts, you spend your time...
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
-| a | Studying magic theory until the candles run out. | ★ Magic, Rune and Balance<br>☆ Dark, Blood and Sin → Doom | lore ↑↑, rigour ↑ |
-| b | Checking on everyone and restocking the healing potions. | ★ Shield, Growth and Renewal<br>☆ Might, Wing and Magic → Dragon | ensemble ↑↑, party_chemistry must-have |
-| c | Scouting the next dungeon and mapping every corridor. | ★ Trap, Adept and Swift<br>☆ Swift, Wind and Balance | strategy ↑, #exploration, #dungeon-crawler |
-| d | Training until my armor is too hot to touch. | ★ Fire, Earth and Potent<br>☆ Sword, Adept and Balance | earned_power must-have, #training-arcs |
+| a | Studying magic theory until the candles run out. | ★ Magic, Rune and Adept<br>☆ Dark, Blood and Sin → Doom | lore ↑↑, rigour ↑ |
+| b | Checking on everyone and restocking the healing potions. | ★ Shield, Renewal and Balance<br>☆ Might, Wing and Magic → Dragon | ensemble ↑↑, party_chemistry must-have |
+| c | Scouting the next dungeon and mapping every corridor. | ★ Trap, Adept and Swift<br>☆ Swift, Wind and Adept | strategy ↑, #exploration, #dungeon-crawler |
+| d | Training until my armor is too hot to touch. | ★ Fire, Earth and Potent → Volcano<br>☆ Sword, Adept and Balance | earned_power must-have, #training-arcs |
 
 ### 6. `[TEAM ROLE]` What's your job on the team?
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
 | a | Front line. Take the hits, deal the hits. | ★ Might, Wing and Magic → Dragon<br>☆ Sword, Adept and Balance | combat ↑↑, #class-tank |
-| b | Support caster. I make everyone else's magic work better. | ★ Magic, Rune and Balance<br>☆ Shield, Growth and Renewal | ensemble ↑, strategy ↑, #support-class-mc |
-| c | The one with the best technique in the room. | ★ Sword, Adept and Balance<br>☆ Swift, Wind and Balance | earned_power must-have, #class-warrior |
-| d | Healer and barrier. Nobody dies on my watch. | ★ Shield, Growth and Renewal<br>☆ Trap, Adept and Swift | danger ↓, #class-healer |
+| b | Support caster. I make everyone else's magic work better. | ★ Magic, Rune and Adept<br>☆ Shield, Renewal and Balance | ensemble ↑, strategy ↑, #support-class-mc |
+| c | The one with the best technique in the room. | ★ Sword, Adept and Balance<br>☆ Swift, Wind and Adept | earned_power must-have, #class-warrior |
+| d | Healer and barrier. Nobody dies on my watch. | ★ Shield, Renewal and Balance<br>☆ Trap, Adept and Swift | danger ↓, #class-healer |
 
 ### 7. `[RIVAL]` A rival adventurer challenges you. You...
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
-| a | Accept, and bring overwhelming force. | ★ Fire, Earth and Potent<br>☆ Dark, Blood and Sin → Doom | power_fantasy ↑↑ |
+| a | Accept, and bring overwhelming force. | ★ Fire, Earth and Potent → Volcano<br>☆ Dark, Blood and Sin → Doom | power_fantasy ↑↑ |
 | b | Accept, and make it a show. | ★ Might, Wing and Magic → Dragon<br>☆ Sword, Adept and Balance | hype must-have+ |
-| c | Accept, and pick the battlefield myself. | ★ Trap, Adept and Swift<br>☆ Magic, Rune and Balance | strategy ↑↑ |
+| c | Accept, and pick the battlefield myself. | ★ Trap, Adept and Swift<br>☆ Magic, Rune and Adept | strategy ↑↑ |
 | d | Accept. Steel to steel, fair and square. | ★ Sword, Adept and Balance<br>☆ Might, Wing and Magic → Dragon | morality ↓, earned_power must-have |
 
 ### 8. `[LEGEND]` What do the bards sing about you?
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
-| a | The adventurer the monsters are afraid of. | ★ Dark, Blood and Sin → Doom<br>☆ Fire, Earth and Potent | danger ↑, morality ↑ |
-| b | The one nobody ever managed to hit. | ★ Swift, Wind and Balance<br>☆ Trap, Adept and Swift | pacing ↑, rule_of_cool must-have |
+| a | The adventurer the monsters are afraid of. | ★ Dark, Blood and Sin → Doom<br>☆ Fire, Earth and Potent → Volcano | danger ↑, morality ↑ |
+| b | The one nobody ever managed to hit. | ★ Swift, Wind and Adept<br>☆ Trap, Adept and Swift | pacing ↑, rule_of_cool must-have |
 | c | The one who won before the fight started. | ★ Trap, Adept and Swift<br>☆ Dark, Blood and Sin → Doom | strategy ↑↑, competent_mc must-have |
-| d | The finest blade of their generation. | ★ Sword, Adept and Balance<br>☆ Swift, Wind and Balance | earned_power must-have, hype must-have |
-| e | The one who brought everyone home. | ★ Shield, Growth and Renewal<br>☆ Might, Wing and Magic → Dragon | ensemble ↑↑, tone ↑, #found-family |
+| d | The finest blade of their generation. | ★ Sword, Adept and Balance<br>☆ Swift, Wind and Adept | earned_power must-have, hype must-have |
+| e | The one who brought everyone home. | ★ Shield, Renewal and Balance<br>☆ Might, Wing and Magic → Dragon | ensemble ↑↑, tone ↑, #found-family |
 
 ## Results
 
@@ -113,49 +113,49 @@ Raw strength, flight and spellcraft, combining into the Dragon confluence, the s
 - **Starting profile:** combat → 8, power_fantasy → 7, morality → 2 · rule_of_cool ≥ 8, party_chemistry ≥ 7 · #heroic #party-focused #class-warrior
 - **Share text:** "My HWFWM essences: Might, Wing and Magic → Dragon. I hit very hard, preferably from above. What would yours be?"
 
-### Swift, Wind and Balance
+### Swift, Wind and Adept
 
 **Nobody has managed to hit you yet.**
 
-Speed, moving air and perfect poise. Your confluence would lean toward untouchable movement: you're everywhere and nowhere, and every attack finds only the space you used to be in. Fights with you in them look like choreography.
+Speed, moving air and hard-won skill. Your confluence would lean toward untouchable movement: you're everywhere and nowhere, and every attack finds only the space you used to be in. Fights with you in them look like choreography.
 
 - **You'll love:** Agile fighters · Technique over brute force · Fast pacing
 - **Watch out for:** Slow, grinding slugfests.
 - **Starting profile:** pacing → 8, combat → 7 · rule_of_cool ≥ 7, hype ≥ 6 · #class-rogue
-- **Share text:** "My HWFWM essences: Swift, Wind and Balance. Nobody has managed to hit me yet. What would yours be?"
+- **Share text:** "My HWFWM essences: Swift, Wind and Adept. Nobody has managed to hit me yet. What would yours be?"
 
-### Shield, Growth and Renewal
+### Shield, Renewal and Balance
 
 **Nobody dies on your watch.**
 
-Barriers, buffs and healing. Your confluence would lean toward keeping a whole team alive and thriving: you make everyone around you stronger, tougher and harder to kill. The party would be lost without you, and they know it.
+Barriers, healing and steady poise. Your confluence would lean toward keeping a whole team alive and on its feet: you make everyone around you tougher and harder to kill. The party would be lost without you, and they know it.
 
 - **You'll love:** Support classes · Found family · Party chemistry · Low drama
 - **Watch out for:** Stories where allies are disposable.
 - **Starting profile:** ensemble → 9, tone → 7 · party_chemistry ≥ 8, low_drama ≥ 6 · #support-class-mc #class-healer #found-family
-- **Share text:** "My HWFWM essences: Shield, Growth and Renewal. Nobody dies on my watch. What would yours be?"
+- **Share text:** "My HWFWM essences: Shield, Renewal and Balance. Nobody dies on my watch. What would yours be?"
 
-### Fire, Earth and Potent
+### Fire, Earth and Potent → Volcano
 
 **You don't win fights. You end them.**
 
-Flame, stone and raw amplification. Your confluence would lean toward slow, devastating, heavily armored magic: you plant your feet, the ground starts to glow, and the battlefield stops being a place anyone else wants to stand.
+Flame, stone and raw amplification, combining into the Volcano confluence, the same build as Farrah Hurin. Fast, devastating, heavily armored magic that burns through mana: you plant your feet, the ground starts to glow, and the battlefield stops being a place anyone else wants to stand.
 
 - **You'll love:** Big magic · Rule of Cool · Overwhelming power
 - **Watch out for:** Stealth missions.
 - **Starting profile:** combat → 8, scope → 6 · rule_of_cool ≥ 8, hype ≥ 7 · #class-mage
-- **Share text:** "My HWFWM essences: Fire, Earth and Potent. I don't win fights, I end them. What would yours be?"
+- **Share text:** "My HWFWM essences: Fire, Earth and Potent → Volcano. I don't win fights, I end them. What would yours be?"
 
-### Magic, Rune and Balance
+### Magic, Rune and Adept
 
 **An hour of preparation. One second of victory.**
 
-Spellcraft, rituals and equilibrium. Your confluence would lean toward preparation and control: circles drawn in advance, rules of magic bent to your purpose, and a fight that was decided before anyone threw a punch.
+Spellcraft, rituals and practiced skill. Your confluence would lean toward preparation and control: circles drawn in advance, rules of magic bent to your purpose, and a fight that was decided before anyone threw a punch.
 
 - **You'll love:** Magic theory · Deep lore · Clever preparation · Consistent systems
 - **Watch out for:** Magic with no rules.
 - **Starting profile:** strategy → 8, lore → 8, rigour → 7 · system_consistency ≥ 7, build_payoff ≥ 7 · #class-mage #clever-mc
-- **Share text:** "My HWFWM essences: Magic, Rune and Balance. An hour of preparation, one second of victory. What would yours be?"
+- **Share text:** "My HWFWM essences: Magic, Rune and Adept. An hour of preparation, one second of victory. What would yours be?"
 
 ### Trap, Adept and Swift
 
@@ -187,10 +187,10 @@ Blades, skill and poise. Your confluence would lean toward pure technique: no tr
 |---|---|
 | Dark, Blood and Sin → Doom | 10.9% |
 | Might, Wing and Magic → Dragon | 13.6% |
-| Swift, Wind and Balance | 12.0% |
-| Shield, Growth and Renewal | 13.5% |
-| Fire, Earth and Potent | 11.8% |
-| Magic, Rune and Balance | 10.2% |
+| Swift, Wind and Adept | 12.0% |
+| Shield, Renewal and Balance | 13.5% |
+| Fire, Earth and Potent → Volcano | 11.8% |
+| Magic, Rune and Adept | 10.2% |
 | Trap, Adept and Swift | 14.0% |
 | Sword, Adept and Balance | 14.1% |
 

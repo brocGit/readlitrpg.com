@@ -23,7 +23,7 @@ Each answer shows the outcomes it scores for (★ = 2 points, ☆ = 1 point) and
 | a | Fire and destruction. Power that burns everything down. | ★ Path of Black Flame<br>☆ Pure Madra (Heart of Twin Stars) | combat ↑, danger ↑, hype must-have |
 | b | Sword aura. Everything can be cut. | ★ Path of the Endless Sword<br>☆ Path of the Stellar Spear | combat ↑↑, #class-warrior |
 | c | Dream aura. Reality is more of a suggestion. | ★ Path of the White Fox<br>☆ Path of Heaven's Glory | strategy ↑, lore ↑, #clever-mc |
-| d | Starlight, sharpened into a spear point. | ★ Path of the Stellar Spear<br>☆ Path of the Endless Sword | rule_of_cool must-have, #class-warrior |
+| d | Light and sword aura, sharpened into a spear point. | ★ Path of the Stellar Spear<br>☆ Path of the Endless Sword | rule_of_cool must-have, #class-warrior |
 
 ### 2. `[TECHNIQUE]` Which kind of technique do you master first?
 
@@ -32,15 +32,15 @@ Each answer shows the outcomes it scores for (★ = 2 points, ☆ = 1 point) and
 | a | A Striker technique that sends my blade's edge across the room. | ★ Path of the Endless Sword<br>☆ Path of the Stellar Spear | combat ↑↑ |
 | b | A Ruler technique that fills the room with illusions. | ★ Path of the White Fox<br>☆ Path of Heaven's Glory | strategy ↑↑ |
 | c | A Striker technique made of burning light. | ★ Path of Heaven's Glory<br>☆ Path of the White Fox | combat ↑, #class-mage |
-| d | A Forger technique: tools and constructs made of madra. | ★ Path of the Fisherman<br>☆ Pure Madra (Heart of Twin Stars) | combat ↓, #crafting |
+| d | Soulsmithing. I'd rather build constructs than throw techniques. | ★ Path of the Fisherman<br>☆ Pure Madra (Heart of Twin Stars) | combat ↓, #crafting |
 
-### 3. `[SACRED VALLEY]` Which clan or school do you want to join?
+### 3. `[CLANS AND SCHOOLS]` Which clan or school do you want to join?
 
 | | Answer | Scores | Taste signal |
 |---|---|---|---|
-| a | The clan whose Path was founded by a sacred white fox. | ★ Path of the White Fox<br>☆ Path of Heaven's Glory | lore ↑, #clever-mc |
+| a | The clan that follows the Path of a sacred white fox. | ★ Path of the White Fox<br>☆ Path of Heaven's Glory | lore ↑, #clever-mc |
 | b | The school on the mountain, where light is a weapon. | ★ Path of Heaven's Glory<br>☆ Path of the White Fox | rigour ↑, #academy |
-| c | The proud clan of spear artists with long memories. | ★ Path of the Stellar Spear<br>☆ Path of Black Flame | morality ↑, #revenge |
+| c | The Jai clan: proud spear artists with long memories. | ★ Path of the Stellar Spear<br>☆ Path of Black Flame | morality ↑, #revenge |
 | d | None of them. I'll find my own way, even if they call me Unsouled. | ★ Pure Madra (Heart of Twin Stars)<br>☆ Path of the Fisherman | power_fantasy ↓↓, #weak-to-strong |
 
 ### 4. `[STRONGER OPPONENT]` You face someone a full stage above you. Your plan?
@@ -107,7 +107,7 @@ Sword madra, sharpened to a single purpose. You're blunt, direct and absolutely 
 
 **Reality is more of a suggestion.**
 
-Dream madra and illusions, from a Path founded by a sacred white fox. You win with misdirection, patience and the look on someone's face when they realize the thing they were fighting was never there.
+Dream madra and illusions, from a Path tied to a sacred white fox. You win with misdirection, patience and the look on someone's face when they realize the thing they were fighting was never there.
 
 - **You'll love:** Clever MCs · Mind games · Magic with rules · Lore
 - **Watch out for:** Brute-force stories.
@@ -151,7 +151,7 @@ Force madra with a gentle pull, perfect for soulsmithing. You're the crafter: th
 
 **They called you Unsouled. They were wrong.**
 
-You started with the weakest madra there is and no Path at all, so you made your own advantages: a split core, a technique that disrupts an enemy's madra, and a plan for every situation. Nobody out-prepares you, and nobody works harder.
+You started with a core too weak to earn a Path, so you made your own advantages: a split core, a technique that disrupts an enemy's madra, and a plan for every situation. Nobody out-prepares you, and nobody works harder.
 
 - **You'll love:** Underdogs · Clever MCs · Earned power · Weak to strong
 - **Watch out for:** MCs born with every advantage.

@@ -52,7 +52,7 @@
       "key": "white-fox",
       "name": "Path of the White Fox",
       "tagline": "Reality is more of a suggestion.",
-      "description": "Dream madra and illusions, from a Path founded by a sacred white fox. You win with misdirection, patience and the look on someone's face when they realize the thing they were fighting was never there.",
+      "description": "Dream madra and illusions, from a Path tied to a sacred white fox. You win with misdirection, patience and the look on someone's face when they realize the thing they were fighting was never there.",
       "loves": ["Clever MCs", "Mind games", "Magic with rules", "Lore"],
       "watch_out": "Brute-force stories.",
       "profile_seed": {
@@ -108,7 +108,7 @@
       "key": "pure-madra",
       "name": "Pure Madra (Heart of Twin Stars)",
       "tagline": "They called you Unsouled. They were wrong.",
-      "description": "You started with the weakest madra there is and no Path at all, so you made your own advantages: a split core, a technique that disrupts an enemy's madra, and a plan for every situation. Nobody out-prepares you, and nobody works harder.",
+      "description": "You started with a core too weak to earn a Path, so you made your own advantages: a split core, a technique that disrupts an enemy's madra, and a plan for every situation. Nobody out-prepares you, and nobody works harder.",
       "loves": ["Underdogs", "Clever MCs", "Earned power", "Weak to strong"],
       "watch_out": "MCs born with every advantage.",
       "profile_seed": {
@@ -131,7 +131,7 @@
           "effects": { "dials": { "combat": 2 }, "tags": { "class-warrior": 1 } } },
         { "id": "c", "label": "Dream aura. Reality is more of a suggestion.", "points": { "white-fox": 2, "heavens-glory": 1 },
           "effects": { "dials": { "strategy": 1, "lore": 1 }, "tags": { "clever-mc": 1 } } },
-        { "id": "d", "label": "Starlight, sharpened into a spear point.", "points": { "stellar-spear": 2, "endless-sword": 1 },
+        { "id": "d", "label": "Light and sword aura, sharpened into a spear point.", "points": { "stellar-spear": 2, "endless-sword": 1 },
           "effects": { "stats": { "rule_of_cool": 1 }, "tags": { "class-warrior": 1 } } }
       ]
     },
@@ -146,20 +146,20 @@
           "effects": { "dials": { "strategy": 2 } } },
         { "id": "c", "label": "A Striker technique made of burning light.", "points": { "heavens-glory": 2, "white-fox": 1 },
           "effects": { "dials": { "combat": 1 }, "tags": { "class-mage": 1 } } },
-        { "id": "d", "label": "A Forger technique: tools and constructs made of madra.", "points": { "fisherman": 2, "pure-madra": 1 },
+        { "id": "d", "label": "Soulsmithing. I'd rather build constructs than throw techniques.", "points": { "fisherman": 2, "pure-madra": 1 },
           "effects": { "dials": { "combat": -1 }, "tags": { "crafting": 2 } } }
       ]
     },
     {
       "id": "q3",
-      "flavor": "[SACRED VALLEY]",
+      "flavor": "[CLANS AND SCHOOLS]",
       "prompt": "Which clan or school do you want to join?",
       "options": [
-        { "id": "a", "label": "The clan whose Path was founded by a sacred white fox.", "points": { "white-fox": 2, "heavens-glory": 1 },
+        { "id": "a", "label": "The clan that follows the Path of a sacred white fox.", "points": { "white-fox": 2, "heavens-glory": 1 },
           "effects": { "dials": { "lore": 1 }, "tags": { "clever-mc": 1 } } },
         { "id": "b", "label": "The school on the mountain, where light is a weapon.", "points": { "heavens-glory": 2, "white-fox": 1 },
           "effects": { "dials": { "rigour": 1 }, "tags": { "academy": 2 } } },
-        { "id": "c", "label": "The proud clan of spear artists with long memories.", "points": { "stellar-spear": 2, "black-flame": 1 },
+        { "id": "c", "label": "The Jai clan: proud spear artists with long memories.", "points": { "stellar-spear": 2, "black-flame": 1 },
           "effects": { "dials": { "morality": 1 }, "tags": { "revenge": 1 } } },
         { "id": "d", "label": "None of them. I'll find my own way, even if they call me Unsouled.", "points": { "pure-madra": 2, "fisherman": 1 },
           "effects": { "dials": { "power_fantasy": -2 }, "tags": { "weak-to-strong": 2 } } }
