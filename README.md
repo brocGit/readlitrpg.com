@@ -1,0 +1,22 @@
+# ReadLitRPG.com
+
+The release calendar, discovery database and marketing network for LitRPG, progression fantasy, GameLit and cultivation fiction.
+
+**Status:** design phase. No application code yet.
+
+## Documents
+
+| Doc | What it covers |
+|---|---|
+| [`docs/DESIGN.md`](docs/DESIGN.md) | The full system design: architecture, data model, AI automation, owner approval inbox, ads and payments, email, blog, security, privacy, costs, and build plan |
+| [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary the classifier chooses from and readers filter by |
+
+## Stack at a glance
+
+- **Hosting:** Cloudflare Workers, D1 (SQLite), R2, Queues, Workflows, Vectorize.
+- **Site:** Astro (SSR) with small Preact islands, TypeScript and Drizzle.
+- **Auth:** Better Auth, using passkeys and magic links (no passwords).
+- **Payments:** Stripe Checkout, Billing and the Customer Portal.
+- **Email:** Amazon SES.
+- **AI:** Claude API with batches and structured outputs, plus Workers AI embeddings.
+- **Expected running cost:** about $15–30/month at launch.
