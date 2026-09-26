@@ -237,7 +237,9 @@ Tags say what's *in* a book. Dials say how it *feels* to read. Each dial is scor
 | `tone` | Bleak: cruelty, loss, hopelessness | A mix of light and dark | Warm and hopeful throughout |
 | `humor` | Played completely straight | Regular banter and jokes | Comedy is the point |
 | `crunch` | No visible system | Regular status screens; numbers matter sometimes | Frequent full stat blocks, tables and build math |
-| `power_curve` | Painfully slow, hard-won gains | Steady, earned growth | Overpowered early and escalating fast |
+| `progression_speed` | Painfully slow, hard-won gains | Steady, visible growth | Rapid, highly visible growth |
+| `power_fantasy` | Underdog, outmatched most of the time | Strong, but challenged | Godmode: dominates nearly everyone |
+| `rigour` | Loose, flavorful system; rule of cool beats rules | Rules matter but bend | Hard rules; exact mechanics drive the plot |
 | `combat` | Almost no fighting: crafting, building, business or daily life | Half fighting, half other activities | Fight after fight |
 | `scope` | Personal stakes: a village, a family, a shop | Regional or national stakes | World-ending or cosmic stakes |
 | `ensemble` | Lone wolf; others barely matter | MC-focused, with a regular supporting cast | The party, team or found family is the heart of the story |
@@ -246,6 +248,7 @@ Tags say what's *in* a book. Dials say how it *feels* to read. Each dial is scor
 | `strategy` | Wins on instinct and raw power | Some planning and clever tricks | Planning, min-maxing and system exploits are central |
 | `prose` | Lean, straightforward, fast to read | Clear, with some description | Rich, descriptive, wordy |
 | `danger` | Thick plot armor, cozy safety | Real danger, occasional losses | Anyone can die, and losses stick |
+| `plot_structure` | Episodic, serial-style adventures | Arcs with some side episodes | Tightly plotted arcs |
 | `romance` | None | A real subplot | Romance is central |
 
 **Scoring rules for the classifier**
@@ -254,7 +257,8 @@ Tags say what's *in* a book. Dials say how it *feels* to read. Each dial is scor
 2. **Marketing words are weak evidence.** "Action-packed" or "hilarious" caps confidence at `medium` unless a sample chapter confirms it.
 3. **Known books.** When the model recognizes the specific book (`known_work = yes`), its own knowledge may inform a dial, but only at `medium` confidence unless the provided text agrees.
 4. **No genre stereotypes.** Not every cultivation novel is slow, and not every dungeon crawler is grim.
-5. **Stay consistent with the facets.** `harem ≠ none` implies `romance ≥ 1`. `crunch` must agree with any explicit status screens in the sample.
+5. **Crunch is not rigour.** `crunch` is how much system appears on the page; `rigour` is how strictly the rules bind the story. Score them independently.
+6. **Stay consistent with the facets.** `harem ≠ none` implies `romance ≥ 1`. `crunch` must agree with any explicit status screens in the sample.
 
 ## 13. Book stats (the status screen: what readers go looking for)
 

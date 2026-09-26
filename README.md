@@ -9,7 +9,7 @@ A free discovery engine, book database and marketing network for LitRPG, progres
 | Doc | What it covers |
 |---|---|
 | [`docs/DESIGN.md`](docs/DESIGN.md) | The full system design: architecture, data model, AI automation, owner approval inbox, ads and payments, email, blog, security, privacy, costs, and build plan |
-| [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary, the 14 taste dials and the 12 book stats (Competent MC, Rule of Cool, Number Go Up…) that power matching |
+| [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary, the 17 taste dials and the 12 book stats (Competent MC, Rule of Cool, Number Go Up…) that power matching |
 
 ## Stack at a glance
 
