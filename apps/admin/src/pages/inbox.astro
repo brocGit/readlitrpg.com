@@ -1,0 +1,86 @@
+---
+import { decideInboxItem, listOpenInbox } from "@rlr/core/inbox";
+import { can } from "@rlr/core/policy";
+import Console from "../layouts/Console.astro";
+import { adminActor } from "../lib/admin-session";
+import { audit, flash, readForm } from "../lib/forms";
+import { getDb } from "../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  if (!can(adminActor(admin), "inbox.decide").ok)
+    return Astro.redirect(flash("/inbox", "Not allowed", "error"), 303);
+  const status =
+    form.decision === "rejected" ? "rejected" : form.decision === "approved" ? "approved" : "resolved";
+  const changed = await decideInboxItem(db, form.id ?? "", {
+    status,
+    decidedBy: admin.userId,
+    note: form.note || undefined,
+  });
+  if (changed) {
+    await audit(admin, Astro.locals.requestId, {
+      action: "inbox.decide",
+      subjectType: "inbox_item",
+      subjectId: form.id,
+      diff: { status, note: form.note || null },
+    });
+  }
+  return Astro.redirect(
+    flash(
+      "/inbox",
+      changed ? `Marked ${status}.` : "That item was already closed.",
+      changed ? "ok" : "error",
+    ),
+    303,
+  );
+}
+
+const items = await listOpenInbox(db, 200);
+---
+
+<Console title="Inbox">
+  {
+    items.length === 0 ? (
+      <div class="status-screen">
+        <p class="label">[Quest log empty]</p>
+        <p>Nothing needs you right now.</p>
+      </div>
+    ) : (
+      <table>
+        <thead>
+          <tr><th>Priority</th><th>Item</th><th>Opened</th><th>Decide</th></tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr>
+              <td>{item.priority}</td>
+              <td>
+                <strong>{item.title}</strong>
+                <div class="muted">{item.type}{item.subjectType ? ` · ${item.subjectType} ${item.subjectId ?? ""}` : ""}</div>
+                {item.aiSummary && <p>{item.aiSummary}</p>}
+                {item.payload != null && (
+                  <details>
+                    <summary>Details</summary>
+                    <pre>{JSON.stringify(item.payload, null, 2)}</pre>
+                  </details>
+                )}
+              </td>
+              <td>{item.createdAt.slice(0, 16).replace("T", " ")}</td>
+              <td>
+                <form method="post" class="inline">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input type="text" name="note" placeholder="Note (optional)" maxlength="500" />
+                  <button class="button small" name="decision" value="resolved" type="submit">Resolve</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+</Console>

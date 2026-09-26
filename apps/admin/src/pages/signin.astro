@@ -1,0 +1,43 @@
+---
+import "@rlr/ui/tokens.css";
+import "@rlr/ui/base.css";
+import { safeRedirectPath } from "@rlr/core/security";
+import AdminPasskeySignIn from "../components/AdminPasskeySignIn";
+
+// Reached only through Cloudflare Access. Passkey only: no email links, no sign-up.
+const next = safeRedirectPath(Astro.url.searchParams.get("next"), "/");
+const stepUp = Astro.url.searchParams.get("stepup") === "1";
+const access = Astro.locals.access;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in · ReadLitRPG admin</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main class="container prose">
+      <div class="status-screen gate">
+        <p class="label">[Restricted area]</p>
+        <h1>{stepUp ? "Confirm it's you" : "Owner sign-in"}</h1>
+        <p>
+          {
+            stepUp
+              ? "This change needs a fresh passkey check (every 15 minutes for settings and money)."
+              : `Access verified as ${access.email}. Now use the passkey you registered on readlitrpg.com.`
+          }
+        </p>
+        <AdminPasskeySignIn client:load next={next} />
+      </div>
+    </main>
+  </body>
+</html>
+
+<style>
+  .gate {
+    margin-top: var(--space-12);
+  }
+</style>

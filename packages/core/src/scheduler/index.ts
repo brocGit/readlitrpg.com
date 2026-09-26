@@ -53,6 +53,9 @@ export interface JobMessage {
 
 export const LEASE_SECONDS = 120;
 
+/** KV key the heartbeat writes its last tick to, so the console can show the scheduler is alive. */
+export const HEARTBEAT_KV_KEY = "heartbeat:last";
+
 /** Insert a schedule row for every registered job that doesn't have one. Existing rows keep their edits. */
 export async function ensureSchedules(
   db: Db,

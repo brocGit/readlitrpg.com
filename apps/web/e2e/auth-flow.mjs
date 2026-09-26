@@ -24,6 +24,15 @@ function latestSigninLink() {
   return (logs.match(/http:\/\/localhost:\d+\/signin\/confirm\S+/g) ?? []).at(-1);
 }
 
+// Test runs sign in many times from one IP; start each run with fresh rate-limit windows.
+execSync(
+  'npx wrangler d1 execute DB --local --persist-to ../../.wrangler/state --command "DELETE FROM rate_counters"',
+  {
+    cwd: new URL("..", import.meta.url),
+    stdio: "pipe",
+  },
+);
+
 const browser = await chromium.launch({ executablePath: CHROMIUM, args: ["--no-sandbox"] });
 try {
   const context = await browser.newContext();
@@ -77,6 +86,8 @@ try {
   await hydrated();
   await page.click('button:has-text("Add a passkey")');
   await page.waitForSelector("li:has-text('added')");
+  // Adding a passkey reloads the page; let that finish before navigating on.
+  await page.waitForLoadState("networkidle");
   const { credentials } = await cdp.send("WebAuthn.getCredentials", { authenticatorId });
   check(credentials.length === 1, "a passkey was registered");
 

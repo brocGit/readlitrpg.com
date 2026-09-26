@@ -1,0 +1,79 @@
+---
+import { hoursBetween, nowIso } from "@rlr/core";
+import { listOpenInbox } from "@rlr/core/inbox";
+import { HEARTBEAT_KV_KEY } from "@rlr/core/scheduler";
+import { jobRuns } from "@rlr/core/schema";
+import { desc } from "drizzle-orm";
+import Console from "../layouts/Console.astro";
+import { env, getDb } from "../lib/runtime";
+
+const db = getDb();
+const [heartbeat, inbox, runs, settings] = await Promise.all([
+  env.CONFIG.get(HEARTBEAT_KV_KEY),
+  listOpenInbox(db, 200),
+  db.select().from(jobRuns).orderBy(desc(jobRuns.queuedAt)).limit(10),
+  Astro.locals.settings(),
+]);
+const heartbeatAgeHours = heartbeat ? hoursBetween(heartbeat, nowIso()) : null;
+const heartbeatOk = heartbeatAgeHours !== null && heartbeatAgeHours < 0.25;
+const urgent = inbox.filter((i) => i.priority >= 80).length;
+const switches = Object.entries(settings).filter(([k]) => k.startsWith("flags."));
+---
+
+<Console title="Dashboard">
+  <section class="grid">
+    <div class="status-screen">
+      <p class="label">Scheduler</p>
+      <p>
+        {heartbeat ? (heartbeatOk ? "✓ Heartbeat is running." : `⚠ Last heartbeat ${heartbeatAgeHours?.toFixed(1)} h ago.`) : "⚠ No heartbeat recorded yet."}
+      </p>
+    </div>
+    <div class="status-screen">
+      <p class="label">Inbox</p>
+      <p><a href="/inbox">{inbox.length} open</a>{urgent > 0 && <strong> · {urgent} urgent</strong>}</p>
+    </div>
+    <div class="status-screen">
+      <p class="label">Switches</p>
+      <ul class="switches">
+        {switches.map(([k, v]) => <li>{k.replace("flags.", "")}: <strong>{String(v)}</strong></li>)}
+      </ul>
+    </div>
+  </section>
+
+  <h2>Recent job runs</h2>
+  {
+    runs.length === 0 ? (
+      <p class="muted">No jobs have run yet.</p>
+    ) : (
+      <table>
+        <thead>
+          <tr><th>Job</th><th>Status</th><th>Queued</th><th>Items</th><th>Error</th></tr>
+        </thead>
+        <tbody>
+          {runs.map((r) => (
+            <tr>
+              <td>{r.job}</td>
+              <td>{r.status}</td>
+              <td>{r.queuedAt.slice(0, 16).replace("T", " ")}</td>
+              <td>{r.items ?? ""}</td>
+              <td><code>{r.error?.slice(0, 120) ?? ""}</code></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+</Console>
+
+<style>
+  .grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    margin-bottom: var(--space-8);
+  }
+  .switches {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+</style>

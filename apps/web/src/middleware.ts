@@ -1,4 +1,5 @@
-// Request pipeline: context → route gate → security headers (DESIGN §15.4, §15.5).
+// Request pipeline: context → security headers (wrapping the gate, so even refusals get them) →
+// route gate (DESIGN §15.4, §15.5).
 
 import { defineMiddleware, sequence } from "astro:middleware";
 import { ulid } from "@rlr/core";
@@ -93,4 +94,4 @@ const headers = defineMiddleware(async (ctx, next) => {
   return result;
 });
 
-export const onRequest = sequence(context, gate, headers);
+export const onRequest = sequence(context, headers, gate);

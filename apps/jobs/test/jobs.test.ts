@@ -1,10 +1,11 @@
 import { appendAudit } from "@rlr/core/audit";
 import { createDb, type Db } from "@rlr/core/db";
+import { HEARTBEAT_KV_KEY } from "@rlr/core/scheduler";
 import { inboxItems, jobRuns, schedules, sessions, users } from "@rlr/core/schema";
 import { createTestD1, TestKV } from "@rlr/core/testing";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import worker, { emailProvider, HEARTBEAT_KV_KEY, queueKind, summarizeDeadLetter } from "../src/worker";
+import worker, { emailProvider, queueKind, summarizeDeadLetter } from "../src/worker";
 
 class FakeR2 {
   readonly objects = new Map<string, string>();

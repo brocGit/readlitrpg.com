@@ -1,0 +1,35 @@
+{
+  "name": "@rlr/admin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 4322",
+    "build": "astro build",
+    "preview": "astro preview --port 4322",
+    "deploy": "astro build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "typecheck": "astro sync && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "e2e": "node e2e/admin-flow.mjs"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "14.3.3",
+    "@astrojs/preact": "6.0.5",
+    "@better-auth/passkey": "1.7.6",
+    "@rlr/core": "workspace:*",
+    "@rlr/ui": "workspace:*",
+    "astro": "7.3.5",
+    "better-auth": "1.7.6",
+    "drizzle-orm": "0.45.3",
+    "preact": "10.29.8",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "playwright-core": "1.63.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11",
+    "wrangler": "4.141.0"
+  }
+}

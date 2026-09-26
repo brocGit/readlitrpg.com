@@ -8,6 +8,7 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { magicLink } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { createDb, type Db } from "../db";
@@ -68,13 +69,14 @@ function common(opts: CommonOptions, db: Db) {
     databaseHooks: {
       session: {
         create: {
-          // Deleted and restricted accounts can't start new sessions.
+          // Deleted and restricted accounts can't start new sessions. Throwing (rather than
+          // returning false) answers 403 instead of a generic 500.
           before: async (session: { userId: string }) => {
             const [user] = await db
               .select({ state: users.state })
               .from(users)
               .where(eq(users.id, session.userId));
-            return user?.state === "active";
+            if (user?.state !== "active") throw new APIError("FORBIDDEN", { message: "Account unavailable" });
           },
         },
       },
@@ -129,7 +131,21 @@ export function createAdminAuth(opts: AdminAuthOptions) {
       disableSessionRefresh: true,
     },
     databaseHooks: {
-      ...base.databaseHooks,
+      session: {
+        create: {
+          // Only active admins get a session on the admin host. The admin Worker also checks the
+          // Cloudflare Access identity on every request (apps/admin/src/lib/admin-session.ts).
+          before: async (session: { userId: string }) => {
+            const [user] = await db
+              .select({ state: users.state, isAdmin: users.isAdmin })
+              .from(users)
+              .where(eq(users.id, session.userId));
+            if (user?.state !== "active" || user.isAdmin !== true) {
+              throw new APIError("FORBIDDEN", { message: "Not an admin" });
+            }
+          },
+        },
+      },
       user: {
         create: {
           // Accounts are never created on the admin host.

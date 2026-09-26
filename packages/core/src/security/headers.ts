@@ -127,19 +127,14 @@ export function apiSecurityHeaders(): Record<string, string> {
   };
 }
 
-/** Apply headers without overwriting any a handler set on purpose. */
+/**
+ * Apply headers without overwriting any a handler set on purpose. Always returns a copy with
+ * mutable headers: redirects and fetched responses have immutable ones.
+ */
 export function applyHeaders(response: Response, headers: Record<string, string>): Response {
-  let target = response;
-  try {
-    for (const [k, v] of Object.entries(headers)) {
-      if (!target.headers.has(k)) target.headers.set(k, v);
-    }
-  } catch {
-    // Some responses (e.g. from fetch) have immutable headers. Copy and retry.
-    target = new Response(response.body, response);
-    for (const [k, v] of Object.entries(headers)) {
-      if (!target.headers.has(k)) target.headers.set(k, v);
-    }
+  const target = new Response(response.body, response);
+  for (const [k, v] of Object.entries(headers)) {
+    if (!target.headers.has(k)) target.headers.set(k, v);
   }
   return target;
 }

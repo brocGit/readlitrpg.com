@@ -1,0 +1,48 @@
+---
+import { verifyAuditLog } from "@rlr/core/audit";
+import { auditLog } from "@rlr/core/schema";
+import { desc } from "drizzle-orm";
+import Console from "../layouts/Console.astro";
+import { getDb } from "../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+const rows = await db.select().from(auditLog).orderBy(desc(auditLog.seq)).limit(100);
+const check = Astro.url.searchParams.get("verify") === "1" ? await verifyAuditLog(db) : null;
+---
+
+<Console title="Audit log">
+  <p class="muted">
+    Append-only. Each row carries a hash of the one before it, so an edited or deleted row breaks the chain. A job checks the whole
+    chain every night.
+  </p>
+  <p><a class="button small secondary" href="/audit?verify=1">Verify the chain now</a></p>
+  {
+    check && (
+      <p class={check.ok ? "notice" : "notice error"} role="status">
+        {check.ok
+          ? `✓ Chain intact: ${check.checked} rows verified.`
+          : `✗ Chain broken at #${check.brokenAtSeq} (${check.problem}) after ${check.checked} good rows.`}
+      </p>
+    )
+  }
+  <table>
+    <thead>
+      <tr><th>#</th><th>When (UTC)</th><th>Actor</th><th>Action</th><th>Subject</th><th>Change</th></tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr>
+          <td>{r.seq}</td>
+          <td>{r.createdAt.slice(0, 19).replace("T", " ")}</td>
+          <td>{r.actorType}{r.actorId ? ` ${r.actorId.slice(-6)}` : ""}</td>
+          <td>{r.action}</td>
+          <td>{r.subjectType ? `${r.subjectType} ${r.subjectId ?? ""}` : ""}</td>
+          <td><code>{r.diff == null ? "" : JSON.stringify(r.diff).slice(0, 300)}</code></td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</Console>

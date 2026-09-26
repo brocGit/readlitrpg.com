@@ -1,0 +1,8 @@
+# Copy to .dev.vars for local development. Never commit .dev.vars.
+ENVIRONMENT=local
+PUBLIC_ORIGIN=http://localhost:4322
+RP_ID=localhost
+ADMIN_AUTH_SECRET=local-dev-only-admin-secret-not-for-production-00
+# Local only: stands in for the Cloudflare Access identity. Ignored unless ENVIRONMENT=local
+# and the request is to localhost. Make this user an admin with docs/runbooks/bootstrap-admin.md.
+ACCESS_DEV_EMAIL=owner@example.com

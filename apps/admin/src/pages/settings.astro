@@ -1,0 +1,118 @@
+---
+import { can } from "@rlr/core/policy";
+import {
+  isSettingKey,
+  readOverrides,
+  resetSetting,
+  SETTINGS,
+  SettingValidationError,
+  updateSetting,
+} from "@rlr/core/settings";
+import Console from "../layouts/Console.astro";
+import { adminActor } from "../lib/admin-session";
+import { flash, readForm } from "../lib/forms";
+import { env, getDb } from "../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  // Settings change the whole site, so they need a passkey check in the last 15 minutes.
+  const decision = can(adminActor(admin), "settings.change");
+  if (!decision.ok) {
+    const target =
+      decision.reason === "step_up_required"
+        ? "/signin?stepup=1&next=/settings"
+        : flash("/settings", "Not allowed", "error");
+    return Astro.redirect(target, 303);
+  }
+  const form = await readForm(Astro.request);
+  const key = form.key ?? "";
+  if (!isSettingKey(key)) return Astro.redirect(flash("/settings", "Unknown setting", "error"), 303);
+  const deps = {
+    db,
+    kv: env.CONFIG,
+    actor: { type: "admin" as const, id: admin.userId },
+    requestId: Astro.locals.requestId,
+  };
+  try {
+    if (form.action === "reset") {
+      await resetSetting(deps, key);
+      return Astro.redirect(flash("/settings", `${key} is back to its default.`), 303);
+    }
+    let value: unknown;
+    try {
+      value = JSON.parse(form.value ?? "");
+    } catch {
+      return Astro.redirect(
+        flash("/settings", `${key}: enter a JSON value (true, 42, "text" or {...}).`, "error"),
+        303,
+      );
+    }
+    await updateSetting(deps, key, value);
+    return Astro.redirect(flash("/settings", `${key} saved. It reaches every page within a minute.`), 303);
+  } catch (error) {
+    const message =
+      error instanceof SettingValidationError ? `${key}: ${error.message}` : "Couldn't save that setting.";
+    return Astro.redirect(flash("/settings", message, "error"), 303);
+  }
+}
+
+const overrides = await readOverrides(db);
+const groups = new Map<string, [string, (typeof SETTINGS)[keyof typeof SETTINGS]][]>();
+for (const [key, def] of Object.entries(SETTINGS)) {
+  const group = key.split(".")[0] ?? key;
+  groups.set(group, [...(groups.get(group) ?? []), [key, def]]);
+}
+---
+
+<Console title="Settings">
+  <p class="muted">
+    Values are JSON. Changes need a passkey check in the last 15 minutes, are written to the audit log, and reach every page within
+    a minute.
+  </p>
+  {
+    [...groups].map(([group, entries]) => (
+      <section>
+        <h2>{group}</h2>
+        <table>
+          <thead>
+            <tr><th>Setting</th><th>Value</th><th>Default</th><th></th></tr>
+          </thead>
+          <tbody>
+            {entries.map(([key, def]) => {
+              const overridden = key in overrides;
+              const current = overridden ? overrides[key] : def.default;
+              return (
+                <tr>
+                  <td>
+                    <strong>{key}</strong>
+                    {overridden && <span class="muted"> (changed)</span>}
+                    <div class="muted">{def.description}</div>
+                  </td>
+                  <td>
+                    <form method="post" class="inline">
+                      <input type="hidden" name="key" value={key} />
+                      <input type="text" name="value" value={JSON.stringify(current)} size="24" aria-label={`Value for ${key}`} />
+                      <button class="button small" name="action" value="save" type="submit">Save</button>
+                    </form>
+                  </td>
+                  <td><code>{JSON.stringify(def.default)}</code></td>
+                  <td>
+                    {overridden && (
+                      <form method="post" class="inline">
+                        <input type="hidden" name="key" value={key} />
+                        <button class="button small secondary" name="action" value="reset" type="submit">Reset</button>
+                      </form>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
+    ))
+  }
+</Console>

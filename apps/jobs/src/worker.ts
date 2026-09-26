@@ -8,6 +8,7 @@ import { createDb, type Db } from "@rlr/core/db";
 import { openInboxItem } from "@rlr/core/inbox";
 import {
   finishJobRun,
+  HEARTBEAT_KV_KEY,
   isJobKey,
   type JobKey,
   type JobMessage,
@@ -33,8 +34,6 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "audit.verify": verifyAudit,
   "retention.purge": purgeExpired,
 };
-
-export const HEARTBEAT_KV_KEY = "heartbeat:last";
 
 type QueueKind = "jobs" | "email" | "dlq";
 

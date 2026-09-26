@@ -1,0 +1,122 @@
+---
+import "@rlr/ui/tokens.css";
+import "@rlr/ui/base.css";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const admin = await Astro.locals.admin();
+const done = Astro.url.searchParams.get("done");
+const error = Astro.url.searchParams.get("error");
+const nav = [
+  ["/", "Dashboard"],
+  ["/inbox", "Inbox"],
+  ["/automation", "Automation"],
+  ["/settings", "Settings"],
+  ["/audit", "Audit log"],
+] as const;
+const here = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · ReadLitRPG admin</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="console-header">
+      <div class="container bar">
+        <span class="wordmark">[ReadLitRPG · admin]</span>
+        {
+          admin && (
+            <nav aria-label="Console">
+              {nav.map(([href, label]) => (
+                <a href={href} aria-current={here === href ? "page" : undefined}>
+                  {label}
+                </a>
+              ))}
+            </nav>
+          )
+        }
+        {admin && <span class="muted who">{admin.email}</span>}
+      </div>
+    </header>
+    <main class="container">
+      <h1>{title}</h1>
+      {done && <p class="notice" role="status">{done}</p>}
+      {error && <p class="notice error" role="alert">{error}</p>}
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style>
+  .console-header {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    align-items: center;
+    min-height: 3.25rem;
+  }
+  .wordmark {
+    font-family: var(--font-system);
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+  nav {
+    display: flex;
+    gap: var(--space-4);
+  }
+  nav a {
+    color: var(--color-paper);
+  }
+  nav a[aria-current="page"] {
+    text-decoration-thickness: 3px;
+  }
+  .who {
+    margin-left: auto;
+    font-size: 0.85rem;
+  }
+  main {
+    padding-block: var(--space-6) var(--space-12);
+  }
+  :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    background: var(--color-surface);
+  }
+  :global(th),
+  :global(td) {
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: top;
+  }
+  :global(td code),
+  :global(pre) {
+    font-family: var(--font-system);
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  :global(form.inline) {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+  :global(.button.small) {
+    padding: var(--space-1) var(--space-3);
+    font-size: 0.85rem;
+  }
+</style>

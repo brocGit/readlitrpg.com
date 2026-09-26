@@ -1,0 +1,126 @@
+---
+import { can } from "@rlr/core/policy";
+import { CronError, ensureSchedules, JOBS, requestRunNow, updateSchedule } from "@rlr/core/scheduler";
+import { jobRuns, schedules } from "@rlr/core/schema";
+import { asc, desc } from "drizzle-orm";
+import Console from "../layouts/Console.astro";
+import { adminActor } from "../lib/admin-session";
+import { audit, flash, readForm } from "../lib/forms";
+import { getDb } from "../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  if (!can(adminActor(admin), "schedule.manage").ok)
+    return Astro.redirect(flash("/automation", "Not allowed", "error"), 303);
+  const key = form.key ?? "";
+  try {
+    if (form.action === "run_now") {
+      await requestRunNow(db, key);
+      await audit(admin, Astro.locals.requestId, {
+        action: "schedule.run_now",
+        subjectType: "schedule",
+        subjectId: key,
+      });
+      return Astro.redirect(
+        flash("/automation", `${key} will run on the next heartbeat (within 5 minutes).`),
+        303,
+      );
+    }
+    if (form.action === "toggle") {
+      const enabled = form.enabled === "1";
+      await updateSchedule(db, key, { enabled });
+      await audit(admin, Astro.locals.requestId, {
+        action: "schedule.update",
+        subjectType: "schedule",
+        subjectId: key,
+        diff: { enabled },
+      });
+      return Astro.redirect(flash("/automation", `${key} ${enabled ? "resumed" : "paused"}.`), 303);
+    }
+    if (form.action === "cron") {
+      const cronExpr = (form.cron ?? "").trim();
+      await updateSchedule(db, key, { cronExpr });
+      await audit(admin, Astro.locals.requestId, {
+        action: "schedule.update",
+        subjectType: "schedule",
+        subjectId: key,
+        diff: { cronExpr },
+      });
+      return Astro.redirect(flash("/automation", `${key} now runs on "${cronExpr}" (UTC).`), 303);
+    }
+  } catch (error) {
+    const message = error instanceof CronError ? error.message : "Couldn't save that change.";
+    return Astro.redirect(flash("/automation", message, "error"), 303);
+  }
+  return Astro.redirect("/automation", 303);
+}
+
+// Show rows for every registered job, even before the first heartbeat seeds them.
+await ensureSchedules(db);
+const rows = await db.select().from(schedules).orderBy(asc(schedules.key));
+const runs = await db.select().from(jobRuns).orderBy(desc(jobRuns.queuedAt)).limit(50);
+const describe = (key: string) => JOBS.find((j) => j.key === key)?.description ?? "Unknown job (no handler)";
+---
+
+<Console title="Automation">
+  <p class="muted">Times are UTC. The heartbeat runs every 5 minutes and starts any job that is due.</p>
+  <table>
+    <thead>
+      <tr><th>Job</th><th>Schedule</th><th>Next run</th><th>Last run</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr>
+          <td><strong>{r.key}</strong>{!r.enabled && <span class="muted"> (paused)</span>}<div class="muted">{describe(r.key)}</div></td>
+          <td>
+            <form method="post" class="inline">
+              <input type="hidden" name="key" value={r.key} />
+              <input type="hidden" name="action" value="cron" />
+              <input type="text" name="cron" value={r.cronExpr} size="14" aria-label={`Cron for ${r.key}`} />
+              <button class="button small secondary" type="submit">Save</button>
+            </form>
+          </td>
+          <td>{r.nextRunAt.slice(0, 16).replace("T", " ")}</td>
+          <td>{r.lastRunAt?.slice(0, 16).replace("T", " ") ?? "never"}</td>
+          <td>
+            <form method="post" class="inline">
+              <input type="hidden" name="key" value={r.key} />
+              <button class="button small" name="action" value="run_now" type="submit">Run now</button>
+            </form>
+            <form method="post" class="inline">
+              <input type="hidden" name="key" value={r.key} />
+              <input type="hidden" name="action" value="toggle" />
+              <button class="button small secondary" name="enabled" value={r.enabled ? "0" : "1"} type="submit">
+                {r.enabled ? "Pause" : "Resume"}
+              </button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h2>Job history</h2>
+  <table>
+    <thead>
+      <tr><th>Job</th><th>Trigger</th><th>Status</th><th>Queued</th><th>Finished</th><th>Items</th><th>Error</th></tr>
+    </thead>
+    <tbody>
+      {runs.map((r) => (
+        <tr>
+          <td>{r.job}</td>
+          <td>{r.trigger}</td>
+          <td>{r.status}</td>
+          <td>{r.queuedAt.slice(0, 16).replace("T", " ")}</td>
+          <td>{r.finishedAt?.slice(0, 16).replace("T", " ") ?? ""}</td>
+          <td>{r.items ?? ""}</td>
+          <td><code>{r.error?.slice(0, 200) ?? ""}</code></td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</Console>
