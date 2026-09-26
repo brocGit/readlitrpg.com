@@ -1,0 +1,179 @@
+{
+  "slug": "whats-your-litrpg-class",
+  "kind": "fun",
+  "status": "draft",
+  "title": "What's Your LitRPG Class?",
+  "dek": "Ten questions. One class. A reading list built for your build.",
+  "estimated_seconds": 90,
+  "is_official": false,
+  "spoiler_boundary": null,
+  "outcomes_from": "reader-classes",
+  "questions": [
+    {
+      "id": "q1",
+      "flavor": "[SYSTEM ONLINE]",
+      "prompt": "A glowing blue screen appears in front of you. What's your first move?",
+      "options": [
+        { "id": "a", "label": "Read every line. Then open every submenu.", "points": { "min-maxer": 2, "lore-seeker": 1 },
+          "effects": { "dials": { "crunch": 2, "rigour": 1, "strategy": 1 }, "stats": { "build_payoff": 1 }, "tags": { "stats": 1 } } },
+        { "id": "b", "label": "Close it and punch the nearest monster.", "points": { "dungeon-diver": 2, "underdog": 1 },
+          "effects": { "dials": { "combat": 2, "pacing": 1, "crunch": -1 } } },
+        { "id": "c", "label": "Ask it, politely, who made it. And why.", "points": { "lore-seeker": 2, "comedy-rogue": 1 },
+          "effects": { "dials": { "lore": 2, "humor": 1 }, "tags": { "system-mystery": 1, "snarky-system": 1 } } },
+        { "id": "d", "label": "Look for the crafting tab.", "points": { "cozy-crafter": 2, "kingdom-builder": 1 },
+          "effects": { "dials": { "combat": -2, "tone": 1 }, "tags": { "crafting": 2 } } }
+      ]
+    },
+    {
+      "id": "q2",
+      "flavor": "[CHARACTER CREATION]",
+      "prompt": "Choose your starting race.",
+      "options": [
+        { "id": "a", "label": "Human. Boring? No. Adaptable.", "points": { "underdog": 2, "party-main": 1 },
+          "effects": { "dials": { "power_fantasy": -1 }, "stats": { "earned_power": 1 }, "tags": { "weak-to-strong": 1 } } },
+        { "id": "b", "label": "Slime. Level 1. Eats everything.", "points": { "monster-evolver": 2, "comedy-rogue": 1 },
+          "effects": { "dials": { "humor": 1 }, "tags": { "monster-mc": 2, "race-evolution": 1 } } },
+        { "id": "c", "label": "Dungeon Core. You don't enter the dungeon. You are the dungeon.", "points": { "dungeon-keeper": 2, "kingdom-builder": 1 },
+          "effects": { "dials": { "strategy": 1 }, "tags": { "dungeon-core": 2, "base-building": 1 } } },
+        { "id": "d", "label": "Lich. Undead, ancient and extremely patient.", "points": { "villain-main": 2, "lore-seeker": 1 },
+          "effects": { "dials": { "morality": 2, "lore": 1 }, "tags": { "necromancy": 2, "villain-mc": 1 } } }
+      ]
+    },
+    {
+      "id": "q3",
+      "flavor": "[AMBUSH!]",
+      "prompt": "Your party is ambushed on the road. Where are you?",
+      "options": [
+        { "id": "a", "label": "Front line, shield up, trading insults with the bandit captain.", "points": { "party-main": 2, "comedy-rogue": 1 },
+          "effects": { "dials": { "ensemble": 2, "humor": 1 }, "stats": { "party_chemistry": 1 }, "tags": { "party-focused": 1 } } },
+        { "id": "b", "label": "Already behind them. Nobody sees me until it's over.", "points": { "speed-leveler": 2, "villain-main": 1 },
+          "effects": { "dials": { "combat": 1, "power_fantasy": 1 }, "tags": { "class-rogue": 1 } } },
+        { "id": "c", "label": "Back row, calculating the optimal kill order.", "points": { "min-maxer": 2, "dungeon-keeper": 1 },
+          "effects": { "dials": { "strategy": 2, "crunch": 1 }, "stats": { "build_payoff": 1 } } },
+        { "id": "d", "label": "Watching from a safe distance. I led them into my trap on purpose.", "points": { "dungeon-keeper": 2, "monster-evolver": 1 },
+          "effects": { "dials": { "strategy": 2, "morality": 1 }, "tags": { "clever-mc": 1 } } }
+      ]
+    },
+    {
+      "id": "q4",
+      "flavor": "[REWARD AVAILABLE]",
+      "prompt": "The System offers you one reward. Choose wisely.",
+      "options": [
+        { "id": "a", "label": "+10 to every stat. Right now.", "points": { "speed-leveler": 2, "min-maxer": 1 },
+          "effects": { "dials": { "progression_speed": 2, "power_fantasy": 1 }, "stats": { "number_go_up": 2 } } },
+        { "id": "b", "label": "A legendary sword that's way too cool for your level.", "points": { "dungeon-diver": 2, "speed-leveler": 1 },
+          "effects": { "dials": { "combat": 1 }, "stats": { "rule_of_cool": 2 }, "tags": { "loot": 1 } } },
+        { "id": "c", "label": "The deed to an abandoned fort. Some assembly required.", "points": { "kingdom-builder": 2, "cozy-crafter": 1 },
+          "effects": { "dials": { "scope": 1, "strategy": 1 }, "tags": { "settlement-building": 2 } } },
+        { "id": "d", "label": "One true answer about how this world really works.", "points": { "lore-seeker": 2, "villain-main": 1 },
+          "effects": { "dials": { "lore": 2 }, "tags": { "system-mystery": 1 } } },
+        { "id": "e", "label": "A cursed hat that makes everything you say 20% funnier.", "points": { "comedy-rogue": 2, "dungeon-diver": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "humorous": 1 } } }
+      ]
+    },
+    {
+      "id": "q5",
+      "flavor": "[REST AREA]",
+      "prompt": "You finally get a free evening in town. Where do you spend it?",
+      "options": [
+        { "id": "a", "label": "The tavern with my party. Someone's paying, and it isn't me.", "points": { "party-main": 2, "comedy-rogue": 1 },
+          "effects": { "dials": { "ensemble": 2, "humor": 1, "tone": 1 }, "tags": { "found-family": 1 } } },
+        { "id": "b", "label": "The workshop. Just one more enchantment.", "points": { "cozy-crafter": 2, "min-maxer": 1 },
+          "effects": { "dials": { "combat": -1, "tone": 1 }, "tags": { "crafting": 1 } } },
+        { "id": "c", "label": "The archives, reading history someone tried very hard to erase.", "points": { "lore-seeker": 2, "dungeon-keeper": 1 },
+          "effects": { "dials": { "lore": 2, "pacing": -1 } } },
+        { "id": "d", "label": "Outside the walls, grinding in the dark while everyone else sleeps.", "points": { "underdog": 2, "speed-leveler": 1 },
+          "effects": { "dials": { "progression_speed": 1 }, "stats": { "earned_power": 2 }, "tags": { "training-arcs": 1 } } },
+        { "id": "e", "label": "The dungeon, obviously. Night floors have better loot.", "points": { "dungeon-diver": 2, "underdog": 1 },
+          "effects": { "dials": { "combat": 2, "danger": 1 }, "tags": { "dungeon-crawler": 1, "loot": 1 } } }
+      ]
+    },
+    {
+      "id": "q6",
+      "flavor": "[PUBLIC HUMILIATION]",
+      "prompt": "A smug rival mocks you in front of the whole guild. You...",
+      "options": [
+        { "id": "a", "label": "Say nothing. Disappear for a year. Come back unrecognizable.", "points": { "underdog": 2, "monster-evolver": 1 },
+          "effects": { "stats": { "earned_power": 1, "hype": 2 }, "tags": { "training-arcs": 1 } } },
+        { "id": "b", "label": "Roast them so hard the guild adopts your nickname for them.", "points": { "comedy-rogue": 2, "party-main": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "face-slapping": 1 } } },
+        { "id": "c", "label": "Smile. Remember. Ruin them later, slowly.", "points": { "villain-main": 2, "dungeon-keeper": 1 },
+          "effects": { "dials": { "morality": 2, "tone": -1 }, "tags": { "revenge": 2 } } },
+        { "id": "d", "label": "Buy the guild.", "points": { "kingdom-builder": 2, "cozy-crafter": 1 },
+          "effects": { "dials": { "scope": 1, "strategy": 1 }, "tags": { "business": 2 } } }
+      ]
+    },
+    {
+      "id": "q7",
+      "flavor": "[HOME BASE UNLOCKED]",
+      "prompt": "Pick your dream base.",
+      "options": [
+        { "id": "a", "label": "A farmhouse with a workshop, a wild garden and a very lazy cat.", "points": { "cozy-crafter": 2, "party-main": 1 },
+          "effects": { "dials": { "tone": 2, "danger": -2 }, "tags": { "cozy": 2, "farming": 1 } } },
+        { "id": "b", "label": "A walled city with markets, an academy and a council that mostly listens.", "points": { "kingdom-builder": 2, "villain-main": 1 },
+          "effects": { "dials": { "scope": 2 }, "tags": { "kingdom-building": 2, "politics": 1 } } },
+        { "id": "c", "label": "A labyrinth of traps. And I am the labyrinth.", "points": { "dungeon-keeper": 2, "monster-evolver": 1 },
+          "effects": { "tags": { "dungeon-core": 2, "nonhuman-mc": 1 } } },
+        { "id": "d", "label": "No base. The next floor is always calling.", "points": { "dungeon-diver": 2, "speed-leveler": 1 },
+          "effects": { "dials": { "pacing": 2 }, "tags": { "dungeon-crawler": 1, "tower-climbing": 1 } } },
+        { "id": "e", "label": "A tavern I won in a card game I definitely didn't cheat at.", "points": { "comedy-rogue": 2, "cozy-crafter": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "business": 1 } } }
+      ]
+    },
+    {
+      "id": "q8",
+      "flavor": "[PROGRESSION PATH]",
+      "prompt": "How do you want to get stronger?",
+      "options": [
+        { "id": "a", "label": "Evolve into something new. Humanity was just a starting point.", "points": { "monster-evolver": 2, "speed-leveler": 1 },
+          "effects": { "stats": { "number_go_up": 1 }, "tags": { "race-evolution": 2, "monster-mc": 1 } } },
+        { "id": "b", "label": "Grind until my hands bleed. Every point earned.", "points": { "underdog": 2, "dungeon-diver": 1 },
+          "effects": { "dials": { "progression_speed": -1 }, "stats": { "earned_power": 2 }, "tags": { "training-arcs": 1 } } },
+        { "id": "c", "label": "Find the loophole nobody else noticed.", "points": { "min-maxer": 2, "lore-seeker": 1 },
+          "effects": { "dials": { "strategy": 2, "rigour": 1 }, "tags": { "system-exploitation": 2 } } },
+        { "id": "d", "label": "Together. My party levels up with me.", "points": { "party-main": 2, "kingdom-builder": 1 },
+          "effects": { "dials": { "ensemble": 2 }, "stats": { "party_chemistry": 1 }, "tags": { "companions-progression": 1 } } },
+        { "id": "e", "label": "Take my enemies' skills. They weren't using them anymore.", "points": { "villain-main": 2, "monster-evolver": 1 },
+          "effects": { "dials": { "morality": 1 }, "tags": { "skill-absorption": 2 } } }
+      ]
+    },
+    {
+      "id": "q9",
+      "flavor": "[NOTIFICATION]",
+      "prompt": "Which notification would make your whole day?",
+      "options": [
+        { "id": "a", "label": "[Level Up! ×5]", "points": { "speed-leveler": 2, "dungeon-diver": 1 },
+          "effects": { "dials": { "progression_speed": 2 }, "stats": { "number_go_up": 2 }, "tags": { "levels": 1 } } },
+        { "id": "b", "label": "[Hidden Class Unlocked]", "points": { "min-maxer": 2, "underdog": 1 },
+          "effects": { "stats": { "build_payoff": 1, "rule_of_cool": 1 }, "tags": { "class-unique": 1 } } },
+        { "id": "c", "label": "[Achievement Unlocked: Emotional Damage]", "points": { "comedy-rogue": 2, "party-main": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "snarky-system": 1 } } },
+        { "id": "d", "label": "[Territory Expanded: Your dungeon has claimed a new floor]", "points": { "dungeon-keeper": 2, "kingdom-builder": 1 },
+          "effects": { "tags": { "dungeon-core": 1, "base-building": 1 } } },
+        { "id": "e", "label": "[Evolution Available: 3 paths detected]", "points": { "monster-evolver": 2, "lore-seeker": 1 },
+          "effects": { "stats": { "build_payoff": 1 }, "tags": { "race-evolution": 2 } } },
+        { "id": "f", "label": "[Party Member Leveled Up]", "points": { "party-main": 2, "cozy-crafter": 1 },
+          "effects": { "dials": { "ensemble": 2 }, "stats": { "party_chemistry": 1 } } }
+      ]
+    },
+    {
+      "id": "q10",
+      "flavor": "[EPILOGUE]",
+      "prompt": "How does your story end?",
+      "options": [
+        { "id": "a", "label": "Ruling the kingdom I built from nothing.", "points": { "kingdom-builder": 2, "underdog": 1 },
+          "effects": { "dials": { "scope": 2 }, "tags": { "kingdom-building": 1 } } },
+        { "id": "b", "label": "At the top of the tower. Alone. Unbeaten.", "points": { "speed-leveler": 2, "dungeon-diver": 1 },
+          "effects": { "dials": { "power_fantasy": 2 }, "tags": { "solo-mc": 1, "tower-climbing": 1 } } },
+        { "id": "c", "label": "A quiet shop, a full workshop, friends dropping by.", "points": { "cozy-crafter": 2, "party-main": 1 },
+          "effects": { "dials": { "tone": 2, "danger": -1 }, "tags": { "slice-of-life": 1 } } },
+        { "id": "d", "label": "Finally learning what's beyond the System.", "points": { "lore-seeker": 2, "min-maxer": 1 },
+          "effects": { "dials": { "lore": 2, "plot_structure": 1 }, "tags": { "system-mystery": 1 } } },
+        { "id": "e", "label": "As the final boss everyone fears. Me.", "points": { "villain-main": 2, "dungeon-keeper": 1 },
+          "effects": { "dials": { "morality": 2, "power_fantasy": 1 }, "tags": { "villain-mc": 1 } } },
+        { "id": "f", "label": "Apex predator of a brand-new world.", "points": { "monster-evolver": 2, "villain-main": 1 },
+          "effects": { "dials": { "power_fantasy": 1 }, "tags": { "monster-mc": 1 } } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "slug": "what-would-your-system-be-like",
+  "kind": "fun",
+  "status": "draft",
+  "title": "What Would Your System Be Like?",
+  "dek": "Every System has a personality. Six questions to find out which one would be stuck with you.",
+  "estimated_seconds": 60,
+  "is_official": false,
+  "spoiler_boundary": null,
+  "outcomes": [
+    {
+      "key": "snarky-announcer",
+      "name": "The Snarky Announcer",
+      "tagline": "Your System has opinions, and an audience.",
+      "description": "It narrates your worst moments with relish, hands out achievements for embarrassing yourself, and never, ever lets anything go. You'd be lost without it, and it knows.",
+      "loves": ["Snarky Systems", "Humor", "Rule of Cool"],
+      "watch_out": "Silent, joyless Systems.",
+      "profile_seed": {
+        "dials": { "humor": { "target": 9, "importance": 0.8 } },
+        "stats": { "rule_of_cool": 6 },
+        "tags": { "snarky-system": 3, "humorous": 1 }
+      },
+      "share_text": "My System would be The Snarky Announcer. It has opinions, and an audience. What would yours be?"
+    },
+    {
+      "key": "helpful-guide",
+      "name": "The Helpful Guide",
+      "tagline": "Your System wants you to make it.",
+      "description": "It explains things, cheers you on, and occasionally bends a rule when you really need it. You like your stories with a warm heart, and so does your System.",
+      "loves": ["A warm tone", "Rootable MCs", "Low drama"],
+      "watch_out": "Cruel worlds where nobody is safe.",
+      "profile_seed": {
+        "dials": { "tone": { "target": 8, "importance": 0.7 }, "danger": { "target": 3, "importance": 0.5 } },
+        "stats": { "low_drama": 6, "rootable_mc": 6 },
+        "tags": { "heroic": 1, "cozy": 1 }
+      },
+      "share_text": "My System would be The Helpful Guide. It wants me to make it. What would yours be?"
+    },
+    {
+      "key": "cold-machine",
+      "name": "The Cold Machine",
+      "tagline": "Numbers. Rules. Exact percentages.",
+      "description": "Your System doesn't care about you, and that's fine, because you care about the math. Every modifier is visible, every rule is absolute, and every exploit is fair game.",
+      "loves": ["Heavy crunch", "Hard rules", "Build payoff"],
+      "watch_out": "Handwavy Systems that change the rules whenever it's convenient.",
+      "profile_seed": {
+        "dials": { "crunch": { "target": 9, "importance": 0.8 }, "rigour": { "target": 9, "importance": 0.8 }, "strategy": { "target": 7, "importance": 0.4 } },
+        "stats": { "system_consistency": 8, "build_payoff": 7 },
+        "tags": { "stats": 1 }
+      },
+      "share_text": "My System would be The Cold Machine: numbers, rules, exact percentages. What would yours be?"
+    },
+    {
+      "key": "cruel-game-master",
+      "name": "The Cruel Game Master",
+      "tagline": "It's watching, and it is not on your side.",
+      "description": "Your System thinks your suffering is excellent content. Impossible quests, brutal penalties and an audience that bets on your death. You like survival that's earned and stakes that are real.",
+      "loves": ["High stakes", "Earned power", "Dark tone"],
+      "watch_out": "Plot armor thick enough to stop a dragon.",
+      "profile_seed": {
+        "dials": { "danger": { "target": 9, "importance": 0.8 }, "tone": { "target": 2, "importance": 0.6 } },
+        "stats": { "earned_power": 7 },
+        "tags": { "grimdark": 1, "system-apocalypse": 1 }
+      },
+      "share_text": "My System would be The Cruel Game Master. It is not on my side. What would yours be?"
+    },
+    {
+      "key": "glitchy-mess",
+      "name": "The Glitchy Mess",
+      "tagline": "Held together with duct tape and hope.",
+      "description": "Your System is buggy, and you're the one who found the bug. You love an MC who breaks the game in ways the designers never imagined, and gets away with it.",
+      "loves": ["System exploits", "Cheat abilities", "Rule of Cool"],
+      "watch_out": "Flawless Systems with nothing to break.",
+      "profile_seed": {
+        "dials": { "humor": { "target": 6, "importance": 0.4 }, "strategy": { "target": 7, "importance": 0.5 } },
+        "stats": { "rule_of_cool": 7 },
+        "tags": { "system-exploitation": 2, "cheat-ability": 1 }
+      },
+      "share_text": "My System would be The Glitchy Mess, and I found the bug. What would yours be?"
+    },
+    {
+      "key": "silent-mystery",
+      "name": "The Silent Mystery",
+      "tagline": "It never explains. It definitely has an agenda.",
+      "description": "Your System barely speaks, and when it does, it raises more questions than it answers. You want to know what it really is, and you'll read ten books to find out.",
+      "loves": ["System mysteries", "Deep lore", "Tightly plotted arcs"],
+      "watch_out": "Worlds with no secrets left to find.",
+      "profile_seed": {
+        "dials": { "lore": { "target": 9, "importance": 0.8 }, "plot_structure": { "target": 7, "importance": 0.4 } },
+        "stats": { "system_consistency": 6 },
+        "tags": { "system-mystery": 3, "hidden-system": 1 }
+      },
+      "share_text": "My System would be The Silent Mystery. It never explains. What would yours be?"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "flavor": "[YOU HAVE DIED]",
+      "prompt": "You just died to a level 2 rat. What should the System say?",
+      "options": [
+        { "id": "a", "label": "\"Achievement unlocked: Snack. Defeated by a rodent.\"", "points": { "snarky-announcer": 2, "glitchy-mess": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "snarky-system": 1 } } },
+        { "id": "b", "label": "\"Don't worry! Here are three tips for next time.\"", "points": { "helpful-guide": 2, "cold-machine": 1 },
+          "effects": { "dials": { "tone": 2, "danger": -1 } } },
+        { "id": "c", "label": "\"Death registered. Respawn in 00:10. Rat threat level: 0.02.\"", "points": { "cold-machine": 2, "helpful-guide": 1 },
+          "effects": { "dials": { "crunch": 2 }, "tags": { "respawn": 1 } } },
+        { "id": "d", "label": "\"Pathetic. Your penalty has been doubled.\"", "points": { "cruel-game-master": 2, "snarky-announcer": 1 },
+          "effects": { "dials": { "danger": 2, "tone": -1 } } }
+      ]
+    },
+    {
+      "id": "q2",
+      "flavor": "[TUTORIAL]",
+      "prompt": "How should the tutorial work?",
+      "options": [
+        { "id": "a", "label": "It should be broken, and I should find out how.", "points": { "glitchy-mess": 2, "snarky-announcer": 1 },
+          "effects": { "dials": { "strategy": 1 }, "tags": { "system-exploitation": 2 } } },
+        { "id": "b", "label": "There is no tutorial. Figure it out.", "points": { "silent-mystery": 2, "cruel-game-master": 1 },
+          "effects": { "dials": { "lore": 1, "danger": 1 } } },
+        { "id": "c", "label": "A mandatory cutscene with commentary. So much commentary.", "points": { "snarky-announcer": 2, "glitchy-mess": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "tutorial-world": 1 } } },
+        { "id": "d", "label": "Step by step, with a friendly voice and a practice dummy.", "points": { "helpful-guide": 2, "cold-machine": 1 },
+          "effects": { "dials": { "tone": 1, "danger": -1 }, "stats": { "fast_start": 1 } } }
+      ]
+    },
+    {
+      "id": "q3",
+      "flavor": "[STATUS SCREEN]",
+      "prompt": "What does your status screen look like?",
+      "options": [
+        { "id": "a", "label": "Every stat, every modifier, every decimal place.", "points": { "cold-machine": 2, "cruel-game-master": 1 },
+          "effects": { "dials": { "crunch": 2, "rigour": 1 } } },
+        { "id": "b", "label": "My stats, plus a live leaderboard of everyone better than me.", "points": { "cruel-game-master": 2, "snarky-announcer": 1 },
+          "effects": { "dials": { "danger": 1, "power_fantasy": -1 }, "tags": { "tournament": 1 } } },
+        { "id": "c", "label": "Mostly correct. A few fields just say ▓▓▓▓.", "points": { "glitchy-mess": 2, "silent-mystery": 1 },
+          "effects": { "dials": { "lore": 1 }, "tags": { "hidden-system": 1 } } },
+        { "id": "d", "label": "It only appears when it wants to.", "points": { "silent-mystery": 2, "glitchy-mess": 1 },
+          "effects": { "dials": { "crunch": -2, "lore": 1 } } }
+      ]
+    },
+    {
+      "id": "q4",
+      "flavor": "[QUEST RECEIVED]",
+      "prompt": "What kind of quests should the System hand out?",
+      "options": [
+        { "id": "a", "label": "Ridiculous ones. \"Pet 100 dogs.\" \"Win an argument with a goose.\"", "points": { "snarky-announcer": 2, "helpful-guide": 1 },
+          "effects": { "dials": { "humor": 2, "danger": -1 } } },
+        { "id": "b", "label": "Brutal ones, with impossible deadlines and very real consequences.", "points": { "cruel-game-master": 2, "cold-machine": 1 },
+          "effects": { "dials": { "danger": 2 }, "stats": { "earned_power": 1 } } },
+        { "id": "c", "label": "Cryptic ones. You won't know what they meant until book five.", "points": { "silent-mystery": 2, "helpful-guide": 1 },
+          "effects": { "dials": { "lore": 2, "plot_structure": 1 }, "tags": { "system-mystery": 1 } } },
+        { "id": "d", "label": "Ones that contradict each other. On purpose? Nobody knows.", "points": { "glitchy-mess": 2, "silent-mystery": 1 },
+          "effects": { "dials": { "humor": 1 }, "tags": { "system-exploitation": 1 } } }
+      ]
+    },
+    {
+      "id": "q5",
+      "flavor": "[ORIGIN UNKNOWN]",
+      "prompt": "Who, or what, is really behind the System?",
+      "options": [
+        { "id": "a", "label": "Kind gods trying to help us survive something worse.", "points": { "helpful-guide": 2, "silent-mystery": 1 },
+          "effects": { "dials": { "tone": 2 }, "tags": { "mythology": 1 } } },
+        { "id": "b", "label": "An ancient machine running a program nobody remembers writing.", "points": { "cold-machine": 2, "glitchy-mess": 1 },
+          "effects": { "dials": { "rigour": 2, "lore": 1 } } },
+        { "id": "c", "label": "Bored cosmic beings, and we're the entertainment.", "points": { "cruel-game-master": 2, "snarky-announcer": 1 },
+          "effects": { "dials": { "tone": -1, "scope": 2 } } },
+        { "id": "d", "label": "That's the question, isn't it?", "points": { "silent-mystery": 2, "cold-machine": 1 },
+          "effects": { "dials": { "lore": 2 }, "tags": { "system-mystery": 2 } } }
+      ]
+    },
+    {
+      "id": "q6",
+      "flavor": "[FINAL NOTIFICATION]",
+      "prompt": "The last notification you ever get from the System says...",
+      "options": [
+        { "id": "a", "label": "\"Well. That was fun. Mostly for me.\"", "points": { "snarky-announcer": 2, "cruel-game-master": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "snarky-system": 1 } } },
+        { "id": "b", "label": "\"Thank you. You did well.\"", "points": { "helpful-guide": 2, "silent-mystery": 1 },
+          "effects": { "dials": { "tone": 2 }, "stats": { "satisfying_endings": 1 } } },
+        { "id": "c", "label": "\"Process complete. Shutting down.\"", "points": { "cold-machine": 2, "helpful-guide": 1 },
+          "effects": { "dials": { "rigour": 1, "plot_structure": 1 } } },
+        { "id": "d", "label": "\"ERR0R: Y0U W3RE N0T SUPP0SED T0 GET TH1S FAR.\"", "points": { "glitchy-mess": 2, "cruel-game-master": 1 },
+          "effects": { "stats": { "rule_of_cool": 1 }, "tags": { "cheat-ability": 1 } } }
+      ]
+    }
+  ]
+}

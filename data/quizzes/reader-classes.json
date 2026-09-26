@@ -1,0 +1,185 @@
+{
+  "_about": "Canonical reader classes. Used as the outcomes of the class quiz, for the shareable reader class card (DESIGN §7.8), and as starting profiles in onboarding. profile_seed dials: target 0-10 + importance 0-1; stats: must-have floor 0-10; tags: affinity. anchor_books_to_confirm are calibration references for the owner to confirm; they are never shown to readers as-is (the match engine picks live recommendations).",
+  "classes": [
+    {
+      "key": "min-maxer",
+      "name": "The Min-Maxer",
+      "tagline": "You've read the stat screen three times and already found the exploit.",
+      "description": "You don't just level up, you optimize. Every point is allocated on purpose, every skill is picked for its synergies, and every tooltip gets read in full. You live for the moment a clever build turns a 'useless' class into a menace, and you notice when an author's math doesn't add up.",
+      "loves": ["Build choices that actually matter", "Stat screens worth studying", "Loopholes, exploits and synergies", "Systems with hard rules"],
+      "watch_out": "Books where the numbers are just decoration.",
+      "profile_seed": {
+        "dials": { "crunch": { "target": 8, "importance": 0.8 }, "rigour": { "target": 8, "importance": 0.7 }, "strategy": { "target": 9, "importance": 0.8 }, "progression_speed": { "target": 6, "importance": 0.3 } },
+        "stats": { "build_payoff": 7, "system_consistency": 7, "number_go_up": 6 },
+        "tags": { "build-crafting": 2, "system-exploitation": 1, "stats": 1, "class-evolution": 1 }
+      },
+      "anchor_books_to_confirm": ["Delve (SenescentSoul)", "The Completionist Chronicles (Dakota Krout)"],
+      "share_text": "My LitRPG class is The Min-Maxer. I've read the stat screen three times. What's yours?"
+    },
+    {
+      "key": "cozy-crafter",
+      "name": "The Cozy Crafter",
+      "tagline": "Your idea of an epic battle is a stubborn enchantment.",
+      "description": "Swords are fine, but have you tried making a really good one? You love quiet competence, full workshops, growing gardens, and stories that let the MC build something that lasts. Low stakes aren't low value. They're the point.",
+      "loves": ["Crafting and slice of life", "Low drama", "A warm tone", "Progress you can hold in your hands"],
+      "watch_out": "Grimdark body counts and nonstop combat.",
+      "profile_seed": {
+        "dials": { "tone": { "target": 8, "importance": 0.7 }, "combat": { "target": 2, "importance": 0.7 }, "danger": { "target": 2, "importance": 0.6 }, "pacing": { "target": 4, "importance": 0.3 } },
+        "stats": { "low_drama": 7 },
+        "tags": { "crafting": 2, "cozy": 2, "slice-of-life": 1, "farming": 1, "business": 1 }
+      },
+      "anchor_books_to_confirm": ["Beware of Chicken (Casualfarmer)", "Heretical Fishing (Haylock Jobson)"],
+      "share_text": "My LitRPG class is The Cozy Crafter. My idea of an epic battle is a stubborn enchantment. What's yours?"
+    },
+    {
+      "key": "dungeon-diver",
+      "name": "The Dungeon Diver",
+      "tagline": "Floors. Loot. Bosses. Repeat until legendary.",
+      "description": "You want the next floor, the next boss and the next loot drop, ideally all in the same chapter. Give you a party, a dungeon and danger that keeps escalating, and your weekend is booked.",
+      "loves": ["Dungeon crawling", "Loot and gear", "Rule of Cool", "Escalating danger"],
+      "watch_out": "Long stretches of politics and paperwork.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 9, "importance": 0.8 }, "pacing": { "target": 8, "importance": 0.7 }, "danger": { "target": 6, "importance": 0.4 } },
+        "stats": { "rule_of_cool": 7, "number_go_up": 7 },
+        "tags": { "dungeon-crawler": 2, "tower-climbing": 1, "loot": 1, "party-focused": 1 }
+      },
+      "anchor_books_to_confirm": ["Dungeon Crawler Carl (Matt Dinniman)"],
+      "share_text": "My LitRPG class is The Dungeon Diver. Floors, loot, bosses, repeat. What's yours?"
+    },
+    {
+      "key": "dungeon-keeper",
+      "name": "The Dungeon Keeper",
+      "tagline": "Why fight the dungeon when you can be the dungeon?",
+      "description": "Adventurers are just very motivated XP that walks in on its own. You love designing traps, raising monsters, and watching a humble cave grow into something the whole world fears, or at least visits for the gift shop.",
+      "loves": ["Dungeon cores", "Base building", "Clever traps", "Non-human MCs"],
+      "watch_out": "MCs who never get a home base.",
+      "profile_seed": {
+        "dials": { "strategy": { "target": 7, "importance": 0.6 }, "combat": { "target": 5, "importance": 0.3 } },
+        "stats": { "build_payoff": 6, "number_go_up": 6 },
+        "tags": { "dungeon-core": 3, "base-building": 2, "nonhuman-mc": 1, "summoning": 1 }
+      },
+      "anchor_books_to_confirm": ["Dungeon Born (Dakota Krout)"],
+      "share_text": "My LitRPG class is The Dungeon Keeper. Why fight the dungeon when you can be the dungeon? What's yours?"
+    },
+    {
+      "key": "kingdom-builder",
+      "name": "The Kingdom Builder",
+      "tagline": "Why level one hero when you can level a nation?",
+      "description": "Walls, farms, trade routes, armies, and a council that mostly listens. You love watching a settlement's numbers climb as a scrappy village becomes a power in its own right.",
+      "loves": ["Settlement and kingdom building", "Strategy", "Big scope", "Politics with teeth"],
+      "watch_out": "Stories that never let the MC settle down.",
+      "profile_seed": {
+        "dials": { "scope": { "target": 7, "importance": 0.6 }, "strategy": { "target": 7, "importance": 0.5 }, "ensemble": { "target": 6, "importance": 0.3 } },
+        "stats": { "number_go_up": 6, "build_payoff": 5 },
+        "tags": { "kingdom-building": 3, "settlement-building": 2, "politics": 1, "war": 1 }
+      },
+      "anchor_books_to_confirm": [],
+      "share_text": "My LitRPG class is The Kingdom Builder. Why level a hero when you can level a nation? What's yours?"
+    },
+    {
+      "key": "lore-seeker",
+      "name": "The Lore Seeker",
+      "tagline": "You want to know who made the System. And why.",
+      "description": "Power is nice, but answers are better. You read for the mysteries: ancient ruins, forbidden histories, and the slow reveal of why the world works the way it does. A well-planted clue makes your whole week.",
+      "loves": ["Deep lore", "System mysteries", "Tightly plotted arcs", "Rules that stay consistent"],
+      "watch_out": "Worlds that are only a backdrop for fights.",
+      "profile_seed": {
+        "dials": { "lore": { "target": 9, "importance": 0.8 }, "plot_structure": { "target": 8, "importance": 0.5 }, "pacing": { "target": 4, "importance": 0.3 }, "prose": { "target": 6, "importance": 0.2 } },
+        "stats": { "system_consistency": 7, "satisfying_endings": 6 },
+        "tags": { "system-mystery": 2, "exploration": 1, "mythology": 1 }
+      },
+      "anchor_books_to_confirm": ["Mother of Learning (nobody103)", "The Wandering Inn (pirateaba)"],
+      "share_text": "My LitRPG class is The Lore Seeker. I need to know who made the System. What's yours?"
+    },
+    {
+      "key": "speed-leveler",
+      "name": "The Speed Leveler",
+      "tagline": "Level up. Level up again. Why is everyone else so slow?",
+      "description": "You want visible progress, and you want it now: big numbers, fast climbs, and an MC who's outpacing everyone by chapter ten. Slow starts need not apply.",
+      "loves": ["Fast progression", "Power fantasy", "Hype moments", "Fast starts"],
+      "watch_out": "Long prologues before the System shows up.",
+      "profile_seed": {
+        "dials": { "progression_speed": { "target": 9, "importance": 0.8 }, "pacing": { "target": 8, "importance": 0.6 }, "power_fantasy": { "target": 8, "importance": 0.6 } },
+        "stats": { "number_go_up": 8, "hype": 7, "fast_start": 7 },
+        "tags": { "op-mc": 1, "system-apocalypse": 1, "levels": 1 }
+      },
+      "anchor_books_to_confirm": ["The Primal Hunter (Zogarth)"],
+      "share_text": "My LitRPG class is The Speed Leveler. Why is everyone else so slow? What's yours?"
+    },
+    {
+      "key": "underdog",
+      "name": "The Underdog",
+      "tagline": "Weakest in the room. Not for long.",
+      "description": "You love an MC who starts with nothing (no talent, no backing, no chance) and claws their way up through sheer stubbornness. A victory only counts if it was earned, and when it lands, it lands.",
+      "loves": ["Weak to strong", "Earned power", "Training arcs", "Hype moments"],
+      "watch_out": "MCs handed godlike power in chapter one.",
+      "profile_seed": {
+        "dials": { "power_fantasy": { "target": 3, "importance": 0.6 }, "progression_speed": { "target": 4, "importance": 0.4 }, "danger": { "target": 7, "importance": 0.3 } },
+        "stats": { "earned_power": 8, "hype": 7 },
+        "tags": { "weak-to-strong": 3, "training-arcs": 1 }
+      },
+      "anchor_books_to_confirm": ["Cradle (Will Wight)"],
+      "share_text": "My LitRPG class is The Underdog. Weakest in the room, not for long. What's yours?"
+    },
+    {
+      "key": "party-main",
+      "name": "The Party Main",
+      "tagline": "Found family beats solo carry.",
+      "description": "The best part of any adventure is who's standing next to you. You love banter around the campfire, teammates with arcs of their own, and the moment the whole party pulls off something none of them could do alone.",
+      "loves": ["Found family", "Party chemistry", "Banter", "Allies who matter"],
+      "watch_out": "Lone-wolf MCs who treat allies as disposable.",
+      "profile_seed": {
+        "dials": { "ensemble": { "target": 9, "importance": 0.8 }, "humor": { "target": 6, "importance": 0.3 }, "tone": { "target": 7, "importance": 0.3 } },
+        "stats": { "party_chemistry": 8, "low_drama": 6, "rootable_mc": 6 },
+        "tags": { "party-focused": 2, "found-family": 2 }
+      },
+      "anchor_books_to_confirm": ["He Who Fights With Monsters (Shirtaloon)"],
+      "share_text": "My LitRPG class is The Party Main. Found family beats solo carry. What's yours?"
+    },
+    {
+      "key": "villain-main",
+      "name": "The Villain Main",
+      "tagline": "Morally grey? You prefer charcoal.",
+      "description": "Heroes are predictable. You'd rather follow the necromancer, the demon lord, or the MC whose solutions would get them banned from most guilds. Ruthless is fine, as long as you're still rooting for them.",
+      "loves": ["Villain and antihero MCs", "Dark tone", "High stakes", "Rootable menaces"],
+      "watch_out": "Saccharine heroes who never make a hard choice.",
+      "profile_seed": {
+        "dials": { "morality": { "target": 8, "importance": 0.8 }, "tone": { "target": 3, "importance": 0.5 }, "danger": { "target": 7, "importance": 0.4 } },
+        "stats": { "rootable_mc": 6 },
+        "tags": { "villain-mc": 3, "necromancy": 1, "revenge": 1 }
+      },
+      "anchor_books_to_confirm": ["Awaken Online (Travis Bagwell)"],
+      "share_text": "My LitRPG class is The Villain Main. Morally grey? I prefer charcoal. What's yours?"
+    },
+    {
+      "key": "comedy-rogue",
+      "name": "The Comedy Rogue",
+      "tagline": "If the System isn't sarcastic, what's even the point?",
+      "description": "You read for the laughs: snarky announcers, absurd skills, and MCs who troll the System right back. Stakes are welcome, but a book that makes you snort-laugh on the train will always win.",
+      "loves": ["Humor", "Snarky Systems", "Satire", "Rule of Cool"],
+      "watch_out": "Grim books that take themselves very seriously.",
+      "profile_seed": {
+        "dials": { "humor": { "target": 9, "importance": 0.8 }, "tone": { "target": 6, "importance": 0.3 } },
+        "stats": { "rule_of_cool": 6 },
+        "tags": { "humorous": 2, "snarky-system": 2, "satire": 1, "gamer-mc": 1 }
+      },
+      "anchor_books_to_confirm": ["Dungeon Crawler Carl (Matt Dinniman)", "Vainqueur the Dragon (Maxime J. Durand)"],
+      "share_text": "My LitRPG class is The Comedy Rogue. If the System isn't sarcastic, what's the point? What's yours?"
+    },
+    {
+      "key": "monster-evolver",
+      "name": "The Monster Evolver",
+      "tagline": "Start as a slime. End as a legend.",
+      "description": "Humans are overrated. You'd rather start as a slime, a spider or a very determined ant, eat everything in sight, and pick an evolution that makes the whole ecosystem nervous.",
+      "loves": ["Monster MCs", "Evolution choices", "Non-human perspectives", "Number go up"],
+      "watch_out": "Human MCs with nothing strange about them.",
+      "profile_seed": {
+        "dials": { "progression_speed": { "target": 7, "importance": 0.4 }, "combat": { "target": 7, "importance": 0.4 } },
+        "stats": { "number_go_up": 7, "build_payoff": 6 },
+        "tags": { "monster-mc": 3, "race-evolution": 2, "nonhuman-mc": 2 }
+      },
+      "anchor_books_to_confirm": ["Chrysalis (RinoZ)"],
+      "share_text": "My LitRPG class is The Monster Evolver. Start as a slime, end as a legend. What's yours?"
+    }
+  ]
+}

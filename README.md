@@ -9,6 +9,7 @@ A free discovery engine, book database and marketing network for LitRPG, progres
 | Doc | What it covers |
 |---|---|
 | [`docs/DESIGN.md`](docs/DESIGN.md) | The full system design: architecture, data model, AI automation, owner approval inbox, ads and payments, email, blog, security, privacy, costs, and build plan |
+| [`docs/QUIZZES.md`](docs/QUIZZES.md) | Quiz lead magnets (4 drafted, previews in [`docs/quizzes/`](docs/quizzes/)), the lead-gen funnel, the welcome email sequence and onboarding |
 | [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary, the 17 taste dials and the 12 book stats (Competent MC, Rule of Cool, Number Go Up…) that power matching |
 
 ## Stack at a glance
@@ -20,3 +21,11 @@ A free discovery engine, book database and marketing network for LitRPG, progres
 - **Email:** Amazon SES.
 - **AI:** Claude API with batches and structured outputs, plus Workers AI embeddings.
 - **Expected running cost:** about $15–30/month at launch.
+
+## Quiz drafts
+
+Quiz content lives in `data/quizzes/*.json`. To validate every quiz, run a 10,000-reader balance simulation and regenerate the previews in `docs/quizzes/`:
+
+```sh
+node scripts/quiz-tool.mjs render
+```

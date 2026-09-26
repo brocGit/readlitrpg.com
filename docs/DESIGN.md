@@ -5,7 +5,7 @@
 | **Status** | Draft v1.3 (discovery-first, book stats, quizzes), ready for review |
 | **Owner** | Site owner (sole admin) |
 | **Last updated** | 2026-09-26 |
-| **Companion docs** | [`TAXONOMY.md`](./TAXONOMY.md) (starter tag vocabulary for the classifier) |
+| **Companion docs** | [`TAXONOMY.md`](./TAXONOMY.md) (tags, dials, book stats) · [`QUIZZES.md`](./QUIZZES.md) (quiz drafts, lead-gen funnel, onboarding) |
 | **Scope** | The whole product. Phase 1 (discovery: match engine, search and database) is specified in build-ready detail. Later phases are specified well enough that Phase 1 does not paint us into a corner. |
 
 ---
@@ -492,7 +492,7 @@ Pipeline (GitHub Actions):
 | `author_members` | User ↔ author profile | `author_id, user_id, role (owner/editor), added_by, created_at` |
 | `publisher_members` | User ↔ publisher | `publisher_id, user_id, role` |
 | `verification_requests` | Author/publisher verification | `id, subject_type, subject_id, user_id, method (website_file/dns_txt/meta_tag/profile_code/publisher_vouch/email_domain/manual), code_hash, target_url, status, checked_at, evidence` |
-| `reader_prefs` | Stated tastes | `user_id, liked_tag_ids (JSON), disliked_tag_ids (JSON), formats (JSON), max_crunch, max_romance, exclude_harem, exclude_ai_generated, content_filters (JSON), updated_at` |
+| `reader_prefs` | Stated tastes | `user_id, reader_class, profile_level, liked_tag_ids (JSON), disliked_tag_ids (JSON), formats (JSON), max_crunch, max_romance, exclude_harem, exclude_ai_generated, content_filters (JSON), updated_at` |
 | `follows` | Follow graph | `user_id, target_type (author/series/tag/narrator/publisher/book), target_id, notify (none/digest/instant), created_at` |
 | `book_marks` | A reader's relationship to a book | `user_id, book_id, status (loved/read/dnf/want), created_at` |
 | `appraisals` | One-tap reader answers that calibrate dials and stats | `user_id, book_id, key, response (dials: -1 / 0 / +1 vs. shown value; stats: 0–4 scale), created_at`. One per user per book per key |
@@ -539,7 +539,7 @@ Pipeline (GitHub Actions):
 | `quizzes` | Match Quiz and fun quizzes | `id, slug, kind (match/fun), title, dek, status (draft/in_review/live/retired), series_id?, is_official, partner_author_id?, permission_ref?, spoiler_boundary, disclaimer, created_by` |
 | `quiz_items` | Questions | `quiz_id, position, prompt, options (JSON: label, personality points, effects on dials/stats/tags)` |
 | `quiz_outcomes` | Results | `quiz_id, key, title, description (our own words), image_media_id, profile_seed (JSON)` |
-| `quiz_takes` | Responses | `id, quiz_id, user_id?, answers (JSON), outcome_key, created_at`. Anonymous takes are kept 90 days, then only aggregates remain |
+| `quiz_takes` | Responses | `id, quiz_id, user_id?, answers (JSON), outcome_key, source (e.g. share, search, community, author, onsite), party_ref?, created_at, attached_at`. Anonymous takes are kept 90 days, then only aggregates remain |
 | `editorial_slots` | Publishing calendar | `id, date, kind (roundup/editorial/guest/owner), post_id?` |
 
 ### 5.7 Operations
@@ -1285,6 +1285,8 @@ Every automated or one-click action writes the audit log **with a reversible dif
 
 ### 9.3 Fun quizzes (lead magnets that double as matching)
 
+> **Drafts, funnel and onboarding plan:** [`QUIZZES.md`](./QUIZZES.md). It covers four launch quizzes (drafted and balance-tested), the 12 reader classes, the welcome email sequence, profile levels and "Party up" invites.
+
 Personality quizzes are among the most shared formats on the internet. Every answer also carries hidden taste signal. They're our main lead magnet and a second front door to the match engine.
 
 **Launch set.** IP-free quizzes first, since we own them outright:
@@ -1373,7 +1375,7 @@ It's labeled honestly as notable releases, not all releases.
 
 ### 9.7 Onboarding (preference capture)
 
-We try to learn a new subscriber's tastes in under a minute:
+We try to learn a new subscriber's tastes in under a minute. After email confirmation, the page asks "How should we learn your taste?" and offers **Quick quiz (90 s) · Rate books (60 s) · Import Goodreads · Skip**. Each option raises the reader's **profile level** ([`QUIZZES.md` §4](./QUIZZES.md#4-onboarding-integration)):
 
 - **Option A: import a Goodreads or StoryGraph library** (CSV export, §7.15). Ratings and shelves become preferences instantly.
 - **Option B: carry over what they just did.** A reader who saves a match or a search keeps its inputs as their starting profile.
@@ -1784,7 +1786,7 @@ A monthly CSV export (orders, refunds, credits, Stripe fees via balance transact
 
 | Audience | Templates |
 |---|---|
-| Readers | Magic link · Confirm subscription · Welcome + quiz · **Weekly digest** · **Release-day alert** · Delayed-release correction · Data export ready · Account security (new passkey, email changed) |
+| Readers | Magic link · Confirm subscription · **Quiz reading list + welcome sequence E1–E4** ([`QUIZZES.md` §3.4](./QUIZZES.md#34-welcome-sequence-fully-automated)) · **Weekly digest** · **Release-day alert** · Delayed-release correction · Data export ready · Account security (new passkey, email changed) |
 | Authors | Verification status · Listing published / needs changes / rejected · **Release confirmation ask** · Change-notification digest · Interview invite · Guest post status · Campaign booked / approved / rejected + refunded / live / report · Makegood credit |
 | Owner | Daily action digest · Weekly summary · Instant alerts |
 
@@ -2377,9 +2379,9 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | **M0: Foundations** | Monorepo, Workers (`web`/`admin`/`jobs`), D1 + Drizzle + migrations, R2, Queues, CI/CD with staging/prod, Better Auth (magic link + passkey), Access on admin, security headers/CSP, policy module + route registry test, settings table + KV cache, heartbeat scheduler, audit log. **Spikes:** caching mechanism, CSP approach, Images binding | 1.5–2 wks |
 | **M1: Catalog core and seed** | Books, editions, releases, series, authors, narrators, links, tags and **dials** schema. Taxonomy seed. Provenance and precedence. Admin quick-add and CSV import. Entity resolution. Open Library/Google Books enrichment. Open Library dump import and AI seed import into the candidates pool (§7.15) | 2 wks |
 | **M2: AI pipeline** | Classification schema (tags **and dials**) and prompt, batch Workflow, interactive auto-fill via service binding, validator and consistency rules, publish policy engine, embeddings, eval harness + golden set (tags and dials), budget guard. Research-agent verification and the publication gate for seeds | 2 wks |
-| **M3: Match engine and discovery** | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, plus the launch set of fun quizzes | 4 wks |
+| **M3: Match engine and discovery** | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, result pages, share cards, Party up, plus the launch set of fun quizzes (drafted in `data/quizzes/`) | 4 wks |
 | **M4: Public site** | Home (match-first), book/series/author/narrator/tag pages, New & upcoming (curated), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics | 1.5–2 wks |
-| **M5: Readers and email** | Signup (double opt-in), onboarding, book marks and appraisals, saved matches/searches → alerts, follows, account/privacy (export/delete), Goodreads/StoryGraph library import, SES integration, templates, weekly digest Workflow, alerts, unsubscribe/suppression, SNS webhooks | 2 wks |
+| **M5: Readers and email** | Signup (double opt-in), onboarding with profile levels, quiz email capture and the welcome sequence, book marks and appraisals, saved matches/searches → alerts, follows, account/privacy (export/delete), Goodreads/StoryGraph library import, SES integration, templates, weekly digest Workflow, alerts, unsubscribe/suppression, SNS webhooks | 2 wks |
 | **M6: Authors** | Author onboarding, verification methods, submission flow (including paste-anything import and dial nudges), dashboard (books, to-dos, stats including match appearances, change history), protected fields, change notifications, release confirmation asks, team members | 1.5–2 wks |
 | **M7: Owner console and blog** | Inbox with default actions, bulk actions, undo; blog (post types, living lists, editor, shortcodes, validator, editorial calendar, guest pitch/submit/review, interviews, auto roundups); owner digests; house ads + ad engine (slots, inventory, serving, beacons, `/go/`) | 2 wks |
 | **Launch (Phase 1)** | ≥ 2,000 verified books, legal pages, trust page, pre-launch security checklist, soft launch to a small community group, then public | 1 wk |

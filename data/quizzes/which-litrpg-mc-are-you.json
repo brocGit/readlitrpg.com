@@ -1,0 +1,246 @@
+{
+  "slug": "which-litrpg-mc-are-you",
+  "kind": "fun",
+  "status": "draft",
+  "title": "Which LitRPG MC Are You?",
+  "dek": "Every LitRPG protagonist is one of eight kinds of trouble. Find out which one you are.",
+  "estimated_seconds": 75,
+  "is_official": false,
+  "spoiler_boundary": null,
+  "outcomes": [
+    {
+      "key": "reluctant-hero",
+      "name": "The Reluctant Hero",
+      "tagline": "You didn't ask for any of this.",
+      "description": "You'd honestly rather be home. But when people need help, you show up, grumbling, every single time. Readers love you because you're the one who stays decent when the System would reward you for being anything but.",
+      "loves": ["Heroic MCs", "Found family", "A warm heart under the stakes"],
+      "watch_out": "MCs who are cruel just to look cool.",
+      "profile_seed": {
+        "dials": { "tone": { "target": 7, "importance": 0.5 }, "morality": { "target": 2, "importance": 0.6 } },
+        "stats": { "rootable_mc": 7, "party_chemistry": 6 },
+        "tags": { "heroic": 1, "found-family": 1 }
+      },
+      "share_text": "I'm The Reluctant Hero: I didn't ask for any of this. Which LitRPG MC are you?"
+    },
+    {
+      "key": "schemer",
+      "name": "The Schemer",
+      "tagline": "Three plans ahead. Two contingencies deep.",
+      "description": "You read the rules so you can bend them. By the time anyone notices the loophole, you've already used it twice. Your fights are won before they start.",
+      "loves": ["Clever MCs", "Hard rules worth exploiting", "Competence porn"],
+      "watch_out": "Plots that only work because the MC is dumb.",
+      "profile_seed": {
+        "dials": { "strategy": { "target": 9, "importance": 0.8 }, "rigour": { "target": 7, "importance": 0.5 }, "crunch": { "target": 6, "importance": 0.3 } },
+        "stats": { "competent_mc": 8, "build_payoff": 7 },
+        "tags": { "clever-mc": 2, "system-exploitation": 1 }
+      },
+      "share_text": "I'm The Schemer: three plans ahead, two contingencies deep. Which LitRPG MC are you?"
+    },
+    {
+      "key": "chaos-gremlin",
+      "name": "The Chaos Gremlin",
+      "tagline": "You pressed the button labeled 'Do Not Press.'",
+      "description": "Twice. You treat the System like a toy box and the world like a sandbox, and somehow it keeps working out. The narrator is exhausted. The readers are delighted.",
+      "loves": ["Humor", "Rule of Cool", "Snarky Systems", "Gamer MCs"],
+      "watch_out": "Books that take themselves very seriously.",
+      "profile_seed": {
+        "dials": { "humor": { "target": 9, "importance": 0.8 } },
+        "stats": { "rule_of_cool": 8 },
+        "tags": { "humorous": 2, "gamer-mc": 1, "snarky-system": 1 }
+      },
+      "share_text": "I'm The Chaos Gremlin: I pressed the button labeled 'Do Not Press.' Which LitRPG MC are you?"
+    },
+    {
+      "key": "unstoppable-force",
+      "name": "The Unstoppable Force",
+      "tagline": "Overpowered from page one, and not sorry.",
+      "description": "Other MCs struggle. You show up. Your arc isn't about whether you'll win. It's about how spectacularly, and whose face gets slapped along the way.",
+      "loves": ["OP MCs", "Hype moments", "Fast progression", "Fast starts"],
+      "watch_out": "Slow grinds where the MC loses for three books.",
+      "profile_seed": {
+        "dials": { "power_fantasy": { "target": 9, "importance": 0.8 }, "progression_speed": { "target": 8, "importance": 0.6 }, "pacing": { "target": 8, "importance": 0.4 } },
+        "stats": { "hype": 8, "number_go_up": 7, "fast_start": 7 },
+        "tags": { "op-mc": 2, "cheat-ability": 1 }
+      },
+      "share_text": "I'm The Unstoppable Force: overpowered from page one, and not sorry. Which LitRPG MC are you?"
+    },
+    {
+      "key": "underdog",
+      "name": "The Underdog",
+      "tagline": "Weakest in the room. Not for long.",
+      "description": "No talent, no backing, no chance, and absolutely no intention of staying that way. Every level you gain was paid for in sweat, and when you finally win, the whole audience stands up.",
+      "loves": ["Weak to strong", "Earned power", "Training arcs"],
+      "watch_out": "Power handed out for free.",
+      "profile_seed": {
+        "dials": { "power_fantasy": { "target": 2, "importance": 0.7 } },
+        "stats": { "earned_power": 8, "hype": 7 },
+        "tags": { "weak-to-strong": 2, "training-arcs": 1 }
+      },
+      "share_text": "I'm The Underdog: weakest in the room, not for long. Which LitRPG MC are you?"
+    },
+    {
+      "key": "quiet-builder",
+      "name": "The Quiet Builder",
+      "tagline": "You'd rather build than fight.",
+      "description": "While everyone else chases boss kills, you're making the gear they'll need, the walls they'll hide behind and the town they'll come home to. Your power grows in the background until one day everyone notices.",
+      "loves": ["Crafting", "Settlement building", "Support classes", "Low drama"],
+      "watch_out": "Endless battles with no time to build anything.",
+      "profile_seed": {
+        "dials": { "combat": { "target": 3, "importance": 0.6 }, "tone": { "target": 7, "importance": 0.4 } },
+        "stats": { "low_drama": 7 },
+        "tags": { "crafting": 2, "settlement-building": 1, "support-class-mc": 1 }
+      },
+      "share_text": "I'm The Quiet Builder: I'd rather build than fight. Which LitRPG MC are you?"
+    },
+    {
+      "key": "monster-within",
+      "name": "The Monster Within",
+      "tagline": "Not human anymore. Maybe never was.",
+      "description": "Claws, cores, evolutions and an appetite that worries everyone nearby. You see the world from the other side of the dungeon, and you like the view.",
+      "loves": ["Monster MCs", "Evolution choices", "Non-human perspectives"],
+      "watch_out": "Ordinary human heroes.",
+      "profile_seed": {
+        "dials": { "progression_speed": { "target": 7, "importance": 0.4 } },
+        "stats": { "number_go_up": 7 },
+        "tags": { "monster-mc": 2, "race-evolution": 2, "nonhuman-mc": 1 }
+      },
+      "share_text": "I'm The Monster Within: not human anymore. Maybe never was. Which LitRPG MC are you?"
+    },
+    {
+      "key": "dark-lord-trainee",
+      "name": "The Dark Lord (Trainee)",
+      "tagline": "Morally charcoal, and working on it.",
+      "description": "Minions, necromancy, a throne you haven't quite earned yet. You're not the villain of the story. You're the villain of everyone else's story, and readers can't look away.",
+      "loves": ["Villain MCs", "Necromancy", "Dark tone", "Ruthless competence"],
+      "watch_out": "Heroes who never make a hard call.",
+      "profile_seed": {
+        "dials": { "morality": { "target": 9, "importance": 0.8 }, "tone": { "target": 3, "importance": 0.4 } },
+        "stats": { "rootable_mc": 6 },
+        "tags": { "villain-mc": 2, "necromancy": 1 }
+      },
+      "share_text": "I'm The Dark Lord (Trainee): morally charcoal, and working on it. Which LitRPG MC are you?"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "flavor": "[ISEKAI'D]",
+      "prompt": "You wake up in another world with a blue screen blinking at you. First thought?",
+      "options": [
+        { "id": "a", "label": "Oh no. Oh no no no. I had plans this weekend.", "points": { "reluctant-hero": 2, "underdog": 1 },
+          "effects": { "dials": { "tone": 1, "power_fantasy": -1 }, "tags": { "isekai": 1 } } },
+        { "id": "b", "label": "What can I exploit before anyone else figures this out?", "points": { "schemer": 2, "dark-lord-trainee": 1 },
+          "effects": { "dials": { "strategy": 2 }, "tags": { "system-exploitation": 1 } } },
+        { "id": "c", "label": "*Pokes every button to see what happens.*", "points": { "chaos-gremlin": 2, "monster-within": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "gamer-mc": 1 } } },
+        { "id": "d", "label": "Finally. A world that can keep up with me.", "points": { "unstoppable-force": 2, "dark-lord-trainee": 1 },
+          "effects": { "dials": { "power_fantasy": 2 }, "tags": { "op-mc": 1 } } }
+      ]
+    },
+    {
+      "id": "q2",
+      "flavor": "[CLASS ASSIGNED: FARMER]",
+      "prompt": "The System gives you the Farmer class. You...",
+      "options": [
+        { "id": "a", "label": "Build the best farm this world has ever seen.", "points": { "quiet-builder": 2, "reluctant-hero": 1 },
+          "effects": { "dials": { "combat": -2, "tone": 1 }, "tags": { "farming": 2 } } },
+        { "id": "b", "label": "Find the hidden synergy that makes Farmer secretly broken.", "points": { "schemer": 2, "underdog": 1 },
+          "effects": { "dials": { "strategy": 1, "crunch": 1 }, "stats": { "build_payoff": 2 } } },
+        { "id": "c", "label": "Farm... monsters. For XP. It's allowed. Probably.", "points": { "chaos-gremlin": 2, "monster-within": 1 },
+          "effects": { "dials": { "humor": 1, "morality": 1 }, "stats": { "rule_of_cool": 1 } } },
+        { "id": "d", "label": "Train until 'Farmer' means something terrifying.", "points": { "underdog": 2, "unstoppable-force": 1 },
+          "effects": { "stats": { "earned_power": 2, "hype": 1 }, "tags": { "training-arcs": 1 } } }
+      ]
+    },
+    {
+      "id": "q3",
+      "flavor": "[VILLAGE UNDER ATTACK]",
+      "prompt": "Bandits are raiding a village you're passing through. You...",
+      "options": [
+        { "id": "a", "label": "Sigh deeply, and go help. Obviously.", "points": { "reluctant-hero": 2, "quiet-builder": 1 },
+          "effects": { "dials": { "morality": -2 }, "stats": { "rootable_mc": 1 }, "tags": { "heroic": 1 } } },
+        { "id": "b", "label": "Recruit the bandits. They show initiative.", "points": { "dark-lord-trainee": 2, "schemer": 1 },
+          "effects": { "dials": { "morality": 2, "strategy": 1 }, "tags": { "villain-mc": 1 } } },
+        { "id": "c", "label": "One-shot the bandit leader and keep walking.", "points": { "unstoppable-force": 2, "chaos-gremlin": 1 },
+          "effects": { "dials": { "power_fantasy": 2 }, "stats": { "hype": 1 } } },
+        { "id": "d", "label": "Help rebuild the walls so it never happens again.", "points": { "quiet-builder": 2, "reluctant-hero": 1 },
+          "effects": { "tags": { "settlement-building": 2, "base-building": 1 } } }
+      ]
+    },
+    {
+      "id": "q4",
+      "flavor": "[IRREVERSIBLE CHOICE]",
+      "prompt": "The System offers an evolution you can never undo. You...",
+      "options": [
+        { "id": "a", "label": "Take it. Being human was overrated anyway.", "points": { "monster-within": 2, "unstoppable-force": 1 },
+          "effects": { "tags": { "race-evolution": 2, "monster-mc": 1 } } },
+        { "id": "b", "label": "Take it. I need every edge I can get.", "points": { "underdog": 2, "schemer": 1 },
+          "effects": { "dials": { "power_fantasy": -1 }, "stats": { "earned_power": 1 } } },
+        { "id": "c", "label": "Take it without reading it. What's the worst that could happen?", "points": { "chaos-gremlin": 2, "monster-within": 1 },
+          "effects": { "dials": { "humor": 2, "danger": 1 } } },
+        { "id": "d", "label": "Ask what happens to the people I care about first.", "points": { "reluctant-hero": 2, "quiet-builder": 1 },
+          "effects": { "dials": { "ensemble": 2 }, "stats": { "party_chemistry": 1 } } }
+      ]
+    },
+    {
+      "id": "q5",
+      "flavor": "[WEAKNESS DETECTED]",
+      "prompt": "What's your biggest weakness?",
+      "options": [
+        { "id": "a", "label": "I'd rather craft than fight, even when I really should fight.", "points": { "quiet-builder": 2, "reluctant-hero": 1 },
+          "effects": { "dials": { "combat": -2 }, "tags": { "crafting": 2 } } },
+        { "id": "b", "label": "Nothing. Honestly, that's the problem.", "points": { "unstoppable-force": 2, "dark-lord-trainee": 1 },
+          "effects": { "dials": { "power_fantasy": 2 }, "tags": { "op-mc": 1 } } },
+        { "id": "c", "label": "I get hungry. For... mana cores.", "points": { "monster-within": 2, "chaos-gremlin": 1 },
+          "effects": { "dials": { "humor": 1 }, "tags": { "monster-mc": 2 } } },
+        { "id": "d", "label": "I'm still level 1. For now.", "points": { "underdog": 2, "reluctant-hero": 1 },
+          "effects": { "dials": { "progression_speed": -1 }, "tags": { "weak-to-strong": 2 } } }
+      ]
+    },
+    {
+      "id": "q6",
+      "flavor": "[SIGNATURE MOVE]",
+      "prompt": "Pick your signature move.",
+      "options": [
+        { "id": "a", "label": "[Appraise]. On everything. Always.", "points": { "schemer": 2, "quiet-builder": 1 },
+          "effects": { "dials": { "crunch": 2, "strategy": 1 } } },
+        { "id": "b", "label": "A golem I built from scrap and spite.", "points": { "quiet-builder": 2, "schemer": 1 },
+          "effects": { "tags": { "crafting": 1, "summoning": 1 }, "stats": { "rule_of_cool": 1 } } },
+        { "id": "c", "label": "Raise the fallen to fight for me.", "points": { "dark-lord-trainee": 2, "monster-within": 1 },
+          "effects": { "dials": { "morality": 1, "tone": -1 }, "tags": { "necromancy": 2 } } },
+        { "id": "d", "label": "One punch.", "points": { "unstoppable-force": 2, "underdog": 1 },
+          "effects": { "dials": { "power_fantasy": 2, "combat": 1 } } }
+      ]
+    },
+    {
+      "id": "q7",
+      "flavor": "[RIVAL OUTLEVELED YOU]",
+      "prompt": "Your rival just outleveled you. You feel...",
+      "options": [
+        { "id": "a", "label": "Motivated. Very, very motivated.", "points": { "underdog": 2, "monster-within": 1 },
+          "effects": { "stats": { "hype": 1, "earned_power": 1 } } },
+        { "id": "b", "label": "Curious. I'm taking notes on their build.", "points": { "schemer": 2, "underdog": 1 },
+          "effects": { "dials": { "strategy": 2 }, "stats": { "build_payoff": 1 } } },
+        { "id": "c", "label": "Hungry.", "points": { "monster-within": 2, "dark-lord-trainee": 1 },
+          "effects": { "dials": { "danger": 1 }, "tags": { "monster-mc": 1 } } },
+        { "id": "d", "label": "Amused. They'll learn.", "points": { "dark-lord-trainee": 2, "chaos-gremlin": 1 },
+          "effects": { "dials": { "morality": 1 }, "tags": { "face-slapping": 1 } } }
+      ]
+    },
+    {
+      "id": "q8",
+      "flavor": "[EPILOGUE]",
+      "prompt": "How does your story end?",
+      "options": [
+        { "id": "a", "label": "Home, finally, with the people I saved.", "points": { "reluctant-hero": 2, "quiet-builder": 1 },
+          "effects": { "dials": { "tone": 2, "ensemble": 1 }, "tags": { "found-family": 1 } } },
+        { "id": "b", "label": "Laughing in the wreckage of every rule I broke.", "points": { "chaos-gremlin": 2, "unstoppable-force": 1 },
+          "effects": { "dials": { "humor": 2 }, "tags": { "system-exploitation": 1 } } },
+        { "id": "c", "label": "As something this world doesn't have a name for.", "points": { "monster-within": 2, "chaos-gremlin": 1 },
+          "effects": { "tags": { "race-evolution": 1, "nonhuman-mc": 1 } } },
+        { "id": "d", "label": "On a throne. Obviously.", "points": { "dark-lord-trainee": 2, "schemer": 1 },
+          "effects": { "dials": { "morality": 2, "scope": 1 }, "tags": { "villain-mc": 1 } } }
+      ]
+    }
+  ]
+}
