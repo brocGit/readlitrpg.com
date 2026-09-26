@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Draft v1.3 (discovery-first, book stats, quizzes), ready for review |
+| **Status** | Draft v1.4 (three-layer strategy: search, onboarding, *Patch Notes*), ready for review |
 | **Owner** | Site owner (sole admin) |
 | **Last updated** | 2026-09-26 |
-| **Companion docs** | [`TAXONOMY.md`](./TAXONOMY.md) (tags, dials, book stats) · [`QUIZZES.md`](./QUIZZES.md) (quiz drafts, lead-gen funnel, onboarding) |
+| **Companion docs** | [`STRATEGY.md`](./STRATEGY.md) (the three-layer strategy and flywheel) · [`TAXONOMY.md`](./TAXONOMY.md) (tags, dials, book stats) · [`QUIZZES.md`](./QUIZZES.md) (quiz drafts, lead-gen funnel, onboarding) |
 | **Scope** | The whole product. Phase 1 (discovery: match engine, search and database) is specified in build-ready detail. Later phases are specified well enough that Phase 1 does not paint us into a corner. |
 
 ---
@@ -56,6 +56,14 @@ Authors get free listings and pay to reach readers whose tastes match their book
 **The wedge is free discovery.** Readers constantly ask "what should I read next? Like X, but without Y." Answering that well needs only the back catalog, which we can seed and verify before launch (§7.15). It doesn't need authors to show up first. Every saved match or saved search can become an alert signup with stated preferences, and that preference data is what the paid products are sold against later.
 
 **The calendar grows in behind it.** It starts as a curated "New & upcoming" section fed by publishers, a research agent and early author submissions. It becomes a headline feature once discovery traffic gives authors a reason to submit their own releases (Phase 2).
+
+**The strategy in one line** ([`STRATEGY.md`](./STRATEGY.md)):
+
+- **The database and calendar** get us found in search, and cited by AI answers.
+- **Matching and quizzes** turn visitors into profiles.
+- **The *Patch Notes* newsletter and news section** keep readers with a brand AI can't replace.
+
+Together they create a flywheel: more readers make the data better and attract authors, and more authors make the catalog fresher and bigger, which attracts more readers.
 
 **Free for real.** Matching runs on numbers computed ahead of time, not an AI call per request, so a match costs us effectively nothing (§7.8). Nothing reader-facing sits behind a paywall or a login. Money comes from:
 
@@ -109,6 +117,7 @@ Automated posts can only mention books by database ID, so they can't make up a t
 | G6 | Owner spends ≤1 hour/week | Measured by inbox volume and time-in-admin telemetry |
 | G7 | Cheap to run | ≤$50/month infrastructure until revenue exceeds $1k/month |
 | G8 | Secure and trustworthy | No stored passwords or card data; no reader PII shared with advertisers; every privileged action audited |
+| G9 | Build an AI-proof brand | *Patch Notes* weekly engaged subscribers growing month over month; ≥ 30% of traffic from direct, newsletter and brand search by end of year 2 ([`STRATEGY.md` §7](./STRATEGY.md#7-metrics-by-layer)) |
 
 ### 1.2 Non-goals (for now)
 
@@ -532,7 +541,7 @@ Pipeline (GitHub Actions):
 
 | Table | Purpose | Key columns |
 |---|---|---|
-| `posts` | Blog posts of every type | `id, slug, type (auto_roundup/ai_editorial/guest/interview/owner/sponsored), status (idea/drafting/in_review/changes_requested/approved/scheduled/published/unpublished), title, dek, body_md, body_html (sanitized at save), hero_media_id, author_user_id?, byline_author_id?, publish_at, published_at, ai_involvement (none/assisted/generated), disclosure, seo_title, seo_description, canonical_url, is_sponsored, created_by` |
+| `posts` | Blog posts of every type | `id, slug, type (auto_roundup/news/data_story/ai_editorial/guest/interview/owner/sponsored), sources (JSON; required for news), status (idea/drafting/in_review/changes_requested/approved/scheduled/published/unpublished), title, dek, body_md, body_html (sanitized at save), hero_media_id, author_user_id?, byline_author_id?, publish_at, published_at, ai_involvement (none/assisted/generated), disclosure, seo_title, seo_description, canonical_url, is_sponsored, created_by` |
 | `post_revisions` | Full history | `id, post_id, body_md, edited_by, created_at` |
 | `post_books` | Books referenced (from shortcodes) | `post_id, book_id` |
 | `guest_submissions` | Metadata for guest posts | `post_id, author_id, pitch, guideline_ack_at, license_ack_at, ai_screen (JSON)` |
@@ -541,7 +550,10 @@ Pipeline (GitHub Actions):
 | `quiz_items` | Questions | `quiz_id, position, prompt, explain (trivia), options (JSON: label, personality points or `correct`, effects on dials/stats/tags)` |
 | `quiz_outcomes` | Results | `quiz_id, key, title, description (our own words), image_media_id, profile_seed (JSON)` |
 | `quiz_takes` | Responses | `id, quiz_id, user_id?, answers (JSON), outcome_key, source (e.g. share, search, community, author, onsite), party_ref?, created_at, attached_at`. Anonymous takes are kept 90 days, then only aggregates remain |
-| `editorial_slots` | Publishing calendar | `id, date, kind (roundup/editorial/guest/owner), post_id?` |
+| `editorial_slots` | Publishing calendar | `id, date, kind (roundup/news/editorial/guest/owner), post_id?` |
+| `polls`, `poll_votes` | *Patch Notes* reader polls and the annual Reader Awards | `polls: id, kind (poll/award), question, options (JSON), opens_at, closes_at` · `poll_votes: poll_id, user_id, option, created_at` (one vote per subscriber) |
+| `news_tips` | Author, publisher and news-desk items awaiting a brief | `id, source (author/publisher/data/research), subject, body, source_url, status` |
+| `referrals` | Subscriber referral program | `referrer_user_id, referred_user_id, confirmed_at` |
 
 ### 5.7 Operations
 
@@ -1800,7 +1812,9 @@ A monthly CSV export (orders, refunds, credits, Stripe fees via balance transact
 
 Templates are hand-written, table-based HTML with a plain-text part. They are rendered by simple, escaped variable substitution. Per-book HTML blocks are **pre-rendered and cached per book**, so building a personalized digest is string assembly, not an LLM call.
 
-### 13.5 The weekly digest
+### 13.5 The weekly digest: *Patch Notes*
+
+The weekly email is branded ***Patch Notes: this week in LitRPG***. Its fixed sections (your matches, update log, by the numbers, reader poll, author spotlight, quiz of the week, sponsored) are specified in [`STRATEGY.md` §6](./STRATEGY.md#6-layer-3-patch-notes-the-newsletter-and-news-brand). Every issue must carry at least one proprietary input. This section covers how it's built and sent.
 
 - **Built Thursday, sent Friday ~13:00 UTC** (a US morning), by the `NEWSLETTER_SEND` Workflow:
   1. **Freeze the issue:** candidate books, sponsored placements, featured post.
@@ -1835,6 +1849,8 @@ A daily job at 11:00 UTC collects each opted-in reader's followed releases for t
 | **Author interview** | Author's own answers; AI only selects, orders and writes a 2-sentence intro | Author approves the final text; owner inbox default-approves in 5 days if the moderation screen is clean | ≤ 2 / week, scheduled the week before the author's release | "Interview" |
 | **Guest post** | Verified author | AI pre-review; auto-approves after 5 days if clean (T1+ authors); the owner can veto | Tue / Thu slots | "Guest post by {author}" |
 | **Living list**: "Completed LitRPG series with audiobooks", "LitRPG with no harem" | A saved database search plus a short intro | Intro auto-drafted, checked by the editor model, then locked. The list updates itself | As created | "Updated automatically from our database" |
+| **News brief** (*Patch Notes*) | News desk: catalog changes, author and publisher tips, weekly research scan (§14.6) | Editor-model check against cited sources; auto-publishes if clean, otherwise inbox | As news happens | "Patch Notes" with sources linked |
+| **Data story**: monthly *State of LitRPG* | Built from our database, with generated charts | Validator + editor model; auto-publishes | Monthly | "From the ReadLitRPG database" |
 | **Owner post** | Owner | None | Whenever | Byline |
 | **Sponsored post** (later, optional) | Advertiser | Owner approval | ≤ 1 / month | "Sponsored", with `rel="sponsored"` links |
 
@@ -1922,7 +1938,22 @@ stateDiagram-v2
 2. **Format:** Opus 5 selects and orders the best answers, writes a headline and a 2-sentence intro, and fixes typos **only**. A diff is shown to the author, who approves.
 3. **Publish:** the inbox default-approves it after 5 days if the moderation screen is clean. It is scheduled the week before release and linked from the book page. The author shares it, which drives traffic and gives them an incentive to engage.
 
-### 14.6 Owner writing tools
+### 14.6 News desk and data stories
+
+The `/news` section shares the *Patch Notes* brand ([`STRATEGY.md` §6](./STRATEGY.md#6-layer-3-patch-notes-the-newsletter-and-news-brand)).
+
+**The proprietary-input rule** applies to every news post and data story: it must contain our data, reader votes, an author's own words, or news we reported first, and it must link its sources.
+
+- **News briefs** (short and cited) come from:
+  - catalog changes (new announcements, date changes, completions);
+  - author and publisher submissions (`news_tips`);
+  - a weekly research-agent scan of publisher announcements, adaptations, awards and sales events.
+
+  An editor-model review checks each brief against its source. Clean briefs publish automatically. Anything uncertain, or bigger than a brief, goes to the inbox. **No rumors.**
+- **Data stories:** a monthly *State of LitRPG* (releases by subgenre, audio lag, completions, price trends) built only from our database, with generated charts.
+- **Community content:** reader poll results, tier lists, and the annual Reader Awards (voting requires an email; winners get a badge on their book pages).
+
+### 14.7 Owner writing tools
 
 A markdown editor with live preview. Shortcodes:
 
@@ -2290,6 +2321,10 @@ The plan relies on pages that genuinely help readers, not SEO tricks.
 - **Structured data:** `Book` (with `workExample` per format, `author`, `isbn`, `bookFormat`, `datePublished`), `BookSeries`, `Person`, `Article`, `BreadcrumbList`.
 - **Sitemaps:** split by type, regenerated nightly. Embargoed books are excluded.
 - **Quiz pages** ("which DCC character are you"), **stat leaderboards** ("LitRPG with the most competent MC"), **"books like X" pages and living lists** ("Completed LitRPG series with audiobooks") target the genre's most common searches.
+- **Be the source AI answers cite:**
+  - Each page answers its question in its first sentence, with clean structured data and visible "last updated" dates.
+  - robots.txt and Cloudflare's AI-crawler controls **allow search and citation crawlers** (e.g. Googlebot, Bingbot, OAI-SearchBot, Claude-SearchBot, PerplexityBot) and **block crawlers that only collect training data** (e.g. GPTBot, Google-Extended, CCBot, ClaudeBot, Applebot-Extended). User-agent names are verified at build time.
+- **Capture on every landing page:** follow the series, alert me when a book like this comes out, or find your match. Target ≥ 2% of organic sessions leave an email ([`STRATEGY.md` §4](./STRATEGY.md#4-layer-1-the-database-and-calendar-for-search)).
 - **Tag landing pages** ("Best Dungeon Core LitRPG books") are the evergreen backbone. Intros are AI-drafted once, checked by an editor-model pass, then locked.
 - **Calendar pages** ("LitRPG releases November 2026") capture recurring monthly searches.
 - **Canonical URLs** and 301s for merged or renamed records. Stable slugs.
@@ -2481,7 +2516,10 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 | `/series/{slug}`, `/authors/{slug}`, `/narrators/{slug}`, `/publishers/{slug}` | Entity pages |
 | `/tags`, `/tags/{slug}` | Tag index / landing |
 | `/search` | Title / author / series lookup (typeahead) |
-| `/blog`, `/blog/{slug}`, `/blog/type/{type}` | Blog |
+| `/blog`, `/blog/{slug}`, `/blog/type/{type}` | Blog (evergreen posts, interviews, guest posts) |
+| `/news`, `/news/{slug}` | *Patch Notes* news section |
+| `/awards`, `/awards/{year}` | Annual ReadLitRPG Reader Awards |
+| `/r/{code}` | Subscriber referral link |
 | `/newsletter` | Signup + sample issue |
 | `/for-authors`, `/advertise`, `/write-for-us` | Author-facing marketing |
 | `/trust`, `/ai`, `/disclosures`, `/legal/{doc}` | Trust and legal |
@@ -2554,7 +2592,11 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `links.health` | weekly Tue 06:00 | Non-Amazon/Royal Road links only |
 | `research.next_volume` | weekly Wed 06:00 (series expecting a release soon); monthly for the rest | The research agent checks ongoing series for announced next books and feeds New & upcoming |
 | `owner.daily_digest` | daily 13:00 | Only if action is needed |
-| `owner.weekly_summary` | Sun 14:00 | KPIs and upcoming schedule |
+| `owner.weekly_summary` | Sun 14:00 | KPIs (one line per strategy layer) and upcoming schedule |
+| `news.scan` | weekly Mon 08:00 | Research agent scans for cited LitRPG news → briefs |
+| `news.from_catalog` | daily 09:00 | Announcements, date changes and completions → brief candidates |
+| `polls.rotate` | weekly Fri 12:00 | Close last week's poll, publish results, open the next |
+| `data.state_of_litrpg` | monthly, 3rd | Build the *State of LitRPG* data story |
 | `pricing.suggest` | monthly, 1st | → inbox |
 | `taxonomy.drift` | monthly, 2nd | → inbox |
 | `cost.report` | daily 06:00 | Spend vs budget |
