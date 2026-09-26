@@ -1,5 +1,5 @@
 {
-  "_about": "Canonical reader classes. Used as the outcomes of the class quiz, for the shareable reader class card (DESIGN §7.8), and as starting profiles in onboarding. profile_seed dials: target 0-10 + importance 0-1; stats: must-have floor 0-10; tags: affinity. anchor_books_to_confirm are calibration references for the owner to confirm; they are never shown to readers as-is (the match engine picks live recommendations).",
+  "_about": "Canonical reader classes. Used as the outcomes of the class quiz, for the shareable reader class card (DESIGN §7.8), and as starting profiles in onboarding. profile_seed dials: target 0-10 + importance 0-1; stats: must-have floor 0-10; tags: affinity. calibration_books define each class and anchor automatic calibration (QUIZZES.md §2.2); they are never shown to readers as-is (the match engine picks live recommendations).",
   "classes": [
     {
       "key": "min-maxer",
@@ -13,7 +13,7 @@
         "stats": { "build_payoff": 7, "system_consistency": 7, "number_go_up": 6 },
         "tags": { "build-crafting": 2, "system-exploitation": 1, "stats": 1, "class-evolution": 1 }
       },
-      "anchor_books_to_confirm": ["Delve (SenescentSoul)", "The Completionist Chronicles (Dakota Krout)"],
+      "calibration_books": ["Delve (SenescentSoul)", "The Completionist Chronicles (Dakota Krout)"],
       "share_text": "My LitRPG class is The Min-Maxer. I've read the stat screen three times. What's yours?"
     },
     {
@@ -28,7 +28,7 @@
         "stats": { "low_drama": 7 },
         "tags": { "crafting": 2, "cozy": 2, "slice-of-life": 1, "farming": 1, "business": 1 }
       },
-      "anchor_books_to_confirm": ["Beware of Chicken (Casualfarmer)", "Heretical Fishing (Haylock Jobson)"],
+      "calibration_books": ["Beware of Chicken (Casualfarmer)", "Heretical Fishing (Haylock Jobson)"],
       "share_text": "My LitRPG class is The Cozy Crafter. My idea of an epic battle is a stubborn enchantment. What's yours?"
     },
     {
@@ -43,7 +43,7 @@
         "stats": { "rule_of_cool": 7, "number_go_up": 7 },
         "tags": { "dungeon-crawler": 2, "tower-climbing": 1, "loot": 1, "party-focused": 1 }
       },
-      "anchor_books_to_confirm": ["Dungeon Crawler Carl (Matt Dinniman)"],
+      "calibration_books": ["Dungeon Crawler Carl (Matt Dinniman)"],
       "share_text": "My LitRPG class is The Dungeon Diver. Floors, loot, bosses, repeat. What's yours?"
     },
     {
@@ -58,7 +58,7 @@
         "stats": { "build_payoff": 6, "number_go_up": 6 },
         "tags": { "dungeon-core": 3, "base-building": 2, "nonhuman-mc": 1, "summoning": 1 }
       },
-      "anchor_books_to_confirm": ["Dungeon Born (Dakota Krout)"],
+      "calibration_books": ["Dungeon Born (Dakota Krout)"],
       "share_text": "My LitRPG class is The Dungeon Keeper. Why fight the dungeon when you can be the dungeon? What's yours?"
     },
     {
@@ -73,7 +73,7 @@
         "stats": { "number_go_up": 6, "build_payoff": 5 },
         "tags": { "kingdom-building": 3, "settlement-building": 2, "politics": 1, "war": 1 }
       },
-      "anchor_books_to_confirm": [],
+      "calibration_books": [],
       "share_text": "My LitRPG class is The Kingdom Builder. Why level a hero when you can level a nation? What's yours?"
     },
     {
@@ -88,7 +88,7 @@
         "stats": { "system_consistency": 7, "satisfying_endings": 6 },
         "tags": { "system-mystery": 2, "exploration": 1, "mythology": 1 }
       },
-      "anchor_books_to_confirm": ["Mother of Learning (nobody103)", "The Wandering Inn (pirateaba)"],
+      "calibration_books": ["Mother of Learning (nobody103)", "The Wandering Inn (pirateaba)"],
       "share_text": "My LitRPG class is The Lore Seeker. I need to know who made the System. What's yours?"
     },
     {
@@ -103,7 +103,7 @@
         "stats": { "number_go_up": 8, "hype": 7, "fast_start": 7 },
         "tags": { "op-mc": 1, "system-apocalypse": 1, "levels": 1 }
       },
-      "anchor_books_to_confirm": ["The Primal Hunter (Zogarth)"],
+      "calibration_books": ["The Primal Hunter (Zogarth)"],
       "share_text": "My LitRPG class is The Speed Leveler. Why is everyone else so slow? What's yours?"
     },
     {
@@ -118,7 +118,7 @@
         "stats": { "earned_power": 8, "hype": 7 },
         "tags": { "weak-to-strong": 3, "training-arcs": 1 }
       },
-      "anchor_books_to_confirm": ["Cradle (Will Wight)"],
+      "calibration_books": ["Cradle (Will Wight)"],
       "share_text": "My LitRPG class is The Underdog. Weakest in the room, not for long. What's yours?"
     },
     {
@@ -133,7 +133,7 @@
         "stats": { "party_chemistry": 8, "low_drama": 6, "rootable_mc": 6 },
         "tags": { "party-focused": 2, "found-family": 2 }
       },
-      "anchor_books_to_confirm": ["He Who Fights With Monsters (Shirtaloon)"],
+      "calibration_books": ["He Who Fights With Monsters (Shirtaloon)"],
       "share_text": "My LitRPG class is The Party Main. Found family beats solo carry. What's yours?"
     },
     {
@@ -148,7 +148,7 @@
         "stats": { "rootable_mc": 6 },
         "tags": { "villain-mc": 3, "necromancy": 1, "revenge": 1 }
       },
-      "anchor_books_to_confirm": ["Awaken Online (Travis Bagwell)"],
+      "calibration_books": ["Awaken Online (Travis Bagwell)"],
       "share_text": "My LitRPG class is The Villain Main. Morally grey? I prefer charcoal. What's yours?"
     },
     {
@@ -163,7 +163,7 @@
         "stats": { "rule_of_cool": 6 },
         "tags": { "humorous": 2, "snarky-system": 2, "satire": 1, "gamer-mc": 1 }
       },
-      "anchor_books_to_confirm": ["Dungeon Crawler Carl (Matt Dinniman)", "Vainqueur the Dragon (Maxime J. Durand)"],
+      "calibration_books": ["Dungeon Crawler Carl (Matt Dinniman)", "Vainqueur the Dragon (Maxime J. Durand)"],
       "share_text": "My LitRPG class is The Comedy Rogue. If the System isn't sarcastic, what's the point? What's yours?"
     },
     {
@@ -178,7 +178,7 @@
         "stats": { "number_go_up": 7, "build_payoff": 6 },
         "tags": { "monster-mc": 3, "race-evolution": 2, "nonhuman-mc": 2 }
       },
-      "anchor_books_to_confirm": ["Chrysalis (RinoZ)"],
+      "calibration_books": ["Chrysalis (RinoZ)"],
       "share_text": "My LitRPG class is The Monster Evolver. Start as a slime, end as a legend. What's yours?"
     }
   ]

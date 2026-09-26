@@ -27,7 +27,8 @@ Quizzes do three jobs at once:
 | [What Would Your System Be Like?](./quizzes/what-would-your-system-be-like.md) | Tone, crunch and lore signal disguised as a joke | 6 questions, ~60 s | 6 System personalities | Draft, balanced |
 | [Would You Survive the Tutorial?](./quizzes/would-you-survive-the-tutorial.md) | Humor-first; pace, danger and strategy signal | 6 questions, ~60 s | 6 fates | Draft, balanced |
 | Match Quiz | Precision tool, not a personality quiz ([`DESIGN.md` §9.1](./DESIGN.md#91-match-engine-the-headline-feature)) | 9 steps, skippable | Ranked matches | Specified |
-| Series quizzes: DCC, He Who Fights With Monsters, Cradle | Fan favorites, **made with the author's blessing** (§6) | ~8 questions each | Characters / essences / Paths | Brief only |
+| [How Well Do You Know LitRPG?](./quizzes/how-well-do-you-know-litrpg.md) | **Trivia.** Genre lingo and history, with shareable rank tiers | 10 questions, ~90 s | 4 rank tiers | Draft, checked |
+| Series fan quizzes: DCC, He Who Fights With Monsters, Cradle | Unofficial fan quizzes (§6) | ~8 questions each | Characters / essences / Paths | In progress: waiting on research factsheets |
 
 **Backlog ideas** (for the quiz factory once the launch set proves out):
 
@@ -64,7 +65,12 @@ The 12 reader classes in [`data/quizzes/reader-classes.json`](../data/quizzes/re
 - the reader's profile and the weekly digest header ("This week for The Min-Maxer");
 - aggregate insights on book pages: "Most loved by: The Min-Maxer 41% · The Underdog 22%". This is shown only when at least 20 readers are in the aggregate.
 
-Each class has a **starting profile** (dial targets, must-have stat floors, tag affinities) and 1–2 **calibration books** for the owner to confirm. When the catalog has dials, the owner checks that each class's starting profile sits near its calibration books and adjusts it if not. Calibration books are never shown to readers as-is; the match engine picks live recommendations.
+Each class has a **starting profile** (dial targets, must-have stat floors, tag affinities) and 1–2 **calibration books**, chosen by us, that define the class. Calibration is automatic from there:
+
+1. **When the catalog has dials:** a nightly job compares each class's starting profile with its calibration books' dial and stat values. It moves the seed halfway toward them and logs the change, which can be undone.
+2. **Once readers arrive:** each class profile is re-fit monthly to the real profiles of readers assigned to it, so classes describe actual readers rather than our guesses.
+
+Calibration books are never shown to readers as-is; the match engine picks live recommendations. No owner input is needed.
 
 ### 2.3 From answers to a taste profile
 
@@ -103,7 +109,7 @@ flowchart TD
     S1[Shared result cards]
     S2[Search: quiz pages]
     S3[Communities, posted by the owner within rules]
-    S4[Author newsletters: blessed series quizzes]
+    S4[Fan communities: series fan quizzes]
     S5[On-site: homepage, book pages, 404, house ads]
   end
   S1 & S2 & S3 & S4 & S5 --> L[Quiz landing page]
@@ -129,7 +135,7 @@ flowchart TD
 | **Party up** (viral loop) | "Invite your party" link. A friend who takes the quiz sees both classes, a **party composition** ("Min-Maxer + Party Main: the planner and the heart") and a **party reading list** of books both profiles score highly | Only the two results are compared, never answers |
 | **Search** | Quiz landing pages target "what LitRPG class am I", "which LitRPG MC are you", and later "which DCC character are you" | Indexable, fast, no interstitials |
 | **Communities** | The owner posts quizzes in r/litrpg, r/ProgressionFantasy, Discords and Facebook groups **only where rules allow** (fun-flair days, self-promo threads) | Never automated. Participate as a reader first |
-| **Authors** | Blessed series quizzes (§6) get shared to the author's newsletter and socials | The author approves the final quiz |
+| **Fans and authors** | Series fan quizzes (§6) spread through fan communities for the big series. Authors often share fan content on their own | Unofficial and clearly labeled; no permission step |
 | **On-site** | A quiz row on the homepage ("Not sure what you like? Find your class in 90 seconds"); "Most loved by…" on book pages linking to the class quiz; the 404 page ("You've wandered off the map. Find your class while you're here"); **house ads** in unsold slots (DESIGN §11.9); the newsletter footer | No pop-ups, no exit-intent tricks |
 | **Existing subscribers** | New quizzes are announced in the digest. Each one adds signal | At most one quiz announcement a month |
 
@@ -240,66 +246,106 @@ A "match confidence" meter on the results page and the profile page shows the be
 
 ---
 
-## 5. Writing guidelines
+## 5. Voice
 
-- **Voice:** playful, genre-literate, second person. Use System-notification flavor lines. Affectionate, never mean. Even "Died Immediately" is a compliment.
-- **Answers:** at most 90 characters (the checker enforces this). Every answer should be tempting; avoid an obviously "correct" one.
-- **Fairness:** no gendered assumptions, no real-world politics. Fun quizzes don't ask about gender at all; the Match Quiz handles MC-gender preference.
-- **Spoilers:** none in IP-free quizzes. Series quizzes state their spoiler boundary up front.
-- **Structure:**
-  - 6–10 questions, 3–6 answers each.
-  - Every result is the primary of at least 3 answers, with secondaries spread around.
-  - The final question is the "soul" question used in tie-breaks.
-- **Signal:** every answer carries at least one effect (the checker enforces this). Effects should match the answer's vibe; a cozy answer shouldn't nudge `danger` up.
+This voice is set here, applies to quizzes, result pages, emails and site copy, and is final unless reader data says otherwise. The quiz factory's prompts include this section verbatim.
 
----
+**Who's talking:** a friendly System announcer who has read every LitRPG ever published and is delighted you showed up. Dry, playful, genre-literate. It teases the situation, never the reader.
 
-## 6. Series quizzes and author partnerships
+**Rules:**
 
-**Process:**
+- **Short lines.** Most sentences are under 15 words. Answers are at most 90 characters (the checker enforces this).
+- **Welcoming jokes.** Genre in-jokes are welcome (status screens, notifications, tutorials, loot, "number go up"), but every joke must land for someone reading their first LitRPG.
+- **Flavor lines.** One System-notification flavor line in brackets per question (`[AMBUSH!]`, `[REWARD AVAILABLE]`), never mid-sentence.
+- **Flattering results.** Written in second person, and every result is one you'd be happy to share. Even "Died Immediately" is a compliment.
+- **Specific over generic.** "A very lazy cat" beats "a pet".
+- **Restraint.** No hype words ("epic journey", "unleash your potential"), at most one exclamation mark per result, no emojis in quiz text.
+- **No meanness.** Teasing targets situations and the System, never readers, authors or other books.
+- **Fairness.** No gendered assumptions and no real-world politics. Fun quizzes never ask about gender; the Match Quiz handles MC-gender preference.
+- **Spoilers.** None in general quizzes. Series quizzes state their spoiler boundary at the top and never cross it.
 
-1. Pick a series with a big, active fandom.
-2. Send the outreach email below.
-3. If the author says yes, the quiz factory drafts the quiz from the brief. The author reviews results and the spoiler boundary and can add official art.
-4. Publish with an **Official** badge (`is_official`) and the permission recorded (`permission_ref`).
-5. The author shares it.
-
-The first few are free partnerships. Later, the **Official Series Quiz** becomes a paid product with an optional opt-in to the author's newsletter (DESIGN §11.2).
-
-**No reply after two polite follow-ups:** either skip the series, or publish an unofficial fan version under the DESIGN §16.5 rules (our own words, no official art, spoiler boundary, disclaimer, removal on request). This is the owner's call per series (DESIGN §22 D17).
-
-### 6.1 Outreach email template
-
-> **Subject:** A "Which {Series} character are you?" quiz for your readers?
->
-> Hi {Author},
->
-> I run ReadLitRPG.com, a free site that helps LitRPG and progression fantasy readers find their next book. I'd love to make a **"Which {Series} character are you?"** quiz, with your blessing.
->
-> - You'd review every question and result before anything goes live, and set the spoiler limit (we'd suggest nothing past book {N}).
-> - It would carry an "Official" badge, with prominent links to your books.
-> - It's free. If you'd like, readers who take it can opt in to your newsletter.
->
-> If you'd rather we didn't, no problem at all, and thanks for the books either way.
->
-> {Owner name}
-> ReadLitRPG.com
-
-### 6.2 Briefs (drafted by the quiz factory once permission is in hand)
-
-These are deliberately not written yet. They need the author's OK and a spoiler review, and results must describe characters in our own words.
-
-| Quiz | Brief |
+| Instead of | Write |
 |---|---|
-| **Which DCC crawler are you?** (*Dungeon Crawler Carl*, Matt Dinniman) | 8 questions, 8 results drawn from characters introduced by book 1. Spoiler boundary: book 1. Voice: the System AI's announcements. Effects lean `humor`, `danger`, `combat`, `snarky-system` |
-| **What would your essences be?** (*He Who Fights With Monsters*, Shirtaloon) | 8 questions. Result: three essences plus the confluence they form, described in our own words. Spoiler boundary: book 1. Effects lean `ensemble`, `humor`, `rule_of_cool`, `build_payoff` |
-| **What's your Path?** (*Cradle*, Will Wight) | 8 questions, 8 results. Spoiler boundary: book 1. Effects lean `earned_power`, `progression_speed`, `training-arcs`, `cultivation` |
+| "Discover your ultimate LitRPG destiny!" | "Ten questions. One class. A reading list built for your build." |
+| "You are a strategic person who enjoys planning." | "You've read the stat screen three times and already found the exploit." |
+| "Oops! You died! 😅" | "You pressed the glowing button. Of course you did." |
+| "Our amazing curated recommendations" | "3 books for your class" |
 
----
+**Email and site copy** use the same voice turned down a notch: clear first, funny second.
+
+**Structure rules:**
+
+- 6–10 questions with 3–6 answers each.
+- Every result is the primary of at least 3 answers, with secondaries spread around.
+- The final question is the "soul" question used in tie-breaks.
+- Every answer carries at least one taste effect, and effects match the answer's vibe. A cozy answer never nudges `danger` up.
+- Every answer should be tempting; avoid an obviously "correct" one.
+
+## 6. Series fan quizzes and the quiz catalog
+
+Some very large sites were built on pop-culture quizzes: "Which *Harry Potter* house are you?", "How well do you know *The Office*?". We run the same playbook for LitRPG, a fandom-heavy genre that nobody serves with quizzes today.
+
+### 6.1 Policy: unofficial fan quizzes, no permission step
+
+We publish series quizzes as **unofficial fan quizzes** without asking first, following the guardrails in DESIGN §16.5:
+
+- our own words, with no official art or quotes beyond a few words;
+- a spoiler boundary stated at the top;
+- an "Unofficial fan quiz, not affiliated with or endorsed by {author/publisher}" line on the quiz page and result card;
+- prominent (disclosed) links to buy the books.
+
+If an author or rights holder asks for a change or removal, the quiz is **unpublished immediately** (inbox item `rights_request`, DESIGN §8.2). An **Official** version exists only when an author comes to us (DESIGN §11.2).
+
+**Accuracy is non-negotiable, because fans notice everything:**
+
+- Every series quiz is written from a research factsheet with cited sources.
+- It uses only facts inside its spoiler boundary.
+- It passes an independent accuracy review (a second model checks every result and answer against the factsheet) before publishing.
+
+### 6.2 Formats
+
+| Format | Example | Notes |
+|---|---|---|
+| **Personality** | "Which DCC character are you?" | Points pick a result. The strongest taste signal |
+| **Sorting / build** | "What would your essences be?", "What's your Path?" | The result is an in-world build: a character sheet readers love to share |
+| **Trivia** | "How well do you know LitRPG?", "How well do you know DCC? (books 1–2)" | The score picks a rank tier. The checker rejects quizzes where random guessers reach the top tier more than 1% of the time |
+| **This or that** | "Donut or Mordecai?", "Crunchy or narrative?" | One-tap polls with live aggregate results. Cheap engagement; results become blog content |
+| **Tier lists** | "Tier-rank the LitRPG classes" | Community tier lists aggregate into a living post |
+
+### 6.3 Cadence
+
+- **1–2 new quizzes a week** from the quiz factory (DESIGN §7.16): factsheet → draft → checker → accuracy review → inbox. The default is to publish after 48 hours unless the owner vetoes.
+- **Release-week tie-ins:** when our release data shows a big series has a new book coming, the factory drafts a quiz for that series two weeks ahead. It goes live for the release-week search spike, with the spoiler boundary set at the previous book.
+- **Seasonal:** Halloween dungeons, holiday loot boxes, "summer reading class".
+
+### 6.4 Catalog plan
+
+Within six months, the top ~25 series by reader follows each get at least one personality or sorting quiz and one trivia quiz. Start order and concepts (each is researched before drafting):
+
+| Series | Quiz concepts |
+|---|---|
+| *Dungeon Crawler Carl* | Which DCC character are you? *(drafted)* · How well do you know DCC? |
+| *He Who Fights With Monsters* | What would your essences be? *(drafted)* · trivia |
+| *Cradle* | What's your Path? *(drafted)* · trivia |
+| *The Primal Hunter* | What would your class and profession be? · trivia |
+| *Defiance of the Fall* | Which Dao would you walk? · trivia |
+| *The Wandering Inn* | What would your [Class] be? · trivia |
+| *Mother of Learning* | Could you survive the time loop? · trivia |
+| *Beware of Chicken* | Which Fa Ram resident are you? · trivia |
+| *Solo Leveling* | What rank Hunter would you be? · trivia |
+| *Chrysalis* | What would you evolve into? · trivia |
+| *Arcane Ascension* | What would your attunement be? · trivia |
+| *Azarinth Healer*, *Super Supportive*, *Mark of the Fool*, *Dungeon Born*, *Delve*, *The Completionist Chronicles*, *Heretical Fishing* | Concepts chosen by the quiz factory from each series' factsheet |
+
+### 6.5 Drafted series quizzes
+
+In progress. The first three (DCC, He Who Fights With Monsters, Cradle) are being written from research factsheets with cited sources.
 
 ## 7. Implementation notes
 
-- **Format:** each quiz is one JSON file in `data/quizzes/`: `slug`, `title`, `dek`, `status`, `questions[].options[]` with `points` and `effects`, plus `outcomes` (or `"outcomes_from": "reader-classes"`). This maps one-to-one onto the `quizzes`, `quiz_items` and `quiz_outcomes` tables (DESIGN §5.6). M1 seeds them from these files.
+- **Format:** each quiz is one JSON file in `data/quizzes/`: `slug`, `title`, `dek`, `kind`, `status`, `spoiler_boundary`, and `questions[].options[]`.
+  - **Personality** quizzes (`kind: "fun"`) give each option `points` and `effects`, plus `outcomes` (or `"outcomes_from": "reader-classes"`).
+  - **Trivia** quizzes (`kind: "trivia"`) mark one option per question `correct`, add an `explain` line, and use rank tiers with `min_score`. This maps one-to-one onto the `quizzes`, `quiz_items` and `quiz_outcomes` tables (DESIGN §5.6). M1 seeds them from these files.
 - **Checker:** `scripts/quiz-tool.mjs` validates keys against the dial and stat lists and against `TAXONOMY.md`, checks reachability and runs the balance simulation. The quiz factory (DESIGN §7.16) reuses the same rules before any quiz reaches the owner's inbox.
 - **Build placement:**
   - **M3:** quiz engine, result pages, share cards, Party up, the four launch quizzes.

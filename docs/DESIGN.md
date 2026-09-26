@@ -34,7 +34,7 @@
 19. [Cost model](#19-cost-model)
 20. [Build plan and milestones](#20-build-plan-and-milestones)
 21. [Launch and cold start](#21-launch-and-cold-start)
-22. [Open decisions for the owner](#22-open-decisions-for-the-owner)
+22. [Decisions](#22-decisions)
 23. [Appendices](#23-appendices)
 
 ---
@@ -132,6 +132,7 @@ Automated posts can only mention books by database ID, so they can't make up a t
 8. **Configurable without deploys.** Prices, thresholds, schedules, model names, feature flags and ad slots live in a `settings` table that the admin UI edits.
 9. **Transparency by default.** Sponsored content is labeled, AI-generated content is labeled, and authors see every change made to their books and why.
 10. **Build the Phase 5 data model in Phase 1**, but only the Phase 1 interfaces.
+11. **The owner approves; Claude does the work.** Claude (in build sessions) and the automated pipelines handle voice, writing, quizzes, calibration, labeling and data verification. The owner is never asked to label data, calibrate, or set a voice. Every owner touchpoint is an optional approval with a safe default.
 
 ### 1.4 Competitive landscape
 
@@ -536,8 +537,8 @@ Pipeline (GitHub Actions):
 | `post_books` | Books referenced (from shortcodes) | `post_id, book_id` |
 | `guest_submissions` | Metadata for guest posts | `post_id, author_id, pitch, guideline_ack_at, license_ack_at, ai_screen (JSON)` |
 | `interview_responses` | Author questionnaire answers | `id, author_id, book_id, answers (JSON), status` |
-| `quizzes` | Match Quiz and fun quizzes | `id, slug, kind (match/fun), title, dek, status (draft/in_review/live/retired), series_id?, is_official, partner_author_id?, permission_ref?, spoiler_boundary, disclaimer, created_by` |
-| `quiz_items` | Questions | `quiz_id, position, prompt, options (JSON: label, personality points, effects on dials/stats/tags)` |
+| `quizzes` | Match Quiz, personality and trivia quizzes | `id, slug, kind (match/fun/trivia), title, dek, status (draft/in_review/live/retired), series_id?, is_official, partner_author_id?, permission_ref?, spoiler_boundary, disclaimer, created_by` |
+| `quiz_items` | Questions | `quiz_id, position, prompt, explain (trivia), options (JSON: label, personality points or `correct`, effects on dials/stats/tags)` |
 | `quiz_outcomes` | Results | `quiz_id, key, title, description (our own words), image_media_id, profile_seed (JSON)` |
 | `quiz_takes` | Responses | `id, quiz_id, user_id?, answers (JSON), outcome_key, source (e.g. share, search, community, author, onsite), party_ref?, created_at, attached_at`. Anonymous takes are kept 90 days, then only aggregates remain |
 | `editorial_slots` | Publishing calendar | `id, date, kind (roundup/editorial/guest/owner), post_id?` |
@@ -1057,14 +1058,18 @@ Full schedule: [Appendix B](#appendix-b-job-schedule).
 
 ### 7.14 Evals
 
-- `data/eval/golden.jsonl` holds **~200 hand-verified books** across subgenres. The owner reviews AI-drafted labels, which takes a few evenings, and must include hard cases: harem-adjacent books, cultivation-vs-LitRPG, cozy-vs-slice-of-life.
+- `data/eval/golden.jsonl` holds **~200 books** across subgenres, labeled **with no owner effort**:
+  - Opus 5 labels each book twice with independent prompts, backed by research-agent citations.
+  - Disagreements go to a third adjudication pass.
+  - Every label keeps its evidence.
+  - The set must include hard cases: harem-adjacent books, cultivation vs. LitRPG, cozy vs. slice of life.
 - `pnpm eval:classify --model <id> --prompt <version>` runs the set, costing about $1–2, and reports:
   - per-facet precision and recall;
   - **recall on exclusion tags (harem, explicit content, romance ≥3)**;
   - mean absolute error on ordinal facets;
   - cost per book.
 - **Gate:** any prompt or model change must not reduce exclusion-tag recall at all, and must not reduce macro-F1 by more than 2 points. The eval is required before changing `llm.model.classify` in production.
-- **Dials:** the golden set also carries owner-rated dials. Report the mean absolute error per dial. A change must not raise it by more than 0.5 on any dial.
+- **Dials:** the golden set also carries adjudicated dials. Report the mean absolute error per dial. A change must not raise it by more than 0.5 on any dial.
 - **Match quality:** recall@10 on held-out loved books (§7.8), run on every weight or feature change.
 
 ### 7.15 Catalog sourcing without scraping
@@ -1095,7 +1100,7 @@ Full schedule: [Appendix B](#appendix-b-job-schedule).
   - an author claim;
   - an owner spot-check.
 - **Candidates pool.** Unconfirmed seeds stay private. They still drive outreach ("We think you wrote *X*. Claim it and fix anything we got wrong.").
-- **Accuracy sampling.** Before launch, the owner spot-checks 50 random published records. More than 2% wrong means tighten the gate and re-verify.
+- **Accuracy sampling.** Before launch, and monthly after, an independent audit pass (Opus 5 with the research agent) re-verifies 50 random published records against cited sources. More than 2% wrong means tighten the gate and re-verify. No owner spot-checking is required.
 - **Cost.** Generating the seed costs a few dollars of API time (or nothing, if produced in a Claude Code session). Research-agent verification is about $0.05–0.10 per series (web searches are $10 per 1,000 plus tokens), so **about $50 for 700 series**.
 
 **Reader library import** (Goodreads/StoryGraph CSV)
@@ -1173,11 +1178,12 @@ Other controls:
 | `verification_manual` | Author chose a profile-code method | Wait (reminder at 3 d) | — |
 | `claim_conflict` | Two accounts claim one profile | Wait, high priority | — |
 | `ad_review` | Paid creative (non-T2, or failed checks) | Approve if automated checks pass. If checks failed and still undecided 24 h before start: **reject and auto-refund** | T–48 h / T–24 h |
-| `guest_post` | Guest submission | Wait (weekly reminder). After 30 days, auto-reply "still in queue" | — |
-| `ai_draft` | Editorial draft generated | Discard | 14 d |
+| `guest_post` | Guest submission | Approve if the AI pre-review is clean and the author is T1+. Otherwise wait | 5 d |
+| `ai_draft` | Editorial draft generated | Approve if an independent editor-model review and the validators pass. Otherwise discard | 3 d |
 | `interview` | Author questionnaire formatted into a post | Approve if the moderation screen is clean | 5 d |
 | `report` | Reader or author report | Depends on subject; content is hidden meanwhile if severity is high | — |
 | `refund_request` | Advertiser | Wait (money) | — |
+| `rights_request` | An author or rights holder asks us to change or remove a fan quiz or other content | **Unpublish immediately**, then wait for the owner to confirm (restore or keep down) | — |
 | `dispute` | Stripe chargeback | Wait, high priority, instant alert | — |
 | `job_failure` | DLQ / failed Workflow | Auto-retry once, then wait | 1 h |
 | `taxonomy_proposals` | Monthly drift job | Wait | — |
@@ -1280,7 +1286,7 @@ Every automated or one-click action writes the audit log **with a reversible dif
   - These answer one of the genre's most common searches ("books like *Dungeon Crawler Carl*").
 - **Stat leaderboards** (`/top/{stat}`): "LitRPG with the most competent MCs", "Highest Rule of Cool", "Fastest starts". Ranked **only by reader-appraised values** (≥ the display threshold, §6.7), filterable by subgenre, and indexable.
 - **Living lists** (`/lists/{slug}`):
-  - A saved search plus a short owner-approved intro, e.g. "Completed LitRPG series with audiobooks" or "LitRPG with no harem".
+  - A saved search plus a short auto-drafted, editor-checked intro, e.g. "Completed LitRPG series with audiobooks" or "LitRPG with no harem".
   - They update themselves as the catalog changes, and double as the blog's evergreen backbone (§14).
 
 ### 9.3 Fun quizzes (lead magnets that double as matching)
@@ -1297,7 +1303,9 @@ Personality quizzes are among the most shared formats on the internet. Every ans
 - *Would you survive the tutorial?*
 - *What's your starting skill in the System Apocalypse?*
 
-**Series quizzes** are fan favorites and should ideally be made **with the author's blessing** (§16.5): *Which DCC character are you?*, *What would your three essences and confluence be?* (He Who Fights With Monsters), *What's your Path?* (Cradle), and so on. An author who blesses a quiz usually shares it, which is the point.
+**Series quizzes** are unofficial fan quizzes, the same format that built the big pop-culture quiz sites (§16.5): *Which DCC character are you?*, *What would your essences be?* (He Who Fights With Monsters), *What's your Path?* (Cradle), and more from the quiz factory every week.
+
+**Trivia quizzes** ("How well do you know LitRPG?", "How well do you know DCC? Books 1–2") are the other big pop-culture format. The score picks a rank tier; results are shareable scores. See [`QUIZZES.md`](./QUIZZES.md).
 
 **How a fun quiz feeds matching.** Every option carries hidden **effects**: dial nudges, stat floors and tag affinities, alongside its personality points. For example, "You find a glowing sword deep in the dungeon":
 
@@ -1360,7 +1368,7 @@ It's labeled honestly as notable releases, not all releases.
 - **Series page:** reading order, status, total length, audio coverage, follow, and "Start with book 1" CTA.
 - **Author page:** bio, links, books by series, upcoming releases, follow. A "Claim this profile" CTA if unclaimed.
 - **Narrator page:** every LitRPG audiobook they narrated, plus upcoming releases. Narrator following is a LitRPG-specific differentiator.
-- **Tag pages:** `/tags/dungeon-core`. An auto-generated intro, reviewed once by the owner and then locked; top books; new and upcoming releases; related tags; follow tag. These pages are the SEO backbone.
+- **Tag pages:** `/tags/dungeon-core`. An auto-generated intro, checked by an independent editor-model pass and then locked; top books; new and upcoming releases; related tags; follow tag. These pages are the SEO backbone.
 
 ### 9.6 Follows and alerts
 
@@ -1823,10 +1831,10 @@ A daily job at 11:00 UTC collects each opted-in reader's followed releases for t
 |---|---|---|---|---|
 | **Weekly roundup**: "New LitRPG & Progression Fantasy Releases: Week of Oct 5" | System. Book data comes from the database; Opus 5 writes a short intro and section prose | **Auto-publish** if the validator passes (can be switched to "require approval") | Monday | "Compiled automatically from our release database" |
 | **Monthly roundups**: "LitRPG audiobooks coming in November", "Series finales this month", "New series to start", "Most-followed upcoming releases" | System | Auto-publish if the validator passes and the post has ≥ 8 books | 1st and 15th | Same |
-| **Editorial draft**: "What is Dungeon Core? 15 books to start with", "If you loved *Dungeon Crawler Carl*…", genre explainers | Opus 5 drafts from a brief and database data | **Owner approval required** (edit in place) | ≤ 1 / week | "Written with AI assistance and edited by ReadLitRPG" (per owner policy, §22) |
+| **Editorial draft**: "What is Dungeon Core? 15 books to start with", "If you loved *Dungeon Crawler Carl*…", genre explainers | Opus 5 drafts from a brief and database data | Independent editor-model review plus validators; auto-publishes after 3 days unless the owner vetoes | ≤ 1 / week | "Written with AI assistance and edited by ReadLitRPG" (per owner policy, §22) |
 | **Author interview** | Author's own answers; AI only selects, orders and writes a 2-sentence intro | Author approves the final text; owner inbox default-approves in 5 days if the moderation screen is clean | ≤ 2 / week, scheduled the week before the author's release | "Interview" |
-| **Guest post** | Verified author | Owner approval required | Tue / Thu slots | "Guest post by {author}" |
-| **Living list**: "Completed LitRPG series with audiobooks", "LitRPG with no harem" | A saved database search plus a short intro | Intro approved once by the owner. The list then updates itself | As created | "Updated automatically from our database" |
+| **Guest post** | Verified author | AI pre-review; auto-approves after 5 days if clean (T1+ authors); the owner can veto | Tue / Thu slots | "Guest post by {author}" |
+| **Living list**: "Completed LitRPG series with audiobooks", "LitRPG with no harem" | A saved database search plus a short intro | Intro auto-drafted, checked by the editor model, then locked. The list updates itself | As created | "Updated automatically from our database" |
 | **Owner post** | Owner | None | Whenever | Byline |
 | **Sponsored post** (later, optional) | Advertiser | Owner approval | ≤ 1 / month | "Sponsored", with `rel="sponsored"` links |
 
@@ -2216,15 +2224,15 @@ Export, correction, deletion and objection (unsubscribe) are all **self-serve** 
 - **Listing terms:** submitting authors grant a non-exclusive license to display their blurb, cover, sample text and author photo to promote the book. They can withdraw it by hiding the listing.
 - **Unclaimed stubs** show facts (not copyrightable) plus **our own AI summary**, never a copied blurb. Covers appear only from licensed sources (Creators API images per its terms once eligible, or Open Library covers per their terms). Otherwise a generated placeholder card.
 - **Fan quizzes about other authors' series** (§9.3):
-  - Prefer the author's blessing, and record it (`permission_ref`).
-  - Without it:
+  - We publish **unofficial fan quizzes without asking first**, which is standard practice on the large pop-culture quiz sites. Guardrails:
     - text only, with character descriptions in our own words;
     - no official art (standard cover thumbnails linking to the book are fine);
     - no quotes beyond a few words;
     - a stated spoiler boundary;
     - a clear "Unofficial fan quiz, not affiliated with or endorsed by {author/publisher}" disclaimer;
     - prominent links to the books;
-    - prompt removal on request.
+    - prompt changes or removal if an author or rights holder asks.
+  - An **Official** version (`is_official`, `permission_ref`) exists only when an author comes to us (§11.2).
   - Series and character names are used only to identify the works, never in our own branding or ads.
 - **DMCA:** register a **designated agent** with the US Copyright Office (small fee, renew every 3 years). `dmca@` notices become an inbox item type with a takedown and counter-notice workflow and a repeat-infringer policy.
 
@@ -2282,7 +2290,7 @@ The plan relies on pages that genuinely help readers, not SEO tricks.
 - **Structured data:** `Book` (with `workExample` per format, `author`, `isbn`, `bookFormat`, `datePublished`), `BookSeries`, `Person`, `Article`, `BreadcrumbList`.
 - **Sitemaps:** split by type, regenerated nightly. Embargoed books are excluded.
 - **Quiz pages** ("which DCC character are you"), **stat leaderboards** ("LitRPG with the most competent MC"), **"books like X" pages and living lists** ("Completed LitRPG series with audiobooks") target the genre's most common searches.
-- **Tag landing pages** ("Best Dungeon Core LitRPG books") are the evergreen backbone. Intros are AI-drafted once, owner-approved, then locked.
+- **Tag landing pages** ("Best Dungeon Core LitRPG books") are the evergreen backbone. Intros are AI-drafted once, checked by an editor-model pass, then locked.
 - **Calendar pages** ("LitRPG releases November 2026") capture recurring monthly searches.
 - **Canonical URLs** and 301s for merged or renamed records. Stable slugs.
 - **OG images** per book and post, generated at publish time.
@@ -2405,13 +2413,13 @@ The estimates assume one developer working with an AI coding assistant, part-tim
    1. Claude generates the AI seed list: ~500–800 series, roughly 2,000 books.
    2. It is merged with Open Library dump matches.
    3. The research agent verifies each series and cites sources.
-   4. The owner spot-checks 50 random records and builds the golden eval set from them.
+   4. An independent audit pass re-verifies 50 random records, and the golden eval set is built the same way (§7.14). No owner labeling.
    5. Meanwhile, contact publishers, narrators and sale organizers for upcoming-release feeds.
 
    **No scraping.** The owner's quick-add is only for gaps.
 2. **Lead with quizzes.**
    - Launch with *What's your LitRPG class?* plus 2–4 more (§9.3).
-   - Before launch, ask the authors of 2–3 big series whether they'd bless a series quiz. It's free promotion they'll likely share.
+   - Launch with 3 series fan quizzes (DCC, He Who Fights With Monsters, Cradle; drafted in `data/quizzes/`), then add 1–2 new quizzes a week from the quiz factory ([`QUIZZES.md` §6](./QUIZZES.md#6-series-fan-quizzes-and-the-quiz-catalog)).
    - Quiz results are the most shareable thing on the site, and every result page offers "Email me my full reading list".
 3. **Put the match engine where readers ask for recommendations.**
    - Answer "books like X" and "what should I read next" threads with a helpful answer first and a share link second. r/litrpg and r/ProgressionFantasy have self-promotion rules, so take part as a reader, not a billboard.
@@ -2425,9 +2433,11 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 
 ---
 
-## 22. Open decisions for the owner
+## 22. Decisions
 
-| # | Decision | Recommendation |
+The owner asked Claude to make these calls (principle 11, §1.3). Each is **decided** as written and applied throughout this document. The owner can overrule any of them at any time.
+
+| # | Question | Decision |
 |---|---|---|
 | D1 | **AI-generated books policy.** List them? Label them? Include them in newsletters or ads? | List with author attestation and a visible label. Excluded from newsletters and ads by default. Readers can filter them out. (The LitRPG community is vocal about this; a clear policy is a differentiator.) |
 | D2 | **AI labeling on our own content** (summaries, editorial drafts) | Label everything AI-assisted. Transparency builds trust with an AI-skeptical audience |
@@ -2444,7 +2454,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | D13 | **Show AI-seeded records before independent confirmation?** | No. Keep them in the private candidates pool until the §7.15 publication gate passes |
 | D14 | **Require an account to use the match engine?** | No. Matching, search, tuning and sharing stay free and anonymous. Email is asked for only to save or set alerts |
 | D15 | **Show a percentage on public "books like X" pages?** | Yes, labeled "similarity". Keep "match %" for personalized results |
-| D17 | **Series quizzes on other authors' IP** (DCC, HWFWM…) | Launch IP-free quizzes first. Make series quizzes with the author's blessing where possible; otherwise follow §16.5 and remove on request |
+| D17 | **Series quizzes on other authors' IP** (DCC, HWFWM…) | **Decided:** publish unofficial fan quizzes without asking first, like the big pop-culture quiz sites, under the §16.5 guardrails. Change or remove on request. "Official" versions only when an author comes to us |
 | D16 | **Show judgment stats (Competent MC, Low Drama…) publicly?** | Yes, but only reader-appraised (≥ 5 appraisals, with the count shown). Never show AI-only judgments; `???` until then |
 
 ---

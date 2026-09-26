@@ -211,7 +211,7 @@ A love triangle is **not** a harem. When `harem ≠ none`, `romance_level` must 
 
 `human` · `ai_assisted` (the author used AI for parts such as editing, brainstorming or cover art) · `ai_generated` (substantially AI-written) · `unknown`
 
-Set by author attestation, admin, or upheld reader reports. Policy on display, newsletters and ads: [`DESIGN.md` §22 D1](./DESIGN.md#22-open-decisions-for-the-owner).
+Set by author attestation, admin, or upheld reader reports. Policy on display, newsletters and ads: [`DESIGN.md` §22 D1](./DESIGN.md#22-decisions).
 
 ## 11. Derived facets (computed from structured data, never tagged)
 

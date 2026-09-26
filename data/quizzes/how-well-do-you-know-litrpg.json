@@ -1,0 +1,166 @@
+{
+  "slug": "how-well-do-you-know-litrpg",
+  "kind": "trivia",
+  "status": "draft",
+  "title": "How Well Do You Know LitRPG?",
+  "dek": "Ten questions on the genre's lingo and lore. Let's see your rank.",
+  "estimated_seconds": 90,
+  "is_official": false,
+  "spoiler_boundary": null,
+  "outcomes": [
+    {
+      "key": "tutorial-zone",
+      "name": "Tutorial Zone",
+      "min_score": 0,
+      "tagline": "Everyone starts somewhere, and you're about to have so much fun.",
+      "description": "You're new here, which is the best place to be: the whole genre is still ahead of you. Your results come with a starter list of beginner-friendly favorites.",
+      "share_text": "I scored {score}/10 on How Well Do You Know LitRPG? Tutorial Zone, but not for long."
+    },
+    {
+      "key": "adventurer",
+      "name": "Adventurer",
+      "min_score": 4,
+      "tagline": "You know your way around a status screen.",
+      "description": "You've got the basics down and a few favorites under your belt. Time to branch into the subgenres you haven't tried yet.",
+      "share_text": "I scored {score}/10 on How Well Do You Know LitRPG? Rank: Adventurer. Beat that."
+    },
+    {
+      "key": "veteran",
+      "name": "Veteran",
+      "min_score": 7,
+      "tagline": "You've cleared enough floors to have opinions.",
+      "description": "You know your crunch from your cultivation and your regressors from your reincarnators. You're who your friends ask for recommendations.",
+      "share_text": "I scored {score}/10 on How Well Do You Know LitRPG? Rank: Veteran. Beat that."
+    },
+    {
+      "key": "grand-loremaster",
+      "name": "Grand Loremaster",
+      "min_score": 9,
+      "tagline": "You don't read LitRPG. You audit it.",
+      "description": "Terminology, history, subgenres: nothing gets past you. You've probably already spotted the math error in chapter 47.",
+      "share_text": "I scored {score}/10 on How Well Do You Know LitRPG? Rank: Grand Loremaster. Bow before my stat screen."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "flavor": "[TERMINOLOGY]",
+      "prompt": "LitRPG is short for...",
+      "options": [
+        { "id": "a", "label": "Literary role-playing game", "correct": true },
+        { "id": "b", "label": "Lightweight RPG" },
+        { "id": "c", "label": "Little RPG" },
+        { "id": "d", "label": "Literally Real-Person Gaming" }
+      ],
+      "explain": "Literature + RPG: stories where game mechanics are a real part of the world, and you see them on the page."
+    },
+    {
+      "id": "q2",
+      "flavor": "[ORIGIN STORY]",
+      "prompt": "Where was the term \"LitRPG\" coined?",
+      "options": [
+        { "id": "a", "label": "Japan" },
+        { "id": "b", "label": "South Korea" },
+        { "id": "c", "label": "Russia", "correct": true },
+        { "id": "d", "label": "The United States" }
+      ],
+      "explain": "The name came out of Russia's game-fiction scene in 2013, when a major Russian publisher launched a LitRPG book line."
+    },
+    {
+      "id": "q3",
+      "flavor": "[STATUS CHECK]",
+      "prompt": "When readers call a LitRPG \"crunchy,\" they mean it has...",
+      "options": [
+        { "id": "a", "label": "Lots of fight scenes" },
+        { "id": "b", "label": "Lots of stats, numbers and mechanics on the page", "correct": true },
+        { "id": "c", "label": "A crispy, punchy writing style" },
+        { "id": "d", "label": "A magic system based on snacks" }
+      ],
+      "explain": "Crunch is how much of the System you actually see: status screens, stat blocks, build math."
+    },
+    {
+      "id": "q4",
+      "flavor": "[DUNGEON DETECTED]",
+      "prompt": "In a \"dungeon core\" story, the main character is...",
+      "options": [
+        { "id": "a", "label": "An adventurer clearing dungeons" },
+        { "id": "b", "label": "A blacksmith who sells gear to adventurers" },
+        { "id": "c", "label": "The dungeon itself", "correct": true },
+        { "id": "d", "label": "The guild receptionist" }
+      ],
+      "explain": "In dungeon core stories you're the dungeon: building floors, designing traps and raising monsters."
+    },
+    {
+      "id": "q5",
+      "flavor": "[GENRE CHECK]",
+      "prompt": "What mainly separates progression fantasy from LitRPG?",
+      "options": [
+        { "id": "a", "label": "Progression fantasy doesn't need visible stats or a game System", "correct": true },
+        { "id": "b", "label": "Progression fantasy has no magic" },
+        { "id": "c", "label": "Progression fantasy is always set on Earth" },
+        { "id": "d", "label": "Progression fantasy never has sequels" }
+      ],
+      "explain": "Both are about getting stronger. LitRPG shows the game mechanics; progression fantasy can grow the hero's power without any status screens."
+    },
+    {
+      "id": "q6",
+      "flavor": "[TRANSPORTED]",
+      "prompt": "\"Isekai\" is a Japanese term for stories where the hero...",
+      "options": [
+        { "id": "a", "label": "Becomes a dragon" },
+        { "id": "b", "label": "Is transported or reborn into another world", "correct": true },
+        { "id": "c", "label": "Opens a restaurant" },
+        { "id": "d", "label": "Never leaves their hometown" }
+      ],
+      "explain": "Isekai roughly means \"another world\": the hero is transported, summoned or reborn somewhere new."
+    },
+    {
+      "id": "q7",
+      "flavor": "[CULTIVATION]",
+      "prompt": "In cultivation stories, characters mainly grow stronger by...",
+      "options": [
+        { "id": "a", "label": "Collecting trading cards" },
+        { "id": "b", "label": "Winning popularity contests" },
+        { "id": "c", "label": "Refining qi or spiritual energy through realms", "correct": true },
+        { "id": "d", "label": "Buying upgrades from a shop" }
+      ],
+      "explain": "Cultivation comes from Chinese xianxia and wuxia fiction: cultivators refine energy to break through one realm after another."
+    },
+    {
+      "id": "q8",
+      "flavor": "[APOCALYPSE DETECTED]",
+      "prompt": "What happens in a \"System Apocalypse\" story?",
+      "options": [
+        { "id": "a", "label": "A game-like System arrives on Earth and everything changes", "correct": true },
+        { "id": "b", "label": "The main character's computer crashes" },
+        { "id": "c", "label": "Robots take over, but politely" },
+        { "id": "d", "label": "The world ends in chapter one and nothing else happens" }
+      ],
+      "explain": "The System shows up, monsters spawn, and everyone on Earth has to level up or die trying."
+    },
+    {
+      "id": "q9",
+      "flavor": "[SECOND CHANCE]",
+      "prompt": "A \"regression\" story is one where the main character...",
+      "options": [
+        { "id": "a", "label": "Loses a level every chapter" },
+        { "id": "b", "label": "Goes back to an earlier point in their life, keeping their memories", "correct": true },
+        { "id": "c", "label": "Moves back in with their parents" },
+        { "id": "d", "label": "Relives the same day over and over" }
+      ],
+      "explain": "Regressors get one do-over with future knowledge. Reliving the same stretch again and again is a time loop."
+    },
+    {
+      "id": "q10",
+      "flavor": "[WHERE IT STARTS]",
+      "prompt": "Which site is best known as the home of free LitRPG and progression fantasy web serials?",
+      "options": [
+        { "id": "a", "label": "Wattpad" },
+        { "id": "b", "label": "Royal Road", "correct": true },
+        { "id": "c", "label": "Archive of Our Own" },
+        { "id": "d", "label": "LinkedIn" }
+      ],
+      "explain": "A huge share of the genre's hits started as free serials on Royal Road before becoming books and audiobooks."
+    }
+  ]
+}

@@ -119,7 +119,7 @@ You don't just level up, you optimize. Every point is allocated on purpose, ever
 - **You'll love:** Build choices that actually matter · Stat screens worth studying · Loopholes, exploits and synergies · Systems with hard rules
 - **Watch out for:** Books where the numbers are just decoration.
 - **Starting profile:** crunch → 8, rigour → 8, strategy → 9, progression_speed → 6 · build_payoff ≥ 7, system_consistency ≥ 7, number_go_up ≥ 6 · #build-crafting #system-exploitation #stats #class-evolution
-- **Calibration books (owner to confirm, never shown as-is):** Delve (SenescentSoul); The Completionist Chronicles (Dakota Krout)
+- **Calibration books (define the class; never shown to readers as-is):** Delve (SenescentSoul); The Completionist Chronicles (Dakota Krout)
 - **Share text:** "My LitRPG class is The Min-Maxer. I've read the stat screen three times. What's yours?"
 
 ### The Cozy Crafter
@@ -131,7 +131,7 @@ Swords are fine, but have you tried making a really good one? You love quiet com
 - **You'll love:** Crafting and slice of life · Low drama · A warm tone · Progress you can hold in your hands
 - **Watch out for:** Grimdark body counts and nonstop combat.
 - **Starting profile:** tone → 8, combat → 2, danger → 2, pacing → 4 · low_drama ≥ 7 · #crafting #cozy #slice-of-life #farming #business
-- **Calibration books (owner to confirm, never shown as-is):** Beware of Chicken (Casualfarmer); Heretical Fishing (Haylock Jobson)
+- **Calibration books (define the class; never shown to readers as-is):** Beware of Chicken (Casualfarmer); Heretical Fishing (Haylock Jobson)
 - **Share text:** "My LitRPG class is The Cozy Crafter. My idea of an epic battle is a stubborn enchantment. What's yours?"
 
 ### The Dungeon Diver
@@ -143,7 +143,7 @@ You want the next floor, the next boss and the next loot drop, ideally all in th
 - **You'll love:** Dungeon crawling · Loot and gear · Rule of Cool · Escalating danger
 - **Watch out for:** Long stretches of politics and paperwork.
 - **Starting profile:** combat → 9, pacing → 8, danger → 6 · rule_of_cool ≥ 7, number_go_up ≥ 7 · #dungeon-crawler #tower-climbing #loot #party-focused
-- **Calibration books (owner to confirm, never shown as-is):** Dungeon Crawler Carl (Matt Dinniman)
+- **Calibration books (define the class; never shown to readers as-is):** Dungeon Crawler Carl (Matt Dinniman)
 - **Share text:** "My LitRPG class is The Dungeon Diver. Floors, loot, bosses, repeat. What's yours?"
 
 ### The Dungeon Keeper
@@ -155,7 +155,7 @@ Adventurers are just very motivated XP that walks in on its own. You love design
 - **You'll love:** Dungeon cores · Base building · Clever traps · Non-human MCs
 - **Watch out for:** MCs who never get a home base.
 - **Starting profile:** strategy → 7, combat → 5 · build_payoff ≥ 6, number_go_up ≥ 6 · #dungeon-core #base-building #nonhuman-mc #summoning
-- **Calibration books (owner to confirm, never shown as-is):** Dungeon Born (Dakota Krout)
+- **Calibration books (define the class; never shown to readers as-is):** Dungeon Born (Dakota Krout)
 - **Share text:** "My LitRPG class is The Dungeon Keeper. Why fight the dungeon when you can be the dungeon? What's yours?"
 
 ### The Kingdom Builder
@@ -178,7 +178,7 @@ Power is nice, but answers are better. You read for the mysteries: ancient ruins
 - **You'll love:** Deep lore · System mysteries · Tightly plotted arcs · Rules that stay consistent
 - **Watch out for:** Worlds that are only a backdrop for fights.
 - **Starting profile:** lore → 9, plot_structure → 8, pacing → 4, prose → 6 · system_consistency ≥ 7, satisfying_endings ≥ 6 · #system-mystery #exploration #mythology
-- **Calibration books (owner to confirm, never shown as-is):** Mother of Learning (nobody103); The Wandering Inn (pirateaba)
+- **Calibration books (define the class; never shown to readers as-is):** Mother of Learning (nobody103); The Wandering Inn (pirateaba)
 - **Share text:** "My LitRPG class is The Lore Seeker. I need to know who made the System. What's yours?"
 
 ### The Speed Leveler
@@ -190,7 +190,7 @@ You want visible progress, and you want it now: big numbers, fast climbs, and an
 - **You'll love:** Fast progression · Power fantasy · Hype moments · Fast starts
 - **Watch out for:** Long prologues before the System shows up.
 - **Starting profile:** progression_speed → 9, pacing → 8, power_fantasy → 8 · number_go_up ≥ 8, hype ≥ 7, fast_start ≥ 7 · #op-mc #system-apocalypse #levels
-- **Calibration books (owner to confirm, never shown as-is):** The Primal Hunter (Zogarth)
+- **Calibration books (define the class; never shown to readers as-is):** The Primal Hunter (Zogarth)
 - **Share text:** "My LitRPG class is The Speed Leveler. Why is everyone else so slow? What's yours?"
 
 ### The Underdog
@@ -202,7 +202,7 @@ You love an MC who starts with nothing (no talent, no backing, no chance) and cl
 - **You'll love:** Weak to strong · Earned power · Training arcs · Hype moments
 - **Watch out for:** MCs handed godlike power in chapter one.
 - **Starting profile:** power_fantasy → 3, progression_speed → 4, danger → 7 · earned_power ≥ 8, hype ≥ 7 · #weak-to-strong #training-arcs
-- **Calibration books (owner to confirm, never shown as-is):** Cradle (Will Wight)
+- **Calibration books (define the class; never shown to readers as-is):** Cradle (Will Wight)
 - **Share text:** "My LitRPG class is The Underdog. Weakest in the room, not for long. What's yours?"
 
 ### The Party Main
@@ -214,7 +214,7 @@ The best part of any adventure is who's standing next to you. You love banter ar
 - **You'll love:** Found family · Party chemistry · Banter · Allies who matter
 - **Watch out for:** Lone-wolf MCs who treat allies as disposable.
 - **Starting profile:** ensemble → 9, humor → 6, tone → 7 · party_chemistry ≥ 8, low_drama ≥ 6, rootable_mc ≥ 6 · #party-focused #found-family
-- **Calibration books (owner to confirm, never shown as-is):** He Who Fights With Monsters (Shirtaloon)
+- **Calibration books (define the class; never shown to readers as-is):** He Who Fights With Monsters (Shirtaloon)
 - **Share text:** "My LitRPG class is The Party Main. Found family beats solo carry. What's yours?"
 
 ### The Villain Main
@@ -226,7 +226,7 @@ Heroes are predictable. You'd rather follow the necromancer, the demon lord, or 
 - **You'll love:** Villain and antihero MCs · Dark tone · High stakes · Rootable menaces
 - **Watch out for:** Saccharine heroes who never make a hard choice.
 - **Starting profile:** morality → 8, tone → 3, danger → 7 · rootable_mc ≥ 6 · #villain-mc #necromancy #revenge
-- **Calibration books (owner to confirm, never shown as-is):** Awaken Online (Travis Bagwell)
+- **Calibration books (define the class; never shown to readers as-is):** Awaken Online (Travis Bagwell)
 - **Share text:** "My LitRPG class is The Villain Main. Morally grey? I prefer charcoal. What's yours?"
 
 ### The Comedy Rogue
@@ -238,7 +238,7 @@ You read for the laughs: snarky announcers, absurd skills, and MCs who troll the
 - **You'll love:** Humor · Snarky Systems · Satire · Rule of Cool
 - **Watch out for:** Grim books that take themselves very seriously.
 - **Starting profile:** humor → 9, tone → 6 · rule_of_cool ≥ 6 · #humorous #snarky-system #satire #gamer-mc
-- **Calibration books (owner to confirm, never shown as-is):** Dungeon Crawler Carl (Matt Dinniman); Vainqueur the Dragon (Maxime J. Durand)
+- **Calibration books (define the class; never shown to readers as-is):** Dungeon Crawler Carl (Matt Dinniman); Vainqueur the Dragon (Maxime J. Durand)
 - **Share text:** "My LitRPG class is The Comedy Rogue. If the System isn't sarcastic, what's the point? What's yours?"
 
 ### The Monster Evolver
@@ -250,7 +250,7 @@ Humans are overrated. You'd rather start as a slime, a spider or a very determin
 - **You'll love:** Monster MCs · Evolution choices · Non-human perspectives · Number go up
 - **Watch out for:** Human MCs with nothing strange about them.
 - **Starting profile:** progression_speed → 7, combat → 7 · number_go_up ≥ 7, build_payoff ≥ 6 · #monster-mc #race-evolution #nonhuman-mc
-- **Calibration books (owner to confirm, never shown as-is):** Chrysalis (RinoZ)
+- **Calibration books (define the class; never shown to readers as-is):** Chrysalis (RinoZ)
 - **Share text:** "My LitRPG class is The Monster Evolver. Start as a slime, end as a legend. What's yours?"
 
 ## Balance check
