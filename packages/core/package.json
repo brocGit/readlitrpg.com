@@ -11,6 +11,7 @@
     "./db/backup": "./src/db/backup.ts",
     "./inbox": "./src/inbox/index.ts",
     "./policy": "./src/policy/index.ts",
+    "./ratelimit": "./src/ratelimit/index.ts",
     "./scheduler": "./src/scheduler/index.ts",
     "./schema": "./src/db/schema/index.ts",
     "./security": "./src/security/index.ts",

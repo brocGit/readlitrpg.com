@@ -1,0 +1,48 @@
+---
+import AddPasskey from "../../components/AddPasskey";
+import SignOut from "../../components/SignOut";
+import Base from "../../layouts/Base.astro";
+import { getAuth } from "../../lib/runtime";
+
+// Signed-in only (see src/routes.ts). Never cached.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/account", 303);
+
+const passkeys = await getAuth().api.listPasskeys({ headers: Astro.request.headers });
+const welcome = Astro.url.searchParams.get("welcome") === "1";
+---
+
+<Base title="Your account">
+  <div class="prose">
+    {
+      welcome && (
+        <div class="status-screen" role="status">
+          <p class="label">[New character created]</p>
+          <p>Welcome to ReadLitRPG. Add a passkey below and next time you can sign in with your fingerprint or face.</p>
+        </div>
+      )
+    }
+    <h1>Your account</h1>
+    <p>Signed in as <strong>{session.email}</strong>.</p>
+
+    <h2>Passkeys</h2>
+    {
+      passkeys.length === 0 ? (
+        <p class="muted">No passkeys yet. A passkey lets you sign in without waiting for an email.</p>
+      ) : (
+        <ul>
+          {passkeys.map((p) => (
+            <li>
+              {p.name ?? "Passkey"}
+              <span class="muted"> · added {p.createdAt ? new Date(p.createdAt).toISOString().slice(0, 10) : "earlier"}</span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <AddPasskey client:load />
+
+    <h2>Sign out</h2>
+    <SignOut client:load />
+  </div>
+</Base>

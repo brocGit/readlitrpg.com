@@ -15,6 +15,7 @@ export const BACKUP_TABLES = [
 
 /**
  * Never exported. Live sessions and sign-in tokens are secrets with short lives; after a restore,
- * people simply sign in again. Derived data (search index, vectors) is rebuilt, not backed up.
+ * people simply sign in again. Rate counters expire within hours. Derived data (search index,
+ * vectors) is rebuilt, not backed up.
  */
-export const BACKUP_EXCLUDED = ["sessions", "verifications"] as const;
+export const BACKUP_EXCLUDED = ["sessions", "verifications", "rate_counters"] as const;

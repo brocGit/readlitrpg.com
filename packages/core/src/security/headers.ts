@@ -65,6 +65,38 @@ export function buildCsp(opts: CspOptions = {}): string {
 
 const dedupe = (values: string[]) => [...new Set(values)];
 
+/**
+ * CSP for Astro pages (DESIGN §15.5). HTML is edge-cached and shared, so per-request nonces
+ * can't work. Astro hashes its own scripts and styles and sends the policy as a response header.
+ * This supplies everything except the hashes: the non-script directives and the allowed origins.
+ */
+export function astroCsp(opts: Omit<CspOptions, "nonce" | "scriptHashes" | "styleHashes" | "dev">) {
+  const img = ["'self'", "data:", ...(opts.mediaOrigin ? [opts.mediaOrigin] : [])];
+  const connect = ["'self'", ...(opts.webAnalytics ? ["https://cloudflareinsights.com"] : [])];
+  const frame = opts.turnstile ? ["https://challenges.cloudflare.com"] : ["'none'"];
+  const scripts = [
+    "'self'",
+    ...(opts.turnstile ? ["https://challenges.cloudflare.com"] : []),
+    ...(opts.webAnalytics ? ["https://static.cloudflareinsights.com"] : []),
+  ];
+  return {
+    directives: [
+      "default-src 'self'",
+      `img-src ${img.join(" ")}`,
+      "font-src 'self'",
+      `connect-src ${connect.join(" ")}`,
+      `frame-src ${frame.join(" ")}`,
+      `form-action ${["'self'", ...(opts.formActions ?? [])].join(" ")}`,
+      "frame-ancestors 'none'",
+      "base-uri 'none'",
+      "object-src 'none'",
+      "upgrade-insecure-requests",
+    ] as const,
+    scriptResources: scripts,
+    styleResources: ["'self'"],
+  };
+}
+
 export interface SecurityHeaderOptions extends CspOptions {
   /** HSTS is only sent over HTTPS in production. */
   hsts?: boolean;

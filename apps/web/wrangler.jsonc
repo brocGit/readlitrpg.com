@@ -1,0 +1,37 @@
+// The web Worker: readlitrpg.com (DESIGN §4.2). Public pages, accounts, public APIs.
+// It holds no privileged keys and never sends email itself: sign-in links go to Q_EMAIL.
+// Top-level settings are production; local dev overrides vars from .dev.vars.
+// Resource IDs are placeholders until the Cloudflare account is set up (docs/runbooks/cloudflare-setup.md).
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "rlr-web",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "readlitrpg.com", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  "vars": {
+    "ENVIRONMENT": "production",
+    "PUBLIC_ORIGIN": "https://readlitrpg.com",
+    "RP_ID": "readlitrpg.com",
+    "EMAIL_DELIVERY": "queue",
+    "TURNSTILE_SITE_KEY": "set-at-launch"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "rlr-db",
+      "database_id": "00000000-0000-4000-8000-000000000001",
+      "migrations_dir": "../../migrations"
+    }
+  ],
+  "kv_namespaces": [{ "binding": "CONFIG", "id": "00000000000040008000000000000002" }],
+  "queues": { "producers": [{ "binding": "Q_EMAIL", "queue": "rlr-email" }] },
+  "ratelimits": [
+    { "name": "RL_AUTH", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "RL_WRITE", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
+    { "name": "RL_READ", "namespace_id": "1003", "simple": { "limit": 120, "period": 60 } }
+  ]
+}

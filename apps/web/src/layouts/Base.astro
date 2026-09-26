@@ -1,0 +1,79 @@
+---
+import "@rlr/ui/tokens.css";
+import "@rlr/ui/base.css";
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Pages that carry one-time tokens in the URL must not leak them via Referer. */
+  noReferrer?: boolean;
+}
+
+const {
+  title,
+  description = "Tell it three books you loved. It finds your next LitRPG.",
+  noReferrer = false,
+} = Astro.props;
+const fullTitle = title === "ReadLitRPG" ? title : `${title} · ReadLitRPG`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    {noReferrer && <meta name="referrer" content="no-referrer" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="container bar">
+        <a class="wordmark" href="/" aria-label="ReadLitRPG home"><span aria-hidden="true">[</span>ReadLitRPG<span aria-hidden="true">]</span></a>
+        <nav aria-label="Account">
+          <a href="/account">Account</a>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="container">
+      <slot />
+    </main>
+    <footer class="site-footer container muted">
+      <p>ReadLitRPG: a free discovery engine for LitRPG, progression fantasy and GameLit.</p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-surface);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 3.5rem;
+  }
+  .wordmark {
+    font-family: var(--font-system);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+  .wordmark span {
+    color: var(--color-accent);
+  }
+  main {
+    padding-block: var(--space-8) var(--space-12);
+    min-height: 60vh;
+  }
+  .site-footer {
+    border-top: 1px solid var(--color-line);
+    padding-block: var(--space-6);
+    font-size: 0.9rem;
+  }
+</style>

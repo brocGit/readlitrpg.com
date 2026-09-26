@@ -131,6 +131,7 @@ export const SETTINGS = {
   "flags.ads_serving": def(z.boolean(), true, "Serve ads, including house ads"),
   "flags.newsletter_send": def(z.boolean(), true, "Send newsletters"),
   "flags.read_only_mode": def(z.boolean(), false, "Refuse all writes (incidents and migrations)"),
+  "flags.indexable": def(z.boolean(), false, "Let search engines index the site (turn on at launch)"),
 } satisfies Record<string, SettingDef>;
 
 export type SettingKey = keyof typeof SETTINGS;

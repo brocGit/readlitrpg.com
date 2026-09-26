@@ -128,3 +128,22 @@ export const inboxItems = sqliteTable(
     index("inbox_items_default_action_idx").on(t.status, t.defaultActionAt),
   ],
 );
+
+/**
+ * Fixed-window counters for limits longer than the Rate Limiting binding's 60-second maximum
+ * (DESIGN §15.9), e.g. 3 sign-in links per email per 15 minutes. Keys are hashes, never raw
+ * emails or IPs. The retention job deletes expired windows.
+ */
+export const rateCounters = sqliteTable(
+  "rate_counters",
+  {
+    key: text("key").notNull(),
+    windowStart: text("window_start").notNull(),
+    count: integer("count").notNull().default(0),
+    expiresAt: text("expires_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("rate_counters_key_window_uq").on(t.key, t.windowStart),
+    index("rate_counters_expires_idx").on(t.expiresAt),
+  ],
+);

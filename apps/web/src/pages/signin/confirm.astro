@@ -1,0 +1,44 @@
+---
+import { safeRedirectPath } from "@rlr/core/security";
+import Base from "../../layouts/Base.astro";
+
+// The emailed link lands here. Nothing is consumed on GET, so email scanners that follow links
+// can't burn the one-time token. The button calls Better Auth's verify endpoint.
+const token = Astro.url.searchParams.get("token") ?? "";
+const next = safeRedirectPath(Astro.url.searchParams.get("next"), "/account");
+const newUserNext = safeRedirectPath(Astro.url.searchParams.get("new"), next);
+const masked = (Astro.url.searchParams.get("e") ?? "").slice(0, 120);
+const valid = /^[A-Za-z0-9_-]{16,256}$/.test(token);
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+---
+
+<Base title="Confirm sign-in" noReferrer>
+  <div class="prose">
+    {
+      valid ? (
+        <>
+          <h1>Sign in{masked ? ` as ${masked}` : ""}?</h1>
+          <p class="muted">Only continue if you asked for this link in the last 15 minutes.</p>
+          <form method="get" action="/api/auth/magic-link/verify">
+            <input type="hidden" name="token" value={token} />
+            <input type="hidden" name="callbackURL" value={next} />
+            <input type="hidden" name="newUserCallbackURL" value={newUserNext} />
+            <input type="hidden" name="errorCallbackURL" value="/signin?error=link" />
+            <button class="button" type="submit">
+              Yes, sign me in
+            </button>
+          </form>
+        </>
+      ) : (
+        <>
+          <h1>That link isn't complete</h1>
+          <p>
+            The sign-in link looks cut off. <a href="/signin">Request a new one</a>.
+          </p>
+        </>
+      )
+    }
+  </div>
+</Base>

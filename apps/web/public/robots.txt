@@ -1,0 +1,6 @@
+# Pre-launch: pages also send X-Robots-Tag: noindex until the `flags.indexable` setting is turned on.
+# The launch crawler policy (DESIGN §17.2) replaces this file.
+User-agent: *
+Disallow: /api/
+Disallow: /account
+Disallow: /signin

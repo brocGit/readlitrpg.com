@@ -1,0 +1,40 @@
+---
+import Base from "../layouts/Base.astro";
+
+// The same HTML for every visitor: cached at the edge (routeRules) and purged by tag on change.
+Astro.cache.set({ tags: ["home"] });
+---
+
+<Base title="ReadLitRPG">
+  <section class="hero prose">
+    <h1>Tell it three books you loved. It finds your next read.</h1>
+    <p class="lede">
+      A free discovery engine for LitRPG, progression fantasy, GameLit and cultivation. Match on what
+      actually matters in this genre: how crunchy the system is, how fast the power climbs, and whether the MC
+      is competent.
+    </p>
+  </section>
+
+  <section class="status-screen" aria-labelledby="status-title">
+    <p class="label" id="status-title">[System notice]</p>
+    <p>Construction in progress. The guild hall opens when the catalog reaches 2,000 verified books.</p>
+    <p class="muted">Progress is saved. Please do not feed the dungeon.</p>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    margin-bottom: var(--space-8);
+  }
+  .hero h1 {
+    font-size: clamp(1.9rem, 4vw, 2.8rem);
+    margin: 0 0 var(--space-4);
+  }
+  .lede {
+    font-size: 1.15rem;
+    color: var(--color-muted);
+  }
+  .status-screen {
+    max-width: var(--measure);
+  }
+</style>

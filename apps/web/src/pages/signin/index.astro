@@ -1,0 +1,63 @@
+---
+import { safeRedirectPath } from "@rlr/core/security";
+import PasskeySignIn from "../../components/PasskeySignIn";
+import Base from "../../layouts/Base.astro";
+import { env } from "../../lib/runtime";
+import { SIGNIN_MESSAGES } from "../../lib/signin";
+
+const sent = Astro.url.searchParams.get("sent") === "1";
+const errorCode = Astro.url.searchParams.get("error");
+// Better Auth reports link failures with its own codes (e.g. INVALID_TOKEN); they all mean "link".
+const error = !errorCode
+  ? null
+  : errorCode in SIGNIN_MESSAGES
+    ? SIGNIN_MESSAGES[errorCode as keyof typeof SIGNIN_MESSAGES]
+    : SIGNIN_MESSAGES.link;
+const next = safeRedirectPath(Astro.url.searchParams.get("next"), "/account");
+const useTurnstile = env.ENVIRONMENT !== "local";
+---
+
+<Base title="Sign in">
+  <div class="prose">
+    <h1>Sign in</h1>
+    {
+      sent ? (
+        <div class="notice" role="status">
+          <p>
+            <strong>Check your email.</strong> If that address can sign in, a link is on its way. It works once and
+            expires in 15 minutes.
+          </p>
+        </div>
+      ) : (
+        <>
+          {error && (
+            <div class="notice error" role="alert">
+              <p>{error}</p>
+            </div>
+          )}
+          <p class="muted">No passwords here. Use a passkey, or we'll email you a one-time link.</p>
+          <PasskeySignIn client:load next={next} />
+          <form method="post" action="/api/signin/magic-link" class="email-form">
+            <div class="field">
+              <label for="email">Email address</label>
+              <input id="email" name="email" type="email" autocomplete="email webauthn" required maxlength="320" />
+            </div>
+            {useTurnstile && (
+              <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY} data-action="signin" />
+            )}
+            <button class="button" type="submit">
+              Email me a sign-in link
+            </button>
+          </form>
+        </>
+      )
+    }
+  </div>
+  {useTurnstile && !sent && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />}
+</Base>
+
+<style>
+  .email-form {
+    margin-top: var(--space-6);
+  }
+</style>

@@ -1,0 +1,10 @@
+# Copy to .dev.vars for local development. Never commit .dev.vars.
+ENVIRONMENT=local
+PUBLIC_ORIGIN=http://localhost:4321
+RP_ID=localhost
+# Sign-in links are printed to the dev server console instead of queued.
+EMAIL_DELIVERY=console
+AUTH_SECRET=local-dev-only-secret-not-for-production-use-000000
+IP_HASH_SALT_SEED=local-dev-only-salt
+# Cloudflare's always-pass Turnstile test site key. Leave TURNSTILE_SECRET unset locally to skip verification.
+TURNSTILE_SITE_KEY=1x00000000000000000000AA
