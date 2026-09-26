@@ -513,7 +513,7 @@ Pipeline (GitHub Actions):
 
 | Table | Purpose | Key columns |
 |---|---|---|
-| `email_consents` | Proof of consent per list | `user_id, list (weekly_digest/release_alerts/author_updates/marketing), status (pending/active/unsubscribed), consented_at, source, ip_hash, confirm_token_hash` |
+| `email_consents` | Proof of consent per list | `user_id, list (weekly_digest/daily_digest/release_alerts/author_updates/marketing), status (pending/active/unsubscribed), consented_at, source, ip_hash, confirm_token_hash` |
 | `suppressions` | Never email again | `email_hash, reason (bounce_hard/complaint/manual/unsub_all), created_at` |
 | `email_sends` | Delivery log (retained 90 days) | `id, user_id, template, issue_id, provider_message_id, status, sent_at, opened_at?, clicked_at?` |
 | `newsletter_issues` | One per scheduled send | `id, kind, week, status (building/ready/sending/sent/failed), stats (JSON)` |
@@ -552,6 +552,8 @@ Pipeline (GitHub Actions):
 | `quiz_takes` | Responses | `id, quiz_id, user_id?, answers (JSON), outcome_key, source (e.g. share, search, community, author, onsite), party_ref?, created_at, attached_at`. Anonymous takes are kept 90 days, then only aggregates remain |
 | `editorial_slots` | Publishing calendar | `id, date, kind (roundup/news/editorial/guest/owner), post_id?` |
 | `polls`, `poll_votes` | *Patch Notes* reader polls and the annual Reader Awards | `polls: id, kind (poll/award), question, options (JSON), opens_at, closes_at` · `poll_votes: poll_id, user_id, option, created_at` (one vote per subscriber) |
+| `feed_sources` | Guild Board sources (§14.8) | `id, name, kind (podcast/youtube/publisher/author_blog/review_site/newsletter/kickstarter/community), site_url, feed_url, status (proposed/allowlisted/paused/blocked), link_rel (follow/nofollow), description (our words), claimed_by_user_id?, last_fetched_at, etag, error_count` |
+| `feed_items` | Guild Board items | `id, source_id, guid, title, url, published_at, summary (our one line, ≤ 200 chars), linked_book_ids / series_ids / author_ids (JSON), status (shown/hidden/flagged), score, created_at`. Raw items older than 90 days are pruned |
 | `news_tips` | Author, publisher and news-desk items awaiting a brief | `id, source (author/publisher/data/research), subject, body, source_url, status` |
 | `referrals` | Subscriber referral program | `referrer_user_id, referred_user_id, confirmed_at` |
 
@@ -1195,6 +1197,7 @@ Other controls:
 | `interview` | Author questionnaire formatted into a post | Approve if the moderation screen is clean | 5 d |
 | `report` | Reader or author report | Depends on subject; content is hidden meanwhile if severity is high | — |
 | `refund_request` | Advertiser | Wait (money) | — |
+| `feed_source` | A proposed Guild Board source (§14.8) | Approve if it's on-topic, has a working RSS or official feed, and passes the link check. Otherwise wait | 3 d |
 | `rights_request` | An author or rights holder asks us to change or remove a fan quiz or other content | **Unpublish immediately**, then wait for the owner to confirm (restore or keep down) | — |
 | `dispute` | Stripe chargeback | Wait, high priority, instant alert | — |
 | `job_failure` | DLQ / failed Workflow | Auto-retry once, then wait | 1 h |
@@ -1849,7 +1852,8 @@ A daily job at 11:00 UTC collects each opted-in reader's followed releases for t
 | **Author interview** | Author's own answers; AI only selects, orders and writes a 2-sentence intro | Author approves the final text; owner inbox default-approves in 5 days if the moderation screen is clean | ≤ 2 / week, scheduled the week before the author's release | "Interview" |
 | **Guest post** | Verified author | AI pre-review; auto-approves after 5 days if clean (T1+ authors); the owner can veto | Tue / Thu slots | "Guest post by {author}" |
 | **Living list**: "Completed LitRPG series with audiobooks", "LitRPG with no harem" | A saved database search plus a short intro | Intro auto-drafted, checked by the editor model, then locked. The list updates itself | As created | "Updated automatically from our database" |
-| **News brief** (*Patch Notes*) | News desk: catalog changes, author and publisher tips, weekly research scan (§14.6) | Editor-model check against cited sources; auto-publishes if clean, otherwise inbox | As news happens | "Patch Notes" with sources linked |
+| **Today in LitRPG** (daily) | Built from the calendar, catalog changes, the day's briefs and Guild Board highlights | Validator + editor model; auto-publishes every morning | Daily | "Patch Notes · Today in LitRPG" |
+| **News brief** (*Patch Notes*) | News desk: catalog changes, author and publisher tips, daily research scan (§14.6) | Editor-model check against cited sources; auto-publishes if clean, otherwise inbox | As news happens | "Patch Notes" with sources linked |
 | **Data story**: monthly *State of LitRPG* | Built from our database, with generated charts | Validator + editor model; auto-publishes | Monthly | "From the ReadLitRPG database" |
 | **Owner post** | Owner | None | Whenever | Byline |
 | **Sponsored post** (later, optional) | Advertiser | Owner approval | ≤ 1 / month | "Sponsored", with `rel="sponsored"` links |
@@ -1947,10 +1951,11 @@ The `/news` section shares the *Patch Notes* brand ([`STRATEGY.md` §6](./STRATE
 - **News briefs** (short and cited) come from:
   - catalog changes (new announcements, date changes, completions);
   - author and publisher submissions (`news_tips`);
-  - a weekly research-agent scan of publisher announcements, adaptations, awards and sales events.
+  - a **daily** research-agent scan of publisher announcements, adaptations, awards and sales events.
 
   An editor-model review checks each brief against its source. Clean briefs publish automatically. Anything uncertain, or bigger than a brief, goes to the inbox. **No rumors.**
-- **Data stories:** a monthly *State of LitRPG* (releases by subgenre, audio lag, completions, price trends) built only from our database, with generated charts.
+- **"Today in LitRPG"**, published every morning: books out today, catalog changes, the day's briefs and Guild Board highlights. It's emailed to *Patch Notes Daily* subscribers (opt-in list `daily_digest`) and auto-posted to Bluesky and Mastodon. News is **daily**, while the weekly *Patch Notes* email remains the default.
+- **Data stories:** on top of the daily news, a monthly *State of LitRPG* (releases by subgenre, audio lag, completions, price trends) built only from our database, with generated charts.
 - **Community content:** reader poll results, tier lists, and the annual Reader Awards (voting requires an email; winners get a badge on their book pages).
 
 ### 14.7 Owner writing tools
@@ -1962,6 +1967,30 @@ A markdown editor with live preview. Shortcodes:
 - `[[newsletter-signup]]`
 
 Also: image upload, SEO title and description, social preview, and scheduling. Owner posts can reserve newsletter and house-ad slots for promotion (§11.9).
+
+---
+
+### 14.8 Guild Board: the genre feed
+
+A live, curated stream at `/board` of what the rest of the LitRPG world is publishing: podcast episodes, YouTube reviews, publisher and author blog posts, Kickstarter launches and sales events.
+
+- **Sources** (`feed_sources`):
+  - Seeded with ~30 allowlisted sources (podcasts, publishers, review channels, author blogs).
+  - New sources are proposed by readers, by source owners (who can claim their listing), or by the research agent. A new source becomes an inbox item. Default: approve if it's on-topic, has a working RSS or official feed, and passes the link check.
+  - **Never** piracy, spam or scraped sources.
+- **Fetching:**
+  - Hourly, from each source's own RSS or Atom feed, or official APIs (e.g. YouTube channel feeds, the Bluesky public API).
+  - Uses conditional GET (ETag / If-Modified-Since) and polite rate limits, through `safeFetch()` (§15.8) with an XML parser that has external entities disabled.
+  - No scraping, and no fetching of Amazon or Royal Road.
+- **Items** (`feed_items`):
+  - Headline, our own one-line summary (Haiku, ≤ 200 chars) and a link out. No full-text copies, no remote images (text only, plus covers of matched books from our own media).
+  - Haiku matches each item to books, series and authors in our catalog, so those pages get a fresh **"Around the genre"** section.
+  - Off-topic or unsafe items are auto-hidden.
+- **SEO rules** (§17.2):
+  - The stream pages are `noindex, follow`, and items get no pages of their own.
+  - Indexable pages are the ones where we add value: "Today in LitRPG" and directory pages such as "Best LitRPG podcasts", "LitRPG YouTube channels" and "LitRPG publishers", with descriptions in our own words.
+  - Allowlisted sources get normal links; unvetted items `rel="ugc nofollow"`; anything paid `rel="sponsored"`.
+  - Outbound links carry `?ref=readlitrpg` so sources see us in their analytics. That's a nudge toward partnerships and links back.
 
 ---
 
@@ -2325,6 +2354,10 @@ The plan relies on pages that genuinely help readers, not SEO tricks.
   - Each page answers its question in its first sentence, with clean structured data and visible "last updated" dates.
   - robots.txt and Cloudflare's AI-crawler controls **allow search and citation crawlers** (e.g. Googlebot, Bingbot, OAI-SearchBot, Claude-SearchBot, PerplexityBot) and **block crawlers that only collect training data** (e.g. GPTBot, Google-Extended, CCBot, ClaudeBot, Applebot-Extended). User-agent names are verified at build time.
 - **Capture on every landing page:** follow the series, alert me when a book like this comes out, or find your match. Target ≥ 2% of organic sessions leave an email ([`STRATEGY.md` §4](./STRATEGY.md#4-layer-1-the-database-and-calendar-for-search)).
+- **Linking out is fine; thin aggregation isn't.**
+  - Editorial links to relevant, reputable sites (podcasts, publishers, reviewers) don't hurt rankings.
+  - Aggregator pages that only repeat other sites' headlines do. So the Guild Board stream is `noindex, follow`, items link straight out with no pages of their own, and only value-added pages (the daily roundup, directories written in our own words) are indexed (§14.8).
+- **Daily freshness:** "Today in LitRPG" and the calendar change every day, which gives search engines and AI answers a reason to come back.
 - **Tag landing pages** ("Best Dungeon Core LitRPG books") are the evergreen backbone. Intros are AI-drafted once, checked by an editor-model pass, then locked.
 - **Calendar pages** ("LitRPG releases November 2026") capture recurring monthly searches.
 - **Canonical URLs** and 301s for merged or renamed records. Stable slugs.
@@ -2518,6 +2551,9 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 | `/search` | Title / author / series lookup (typeahead) |
 | `/blog`, `/blog/{slug}`, `/blog/type/{type}` | Blog (evergreen posts, interviews, guest posts) |
 | `/news`, `/news/{slug}` | *Patch Notes* news section |
+| `/news/today`, `/news/{yyyy}/{mm}/{dd}` | Daily "Today in LitRPG" roundup and archive |
+| `/board`, `/board/{kind}` | Guild Board genre feed (`noindex, follow`) |
+| `/directory/{kind}` | Indexable directories: LitRPG podcasts, YouTube channels, publishers, review sites |
 | `/awards`, `/awards/{year}` | Annual ReadLitRPG Reader Awards |
 | `/r/{code}` | Subscriber referral link |
 | `/newsletter` | Signup + sample issue |
@@ -2593,7 +2629,10 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `research.next_volume` | weekly Wed 06:00 (series expecting a release soon); monthly for the rest | The research agent checks ongoing series for announced next books and feeds New & upcoming |
 | `owner.daily_digest` | daily 13:00 | Only if action is needed |
 | `owner.weekly_summary` | Sun 14:00 | KPIs (one line per strategy layer) and upcoming schedule |
-| `news.scan` | weekly Mon 08:00 | Research agent scans for cited LitRPG news → briefs |
+| `news.scan` | daily 06:00 | Research agent scans for cited LitRPG news → briefs |
+| `board.fetch` | hourly | Fetch Guild Board sources, summarize, match to catalog, hide off-topic items |
+| `news.daily_roundup` | daily 10:30 | Build and publish "Today in LitRPG" |
+| `news.daily_send` | daily 11:00 | Email *Patch Notes Daily* (opt-in) and auto-post to Bluesky and Mastodon |
 | `news.from_catalog` | daily 09:00 | Announcements, date changes and completions → brief candidates |
 | `polls.rotate` | weekly Fri 12:00 | Close last week's poll, publish results, open the next |
 | `data.state_of_litrpg` | monthly, 3rd | Build the *State of LitRPG* data story |

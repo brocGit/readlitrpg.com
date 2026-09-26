@@ -14,7 +14,7 @@ Three layers, each with one job, all feeding one flywheel:
 |---|---|---|---|
 | **Database + calendar** | **Get found** (acquisition via search) | Book, series, author and narrator pages; "books like X"; tag pages; living lists; stat leaderboards; the release calendar | Fresh, specific, structured facts, especially **upcoming releases**, which no AI model knows. Long-tail queries. We aim to be the source AI answers cite |
 | **Matching + quizzes** | **Turn visitors into profiles** (onboarding) | The match engine, the Match Quiz, fun and series quizzes, saved searches and alerts | Interactive and personal. Results depend on our live catalog and reader-calibrated data, not on text a model can repeat |
-| **Newsletter + news blog: *Patch Notes*** | **Keep them** (retention and brand) | The weekly *Patch Notes* email and the `/news` section: news, data stories, polls, author interviews | An owned relationship with readers, built on primary information and community that AI can summarize but can't originate |
+| **Newsletter + news blog: *Patch Notes*** | **Keep them** (retention and brand) Daily news at `/news`, the weekly *Patch Notes* email (with an opt-in daily edition), and the *Guild Board* feed linking out to the whole genre: news, data stories, polls, author interviews | An owned relationship with readers, built on primary information and community that AI can summarize but can't originate |
 
 Together they create a network effect (§3): more readers produce better data and attract more authors; more authors produce a fresher catalog and more pages; better data and a bigger catalog attract more readers.
 
@@ -135,7 +135,7 @@ Covered in [`QUIZZES.md`](./QUIZZES.md) and [`DESIGN.md` §9.1–9.3](./DESIGN.m
 
 ## 6. Layer 3: *Patch Notes*, the newsletter and news brand
 
-**Name:** ***Patch Notes: this week in LitRPG***. It's the weekly email, and the news section at `/news` uses the same name. It's a genre-native name (every game update ships with patch notes), and it tells readers exactly what they're getting.
+**Name:** ***Patch Notes: this week in LitRPG***. The news section at `/news` **updates every day**. The email goes out weekly by default, with an opt-in daily edition. Both use the same name. It's a genre-native name (every game update ships with patch notes), and it tells readers exactly what they're getting.
 
 **Voice:** the friendly System announcer ([`QUIZZES.md` §5](./QUIZZES.md#5-voice)): dry, playful, genre-literate, clear first and funny second.
 
@@ -151,18 +151,54 @@ Covered in [`QUIZZES.md`](./QUIZZES.md) and [`DESIGN.md` §9.1–9.3](./DESIGN.m
 | 6 | **Quiz of the week** | A new or featured quiz | Brings in the people subscribers forward it to |
 | 7 | **Sponsored** | At most 2 labeled slots ([`DESIGN.md` §11.5](./DESIGN.md#115-ad-serving)) | Matched to the reader |
 
-**The news desk** runs automatically and cites every item:
+**News is daily.** The site publishes every day:
 
-1. **Our data:** new announcements, date changes and completions, detected from catalog changes.
-2. **Author and publisher submissions:** a "Submit news" form for verified authors and publisher feeds.
-3. **Weekly research-agent scan:** web search for publisher announcements, adaptations, awards and sales events. Every item needs a citation.
-4. **Community:** poll results and tier lists.
+- **"Today in LitRPG"**, every morning (`/news/today`, plus dated archives): the post contains
+  - books out today, from the calendar (most days have new releases);
+  - new announcements, date changes and completions from our catalog;
+  - audiobook drops;
+  - the day's news briefs and highlights from the Guild Board.
 
-Short, cited news briefs publish automatically after an editor-model review. Bigger stories and anything uncertain go to the inbox. **No rumors: every news item links its source.**
+  Because it's built on our release data, it always has a proprietary input, even on a slow news day.
+- **News briefs throughout the day** as items arrive, from four sources:
+  1. **Our data:** new announcements, date changes and completions, detected hourly from catalog changes.
+  2. **Author and publisher submissions:** a "Submit news" form for verified authors, plus publisher feeds.
+  3. **Daily research-agent scan:** web search for publisher announcements, adaptations, awards and sales events. Every item needs a citation.
+  4. **Community:** poll results and tier lists.
+
+  Short, cited briefs publish automatically after an editor-model review. Bigger stories and anything uncertain go to the inbox. **No rumors: every news item links its source.**
+- **Delivery:**
+  - The site updates daily.
+  - The weekly *Patch Notes* email stays the default, because a daily email to everyone causes unsubscribes.
+  - Readers can opt into ***Patch Notes Daily***, the morning roundup by email.
+  - The roundup auto-posts daily to Bluesky and Mastodon.
+
+**The Guild Board: a feed of the whole genre** (`/board`). This is a live, curated stream of what the rest of the LitRPG world is publishing:
+
+- podcast episodes;
+- YouTube reviews;
+- publisher and author blog posts;
+- Kickstarter launches;
+- sales events.
+
+It's read from those sources' own RSS feeds and official APIs, never scraped. Each item is a headline, a one-line summary in our own words, and a link out. We also match each item to books and series in our catalog, so book pages get a fresh "Around the genre" section.
+
+It gives readers a reason to check in daily, and it sends traffic to podcasters, reviewers and publishers. That builds goodwill and earns links back to us.
+
+**Does linking out hurt SEO? No**, when it's done the way we do it (details in [`DESIGN.md` §14.8](./DESIGN.md#148-guild-board-the-genre-feed) and [§17.2](./DESIGN.md#172-seo)):
+
+- **Relevant outbound links to reputable sites are normal** and fine for search.
+- **What hurts is thin aggregation:** thousands of indexed pages that only repeat other sites' headlines. So:
+  - the raw stream is `noindex, follow`;
+  - items link straight out and get no pages of their own;
+  - the indexed pages are ones where we add value: the daily roundup, and directory pages like "Best LitRPG podcasts" written in our own words.
+- **Never copy full posts.** Headline plus a one-line summary only.
+- **Link attributes:** curated, allowlisted sources get normal links. Unvetted or user-submitted items get `rel="ugc nofollow"`. Anything paid gets `rel="sponsored"`.
+- **No piracy or spam sites, ever.** Sources are allowlisted and link-checked.
 
 **Recurring tentpoles:**
 
-- **Monthly *State of LitRPG***: releases by subgenre, audio lag, series completions and price trends, all from our database, with shareable charts. It works well for Reddit and press.
+- **Monthly *State of LitRPG***, on top of the daily news: releases by subgenre, audio lag, series completions and price trends, all from our database, with shareable charts. It works well for Reddit and press.
 - **Annual *ReadLitRPG Reader Awards*** in December:
   - Readers nominate and vote by subgenre, and voting needs an email, which makes it the year's biggest signup event.
   - Winners get a badge on their book pages.
@@ -188,8 +224,8 @@ The owner's weekly summary ([`DESIGN.md` §8.4](./DESIGN.md#84-owner-notificatio
 
 | When | What starts |
 |---|---|
-| **Launch** | Database pages, "books like X", living lists and quizzes live. *Patch Notes* ships weekly from the first subscriber, sections 1, 3, 4 and 6 at first |
-| **Months 1–3** | News desk automation, author news submissions, polls, interviews in the issue |
+| **Launch** | Database pages, "books like X", living lists and quizzes live. **Daily** "Today in LitRPG" and news briefs from day one. The Guild Board with ~30 seed sources. *Patch Notes* ships weekly from the first subscriber, sections 1–4 and 6 at first |
+| **Months 1–3** | Author news submissions, the *Patch Notes Daily* opt-in, source owners claiming their Guild Board listings, interviews in the issue |
 | **Month 6** | First monthly *State of LitRPG* report; referral program |
 | **December** | First *ReadLitRPG Reader Awards* |
 | **Phase 2** | The full release calendar becomes a headline feature as author submissions scale ([`DESIGN.md` §3](./DESIGN.md#3-product-scope-by-phase)) |
