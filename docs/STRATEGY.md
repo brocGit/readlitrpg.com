@@ -163,7 +163,7 @@ Covered in [`QUIZZES.md`](./QUIZZES.md) and [`DESIGN.md` §9.1–9.3](./DESIGN.m
 - **News briefs throughout the day** as items arrive, from four sources:
   1. **Our data:** new announcements, date changes and completions, detected hourly from catalog changes.
   2. **Author and publisher submissions:** a "Submit news" form for verified authors, plus publisher feeds.
-  3. **Daily research-agent scan:** web search for publisher announcements, adaptations, awards and sales events. Every item needs a citation.
+  3. **Daily research scan in the morning editorial run** ([`DESIGN.md` §7.1](./DESIGN.md#71-editorial-runs-how-ai-work-gets-done)): web search for publisher announcements, adaptations, awards and sales events. Every item needs a citation.
   4. **Community:** poll results and tier lists.
 
   Short, cited briefs publish automatically after an editor-model review. Bigger stories and anything uncertain go to the inbox. **No rumors: every news item links its source.**

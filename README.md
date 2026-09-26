@@ -20,8 +20,8 @@ A free discovery engine, book database and marketing network for LitRPG, progres
 - **Auth:** Better Auth, using passkeys and magic links (no passwords).
 - **Payments:** Stripe Checkout, Billing and the Customer Portal.
 - **Email:** Amazon SES.
-- **AI:** Claude API with batches and structured outputs, plus Workers AI embeddings.
-- **Expected running cost:** about $15–30/month at launch.
+- **AI:** scheduled Claude editorial runs (no AI API keys in the app, no per-token bill), plus Workers AI embeddings.
+- **Expected running cost:** about $7–10/month at launch.
 
 ## Quiz drafts
 
