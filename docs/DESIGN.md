@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v1.5 (no AI API: editorial runs), ready for review |
+| **Status** | v1.6: M0 (foundations) built; spike results folded in ([§20](#20-build-plan-and-milestones)) |
 | **Owner** | Site owner (sole admin) |
 | **Last updated** | 2026-09-26 |
 | **Companion docs** | [`STRATEGY.md`](./STRATEGY.md) (the three-layer strategy and flywheel) · [`TAXONOMY.md`](./TAXONOMY.md) (tags, dials, book stats) · [`QUIZZES.md`](./QUIZZES.md) (quiz drafts, lead-gen funnel, onboarding) |
@@ -360,7 +360,7 @@ Everything runs on one Cloudflare account on the **Workers Paid plan ($5/month)*
 
 ### 4.2 Deployable units
 
-The site is split into three Workers that share one `packages/core` library. Astro 6 can serve pages and export `scheduled` and `queue` handlers from a single Worker, so one Worker would work. We split anyway, **for least privilege and a smaller blast radius**: the public Worker never holds the LLM or bulk-email credentials, and admin code isn't deployed on the public hostname at all.
+The site is split into three Workers that share one `packages/core` library. Astro 7 can serve pages and export `scheduled` and `queue` handlers from a single Worker, so one Worker would work. We split anyway, **for least privilege and a smaller blast radius**: the public Worker never holds the LLM or bulk-email credentials, and admin code isn't deployed on the public hostname at all.
 
 | Unit | Hostname | Does | Holds secrets for |
 |---|---|---|---|
@@ -377,7 +377,7 @@ The `web` Worker never sends email directly. It enqueues an `email.send` message
 | Concern | Choice | Why | Fallback / later |
 |---|---|---|---|
 | Runtime | Cloudflare Workers | Serverless, global, $5/month base, free egress | — |
-| Web framework | **Astro 6** (SSR, `@astrojs/cloudflare`) + small **Preact** islands | Content-heavy site, near-zero client JS, good SEO | SvelteKit |
+| Web framework | **Astro 7** (SSR, `@astrojs/cloudflare` 14) + small **Preact** islands | Content-heavy site, near-zero client JS, good SEO | SvelteKit |
 | Language | TypeScript everywhere, `strict` | One language for web, jobs and prompts | — |
 | Database | **Cloudflare D1** (SQLite) via **Drizzle ORM** + SQL migrations | Included in plan; relational; Time Travel restore (30 days) | Turso or Postgres (Neon) if we outgrow 10 GB |
 | Full-text search | SQLite **FTS5** in a *separate, derived* D1 database | D1's export tool fails on databases with virtual tables, so the primary stays exportable and the search DB is rebuildable | Meilisearch/Typesense if we need typo tolerance at scale |
@@ -393,7 +393,7 @@ The `web` Worker never sends email directly. It enqueues an `email.send` message
 | Analytics | **Cloudflare Web Analytics** (cookie-less) for traffic; **Analytics Engine** for product and ad events | No cookie banner, no third-party trackers | — |
 | Validation | **Zod** schemas shared by forms, APIs and LLM outputs | One schema, three uses | — |
 | Markdown | unified / remark / rehype + **rehype-sanitize** (allowlist) | Safe rendering of guest and AI content | — |
-| CI/CD | GitHub Actions + Wrangler; `@cloudflare/vitest-pool-workers` for tests | — | — |
+| CI/CD | GitHub Actions + Wrangler; Vitest with a `node:sqlite` D1 stand-in for unit tests; Playwright (`playwright-core`) against `astro preview` for E2E | Fast unit tests on real migrations; E2E in the real runtime | `@cloudflare/vitest-pool-workers` |
 
 ### 4.4 Repository layout
 
@@ -427,8 +427,8 @@ readlitrpg.com/
 | `MEDIA` | R2 (public via `media.readlitrpg.com`) | all | Covers, blog images, OG images. Cookie-less domain |
 | `PRIVATE` | R2 (never public) | web, jobs | Upload originals, ARC files, data exports. Accessed only via short-lived signed URLs |
 | `BACKUPS` | R2 | jobs | Nightly NDJSON exports; lifecycle rule keeps 35 daily + 12 monthly |
-| `CONFIG` | KV | all | Read-through cache of `settings` and feature flags (60 s TTL), and the versioned **match feature matrix** (§7.8) |
-| `Q_INGEST`, `Q_EMAIL`, `Q_MEDIA`, `Q_EVENTS`, `Q_PURGE` | Queues | producers: web/admin/jobs; consumer: jobs | Each has a DLQ. DLQ messages become inbox items |
+| `CONFIG` | KV | all | Read-through cache of `settings` and feature flags (60 s TTL), the heartbeat's last tick, and the versioned **match feature matrix** (§7.8) |
+| `Q_JOBS`, `Q_INGEST`, `Q_EMAIL`, `Q_MEDIA`, `Q_EVENTS` | Queues | producers: web/admin/jobs; consumer: jobs | Each has a DLQ. DLQ messages become inbox items. `Q_JOBS` carries scheduled job runs from the heartbeat (built in M0) |
 | `BOOK_PIPELINE`, `NEWSLETTER_SEND` | Workflows | jobs | Durable multi-step processes ([§7](#7-automation-and-ai-pipelines)) |
 | `BOOK_VECTORS` | Vectorize (768-d, cosine) | jobs (write), web (query) | One vector per book |
 | `AI` | Workers AI | jobs | Embeddings |
@@ -440,13 +440,13 @@ readlitrpg.com/
 The rule: **HTML is the same for every visitor. Personal things load in islands.**
 
 1. An anonymous `GET` for a public page (book, calendar, tag, blog) is answered from the edge cache when possible. On a miss, the `web` Worker renders it from D1 and caches it with a page-type TTL: calendar and home 5 minutes; book, author and series pages 30 minutes; blog posts 24 hours. Every page gets `stale-while-revalidate`.
-2. Writes that change public pages enqueue **purge requests** by cache tag (`book:{id}`, `author:{id}`, `series:{id}`, `cal:{yyyy-mm}`, `home`, `post:{id}`). The `jobs` Worker batches them within the Cloudflare purge rate limits: tag purges are allowed on all plans, at 5 requests/min on Free and 100 tags per request. **Correctness never depends on a purge.** TTLs are short enough that a missed purge only means a few minutes of staleness.
+2. Writes that change public pages **purge by cache tag** (`book:{id}`, `author:{id}`, `series:{id}`, `cal:{yyyy-mm}`, `home`, `post:{id}`). Pages declare their tags with `Astro.cache.set({ tags })`. The purge runs inside the Worker (`cache.purge({ tags })` from `cloudflare:workers`, via Astro's `cache.invalidate()`), so no API token is needed for it. **Correctness never depends on a purge.** TTLs are short enough that a missed purge only means a few minutes of staleness.
 3. Logged-in extras (follow buttons, "on your shelf", personalized rails) are small islands that call `GET /api/me/...`. These return `Cache-Control: private, no-store` and read at most a few indexed rows each.
 4. **Match and search results** are computed per request in the `web` Worker (a few milliseconds) and never edge-cached, because they're personalized. Shared result links are cached by a hash of their parameters.
 5. Account, author dashboard and admin pages are never cached.
 6. Ads on public pages are **fixed placements** for a time period, not per-request auctions. They render into the cached HTML, and period boundaries trigger a purge ([§11.5](#115-ad-serving)).
 
-We will confirm the exact caching mechanism in the M0 spike: the Worker Cache API versus Cloudflare's Workers caching for SSR responses, and how each interacts with tag purges. The design above works with either.
+**Caching mechanism (M0 spike, decided):** Astro 7 route caching with the Cloudflare provider (`cache: { provider: cacheCloudflare() }`). TTLs live in `routeRules` in `astro.config.ts` (the home page: 5 minutes, `stale-while-revalidate` 1 hour). Rendered pages carry `Cloudflare-CDN-Cache-Control` and `Cache-Tag` headers, and Cloudflare's Worker caching layer serves repeat requests without running the Worker. Every response is also tagged with its path and the Worker version, so a deploy never serves stale HTML from an older build. Personal routes (`/account`, `/api/*`) are forced to `Cache-Control: private, no-store` by middleware, and public pages never read the session.
 
 ### 4.7 Environments and deployment
 
@@ -458,8 +458,9 @@ We will confirm the exact caching mechanism in the M0 spike: the Worker Cache AP
 
 Pipeline (GitHub Actions):
 
-- **On pull request:** typecheck → lint → unit tests → Workers integration tests (vitest-pool-workers) → build → migration dry-run against a staging copy.
-- **On merge to `main`:** apply migrations to staging → deploy staging → smoke tests → **manual approval** (GitHub environment protection) → apply migrations to production → deploy production. Deploys use Wrangler versions, so rollback is one command.
+- **On pull request (built in M0, `.github/workflows/ci.yml`):** lint → typecheck (including a check that generated Worker types are current) → unit tests → quiz balance check → a check that the schema has no unmigrated changes → build all three Workers → `pnpm audit` (high severity fails) → browser E2E of the reader sign-in and owner console flows against `astro preview` (workerd), with a virtual passkey authenticator.
+- **Unit tests** run against a D1 stand-in built on Node's `node:sqlite` with the real migrations (`packages/core/src/testing`), which keeps them fast. The E2E run covers the real runtime. `@cloudflare/vitest-pool-workers` can be added if a bug ever slips between the two.
+- **On merge to `main` (`.github/workflows/deploy.yml`, off until the account exists):** CI green → **manual approval** (GitHub environment protection) → apply D1 migrations → deploy jobs, web, admin → smoke test. A staging environment with its own D1/KV/R2 is added during account setup (`docs/runbooks/cloudflare-setup.md`). Deploys use Wrangler versions, so rollback is one command.
 - **Migrations are additive-first** (expand → migrate → contract) so a rollback never needs a schema rollback.
 
 ---
@@ -500,8 +501,8 @@ Pipeline (GitHub Actions):
 
 | Table | Purpose | Key columns |
 |---|---|---|
-| `users` | Everyone with an email (subscriber-only rows included) | `id, email (unique, lowercased), email_verified_at, display_name, handle, state (subscriber/active/restricted/deleted), is_admin, created_at, last_seen_at, locale, tz` |
-| `sessions`, `passkeys`, `verification_tokens` | Managed by Better Auth. Session and verification tokens stored hashed | — |
+| `users` | Everyone with an email (subscriber-only rows included) | `id, email (unique, lowercased), email_verified (bool), display_name, image, handle, state (subscriber/active/restricted/deleted), is_admin, created_at, updated_at, last_seen_at, locale, tz` |
+| `sessions`, `accounts`, `passkeys`, `verifications` | Managed by Better Auth through the Drizzle adapter (its timestamps are integer milliseconds; every other table uses ISO strings). Magic-link tokens are stored hashed. Session tokens are stored as issued, but the cookie carries an HMAC signature made with `AUTH_SECRET`, so a database copy alone can't be turned into a working cookie | — |
 | `author_members` | User ↔ author profile | `author_id, user_id, role (owner/editor), added_by, created_at` |
 | `publisher_members` | User ↔ publisher | `publisher_id, user_id, role` |
 | `verification_requests` | Author/publisher verification | `id, subject_type, subject_id, user_id, method (website_file/dns_txt/meta_tag/profile_code/publisher_vouch/email_domain/manual), code_hash, target_url, status, checked_at, evidence` |
@@ -564,13 +565,14 @@ Pipeline (GitHub Actions):
 
 | Table | Purpose | Key columns |
 |---|---|---|
-| `inbox_items` | The Owner Inbox ([§8](#8-owner-console-and-approval-workflow)) | `id, type, subject_type, subject_id, title, ai_summary, ai_recommendation (approve/reject/edit/escalate), risk_score (0–100), priority, status (open/snoozed/approved/rejected/auto_approved/auto_rejected/expired/resolved), due_at, default_action, default_action_at, decided_by, decided_at, reason_code, note` |
+| `inbox_items` | The Owner Inbox ([§8](#8-owner-console-and-approval-workflow)) | `id, type, subject_type, subject_id, title, ai_summary, ai_recommendation (approve/reject/edit/escalate), risk_score (0–100), priority, status (open/snoozed/approved/rejected/auto_approved/auto_rejected/expired/resolved), payload (JSON), dedupe_key (unique: one open alert per cause), due_at, default_action, default_action_at, decided_by, decided_at, reason_code, note, created_at, updated_at` |
 | `reports` | Reader/author reports | `id, reporter_user_id?, subject_type, subject_id, reason, details, status` |
-| `audit_log` | Append-only record of privileged and money actions | `id, actor_type (user/admin/system/editorial_run), actor_id, action, subject_type, subject_id, diff (JSON), ip_hash, request_id, created_at` |
+| `audit_log` | Append-only record of privileged and money actions, hash-chained (§15.11) | `id, seq (unique), actor_type (user/admin/system/editorial_run), actor_id, action, subject_type, subject_id, diff (JSON), ip_hash, request_id, created_at, prev_hash, hash` |
 | `change_notifications` | What we tell authors about changes to their books | `id, author_id, book_id, summary, diff, created_at, emailed_at` |
-| `settings` | All tunables | `key, value (JSON), updated_by, updated_at` |
-| `schedules` | Job cadence, editable in admin | `key, cron_expr, enabled, last_run_at, next_run_at, lock_until` |
-| `job_runs` | Job history | `id, job, started_at, finished_at, status, items, error, cost_cents` |
+| `settings` | Overrides of the tunables. Defaults and types live in code (`packages/core/src/settings/registry.ts`); a missing row means "default" | `key, value (JSON), updated_by, updated_at` |
+| `schedules` | Job cadence, editable in admin. Seeded from the code registry of jobs | `key, cron_expr, enabled, last_run_at, next_run_at, lock_until, lock_owner, updated_at` |
+| `job_runs` | Job history (kept 90 days) | `id, job, trigger (schedule/manual/retry), status (queued/running/succeeded/failed), queued_at, started_at, finished_at, items, error, cost_cents` |
+| `rate_counters` | Fixed-window counters for limits longer than 60 seconds (§15.9). Keys are hashes | `key, window_start, count, expires_at` |
 | `editorial_queue` | Work waiting for an editorial run | `id, kind (classify/dedupe/moderate/image_review/news_scan/brief_review/feed_summary/import_extract/draft/quiz/audit), subject_type, subject_id, payload (JSON), priority, status (queued/claimed/done/rejected/expired), claimed_by_run, due_at, created_at` |
 | `editorial_runs` | One row per run | `id, kind (daily/weekly/monthly/manual), started_at, finished_at, items_claimed, proposals_accepted, proposals_rejected, notes` |
 
@@ -1107,9 +1109,10 @@ Full schedule: [Appendix B](#appendix-b-job-schedule).
   Items past `due_at` whose default action is safe (§8.2) are handled by the heartbeat without waiting for a run.
 - **Watchdog:** if no editorial run succeeds for `editorial.stale_hours` (default 36), the owner is alerted. The site keeps working: pages, matching, quizzes and templated "Today in LitRPG" need no runs.
 - **Email:** daily send ceiling (`email.daily_cap`), per-issue ceiling, and circuit breakers (§7.11).
-- **Feature flags / kill switches** (admin toggles, cached in KV for 60 s): `editorial_api`, `auto_publish`, `signups`, `author_submissions`, `guest_posts`, `ads_paid`, `ads_serving`, `newsletter_send`, `read_only_mode`.
+- **Feature flags / kill switches** (admin toggles, cached in KV for 60 s): `editorial_api`, `auto_publish`, `signups`, `author_submissions`, `guest_posts`, `ads_paid`, `ads_serving`, `newsletter_send`, `read_only_mode`, `indexable`.
   - `editorial_api` off rejects all runs, for example if a token leaks.
   - `read_only_mode` is used during incidents and migrations: the site stays up and writes are refused politely.
+  - `indexable` stays off until launch, so search engines don't index a half-built site.
 
 ### 7.14 Evals
 
@@ -2087,20 +2090,23 @@ A live, curated stream at `/board` of what the rest of the LitRPG world is publi
 - **Library:** Better Auth on D1, with the **passkey** and **magic-link** plugins. Social login (Discord/Google) stays off at launch to keep the attack surface small. We may add Discord later because the LitRPG community lives there.
 - **Magic links:**
   - 256-bit random token, stored hashed, 15-minute expiry, single use.
-  - The link opens a confirmation page ("Sign in as j***@gmail.com?") whose button completes sign-in.
-  - A 6-digit code alternative covers signing in on a different device.
+  - The link opens a confirmation page ("Sign in as j***@gmail.com?") whose button completes sign-in. Nothing is consumed on the first GET, so email scanners that follow links can't burn the token.
+  - Link requests go through `/api/signin/magic-link` only (Turnstile, then the rate limits in §15.9). Better Auth's own request endpoint is blocked, and every outcome that could reveal whether an account exists gets the same answer.
+  - A 6-digit code alternative for signing in on a different device follows in M5 (Better Auth's email-OTP plugin).
 - **Passkeys:**
   - Offered right after first sign-in ("Sign in with your fingerprint next time").
   - Nudged for authors with paid campaigns.
   - **Required for admin.**
 - **Sessions:**
-  - The cookie is `__Host-rlr_s` (`Secure; HttpOnly; SameSite=Lax; Path=/`). The session ID is random and stored hashed server-side.
+  - The cookie is `__Secure-rlr.session_token` (`Secure; HttpOnly; SameSite=Lax; Path=/`, no `Domain`, so it stays on readlitrpg.com). Better Auth always adds its own `__Secure-` prefix, so the stricter `__Host-` prefix isn't available; host-only scope gives the same protection here because we control every subdomain and none sets cookies. The value is a random token plus an HMAC signature.
   - Readers: 30 days sliding. Authors: 14 days sliding.
   - **Step-up** (a passkey assertion or a fresh magic link) is required when the last authentication is more than 15 minutes old, for: email change, adding team members, publisher linking, payment actions, and data export.
-  - A global `session_epoch` setting can force everyone to log out during an incident.
+  - A global `session.epoch` setting (Unix seconds) forces everyone to log out during an incident: sessions created before it are ignored on both hosts.
 - **Admin:**
-  - The separate host uses its own cookie (`__Host-rlr_admin`), 12 hours absolute.
-  - Passkey only, behind a **Cloudflare Access** policy (owner's identity with MFA).
+  - The separate host uses its own cookie (`__Secure-rlr_admin.session_token`), 12 hours absolute (no refresh).
+  - Passkey only, behind a **Cloudflare Access** policy (owner's identity with MFA). The owner registers a passkey on readlitrpg.com; the relying-party ID is the registrable domain, so it also works on the admin subdomain. The admin host has no sign-up and no email links, refuses to create a session for anyone who isn't an active admin, and on every request also requires the session's email to match the Access identity.
+  - Step-up on admin is a fresh passkey sign-in: settings and money actions need one within the last 15 minutes.
+  - Locally, a dev email stands in for Access, but only when `ENVIRONMENT=local` **and** the request is to localhost.
   - The admin Worker validates the `Cf-Access-Jwt-Assertion` (signature against the team's keys, `aud`, expiry) **on every request**. A misconfigured route can't bypass Access.
 - **Notifications:** new passkey, email changed, new admin sign-in, and (for authors) sign-in from a new device.
 
@@ -2118,8 +2124,8 @@ Headers on all HTML responses from `web`:
 
 ```
 Content-Security-Policy: default-src 'self';
-  script-src 'self' 'nonce-{n}' https://challenges.cloudflare.com https://static.cloudflareinsights.com;
-  style-src 'self' 'nonce-{n}';
+  script-src 'self' 'sha256-…' https://challenges.cloudflare.com https://static.cloudflareinsights.com;
+  style-src 'self' 'sha256-…';
   img-src 'self' https://media.readlitrpg.com data:;
   connect-src 'self' https://cloudflareinsights.com;
   frame-src https://challenges.cloudflare.com;
@@ -2132,7 +2138,7 @@ Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
 Cross-Origin-Opener-Policy: same-origin
 ```
 
-The exact CSP mechanism (Astro's built-in hash-based CSP or per-request nonces) is decided in M0. The **media domain** serves `Content-Security-Policy: default-src 'none'; img-src 'self'; sandbox`, sets no cookies, and sends `nosniff`.
+**CSP mechanism (M0 spike, decided): hashes, not nonces.** Public HTML is edge-cached and shared, and a nonce baked into a cached page would be the same for everyone, which defeats it. Astro 7's built-in CSP hashes every script and style it emits and, for server-rendered pages, sends the policy as a response header. The other directives come from `astroCsp()` in `packages/core/src/security/headers.ts`. Inline `style` attributes and inline event handlers are therefore impossible: use classes and islands. Responses Astro didn't render (API routes, redirects, errors) get a strict fallback policy from middleware. The browser E2E tests fail on any CSP violation. The **media domain** serves `Content-Security-Policy: default-src 'none'; img-src 'self'; sandbox`, sets no cookies, and sends `nosniff`.
 
 ### 15.6 Input handling
 
@@ -2187,7 +2193,7 @@ The single `safeFetch()` in `jobs`, used for verification files, link checks and
 | Beacon `/e` | 120 / min per IP-hash | Sampled under abuse |
 | `/go/` | 60 / min per IP-hash | — |
 
-The Workers Rate Limiting binding handles short windows (its periods are 10 s or 60 s). Daily quotas use D1 counters. The Cloudflare WAF adds coarse per-IP limits in front.
+The Workers Rate Limiting binding handles short windows (its periods are 10 s or 60 s). Longer windows (15 minutes, an hour, a day) use atomic fixed-window counters in the `rate_counters` table (`packages/core/src/ratelimit`), keyed by hashes, never raw emails or IPs. The Cloudflare WAF adds coarse per-IP limits in front.
 
 ### 15.10 Secrets and keys
 
@@ -2210,7 +2216,7 @@ The Workers Rate Limiting binding handles short windows (its periods are 10 s or
   - Every listing change.
   - Every automated decision, with the rule and inputs that made it.
 - **Append-only:** the application has no update or delete path for it. Each row stores `hash(prev_hash || row)` so tampering is evident. A nightly export goes to `BACKUPS`.
-- **Retention:** 2 years; money-related rows 7 years.
+- **Retention:** 7 years for every row. Deleting only some rows would break the chain, so retention removes whole prefixes: everything older than seven years, oldest first, and verification starts from the first remaining row. A database trigger refuses any UPDATE, and any DELETE of a row younger than seven years. Personal data in audit rows is minimal (IDs and IP hashes whose daily salts are purged).
 
 ### 15.12 Backups and disaster recovery
 
@@ -2306,7 +2312,7 @@ The runbook lives in `docs/runbooks/incident.md`.
 | IP addresses | Abuse prevention, dedupe | **Raw IPs never stored.** Daily-salted HMAC kept 30 days |
 | `email_sends` | Deliverability, stats | 90 days |
 | Analytics events | Aggregated stats | Rolled up daily; raw events per Analytics Engine retention |
-| Audit log | Security | 2 years (money: 7 years) |
+| Audit log | Security | 7 years (whole-prefix retention keeps the hash chain verifiable; §15.11) |
 | Orders, refunds, invoices | Tax and accounting | 7 years |
 | Verification evidence | Listing integrity | Life of the profile |
 | Upload originals | Re-processing | Life of the listing |
@@ -2495,7 +2501,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 
 | Milestone | Scope | Est. |
 |---|---|---|
-| **M0: Foundations** | Monorepo, Workers (`web`/`admin`/`jobs`), D1 + Drizzle + migrations, R2, Queues, CI/CD with staging/prod, Better Auth (magic link + passkey), Access on admin, security headers/CSP, policy module + route registry test, settings table + KV cache, heartbeat scheduler, audit log. **Spikes:** caching mechanism, CSP approach, Images binding | 1.5–2 wks |
+| **M0: Foundations** ✅ built | Monorepo, Workers (`web`/`admin`/`jobs`), D1 + Drizzle + migrations, R2, Queues, CI/CD with staging/prod, Better Auth (magic link + passkey), Access on admin, security headers/CSP, policy module + route registry test, settings table + KV cache, heartbeat scheduler, audit log. **Spikes:** caching mechanism, CSP approach, Images binding. *Status:* everything is built and tested locally in workerd; caching (§4.6) and CSP (§15.5) are decided. Waiting on the Cloudflare account: first deploy, the Access application, staging resources, and the Images binding spike (moved to M4's media pipeline, where `imageService: "cloudflare-binding"` is one line in the adapter config) | 1.5–2 wks |
 | **M1: Catalog core and seed** | Books, editions, releases, series, authors, narrators, links, tags and **dials** schema. Taxonomy seed. Provenance and precedence. Admin quick-add and CSV import. Entity resolution. Open Library/Google Books enrichment. Open Library dump import and AI seed import into the candidates pool (§7.15) | 2 wks |
 | **M2: Editorial pipeline** | `editorial_queue`, the editorial API (Access service token + scoped token), the `pnpm editorial pull/push` CLI, proposal schemas and server-side validation, publish policy engine, and skills for classify, dedupe, moderation and image review. Deterministic tag suggestions, Workers AI embeddings, eval harness + golden set (tags and dials), watchdog. Seed verification and the publication gate. **Scheduled routines** set up in the cloud environment | 2 wks |
 | **M3: Match engine and discovery** | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, result pages, share cards, Party up, plus the launch set of fun quizzes (drafted in `data/quizzes/`) | 4 wks |
@@ -2642,7 +2648,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | Job | Cadence | Notes |
 |---|---|---|
 | `heartbeat` | every 5 min | Holds, campaign start/end, scheduled posts, inbox default actions, DLQ → inbox |
-| `purge.flush` | every 1 min (queue) | Batched cache-tag purges within rate limits |
+| `audit.verify` | nightly 04:15 | Check the audit hash chain; a break opens a priority-100 inbox item (built in M0) |
 | `editorial.queue` | continuous (queue consumer) | Add classification, moderation, summary and draft work to `editorial_queue` with priorities |
 | `editorial.watchdog` | hourly | Alert if no successful editorial run in `editorial.stale_hours`; expire stale claims |
 | `release.rollover` | hourly | Scheduled → released |
@@ -2666,8 +2672,8 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `trust.recompute` | nightly 04:00 | Trust levels |
 | `inventory.generate` | nightly 04:30 | 120 days ahead |
 | `stripe.reconcile` | nightly 05:00 | 48 h lookback |
-| `backup.export` | nightly 03:00 | NDJSON → `BACKUPS` |
-| `retention.purge` | nightly 05:30 | Tokens, logs, salts |
+| `backup.export` | nightly 03:00 | NDJSON parts plus a checksummed manifest → `BACKUPS` (`d1/daily/`, and `d1/monthly/` on the 1st). Live sessions and sign-in tokens are never exported (built in M0) |
+| `retention.purge` | nightly 05:30 | Expired sessions, sign-in tokens and rate counters; job history over 90 days; audit rows over 7 years (built in M0) |
 | `links.health` | weekly Tue 06:00 | Non-Amazon/Royal Road links only |
 | `research.next_volume` | weekly Wed 06:00 (series expecting a release soon); monthly for the rest | The research agent checks ongoing series for announced next books and feeds New & upcoming |
 | `owner.daily_digest` | daily 13:00 | Only if action is needed |
@@ -2714,15 +2720,17 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `blog.auto_publish_roundups` | false for the first 4 weeks, then true |
 | `blog.min_books_per_roundup` | 8 |
 | `session.reader_days` / `.author_days` / `.admin_hours` | 30 / 14 / 12 |
+| `session.epoch` | 0 (Unix seconds; sessions created before it are ignored) |
+| `flags.indexable` | false until launch (pages send `X-Robots-Tag: noindex`) |
 | `flags.*` | `ads_paid=false` until M7; everything else on |
 
 ### Appendix D: Environment variables and secrets
 
 | Worker | Secrets / vars |
 |---|---|
-| `web` | `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (to validate), `PUBLIC_*` site config |
-| `admin` | `ADMIN_AUTH_SECRET`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `EDITORIAL_TOKEN_HASH`, `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
-| `jobs` | `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `SES_REGION`, `CF_API_TOKEN` (purge + Analytics Engine read), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY`, `DISCORD_ALERT_WEBHOOK` (optional) |
+| `web` | Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (to validate), `PUBLIC_*` site config |
+| `admin` | Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `RP_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Secrets: `ADMIN_AUTH_SECRET`, `EDITORIAL_TOKEN_HASH`, `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
+| `jobs` | Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `SES_REGION`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `CF_API_TOKEN` (Analytics Engine read; cache purges run inside the Worker), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY`, `DISCORD_ALERT_WEBHOOK` (optional) |
 | Cloud environment (editorial runs) | `EDITORIAL_TOKEN`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; network allowlist: readlitrpg.com plus web search |
 | CI (GitHub environments) | `CLOUDFLARE_API_TOKEN` (Workers + D1 edit, one account), `CLOUDFLARE_ACCOUNT_ID`, off-platform backup credentials |
 

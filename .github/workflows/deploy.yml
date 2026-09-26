@@ -1,0 +1,58 @@
+# Deploys to production after CI passes on main (DESIGN §4.7).
+# Off until the Cloudflare account is set up: set the repository variable DEPLOY_ENABLED=true and
+# the `production` environment's secrets (docs/runbooks/cloudflare-setup.md). The environment
+# requires a manual approval, so nothing ships without the owner's click.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  ASTRO_TELEMETRY_DISABLED: "1"
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  production:
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Migrations are additive-first, so they go out before the code that uses them.
+      - name: Apply D1 migrations
+        working-directory: apps/web
+        run: pnpm exec wrangler d1 migrations apply DB --remote
+      - name: Deploy jobs
+        working-directory: apps/jobs
+        run: pnpm exec wrangler deploy
+      - name: Deploy web
+        run: pnpm --filter @rlr/web run deploy
+      - name: Deploy admin
+        run: pnpm --filter @rlr/admin run deploy
+      - name: Smoke test
+        run: curl -sf https://readlitrpg.com/healthz

@@ -2,7 +2,7 @@
 
 A free discovery engine, book database and marketing network for LitRPG, progression fantasy, GameLit and cultivation fiction. Tell it three books you loved and it finds your next read. A release calendar grows in behind it.
 
-**Status:** design phase. No application code yet.
+**Status:** M0 (foundations) is built: three Cloudflare Workers, the database schema and migrations, passwordless sign-in (email links and passkeys), the owner console behind Cloudflare Access, the job scheduler, the audit log and CI. It runs locally; going live needs the Cloudflare account ([runbook](docs/runbooks/cloudflare-setup.md)). M1 (catalog core and seed) is next.
 
 ## Documents
 
@@ -12,16 +12,27 @@ A free discovery engine, book database and marketing network for LitRPG, progres
 | [`docs/DESIGN.md`](docs/DESIGN.md) | The full system design: architecture, data model, AI automation, owner approval inbox, ads and payments, email, blog, security, privacy, costs, and build plan |
 | [`docs/QUIZZES.md`](docs/QUIZZES.md) | Quiz lead magnets: 8 drafted (personality, trivia and series fan quizzes; previews in [`docs/quizzes/`](docs/quizzes/)), the lead-gen funnel, the welcome email sequence and onboarding |
 | [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary, the 17 taste dials and the 12 book stats (Competent MC, Rule of Cool, Number Go Up…) that power matching |
+| [`docs/runbooks/`](docs/runbooks/) | Operations: Cloudflare setup and first deploy, making the owner an admin, rotating secrets, scheduled jobs |
+| [`CLAUDE.md`](CLAUDE.md) | Conventions, commands and gotchas for Claude sessions working on the code |
 
 ## Stack at a glance
 
 - **Hosting:** Cloudflare Workers, D1 (SQLite), R2, Queues, Workflows, Vectorize.
-- **Site:** Astro (SSR) with small Preact islands, TypeScript and Drizzle.
+- **Site:** Astro 7 (SSR) with small Preact islands, TypeScript and Drizzle.
 - **Auth:** Better Auth, using passkeys and magic links (no passwords).
 - **Payments:** Stripe Checkout, Billing and the Customer Portal.
 - **Email:** Amazon SES.
 - **AI:** scheduled Claude editorial runs (no AI API keys in the app, no per-token bill), plus Workers AI embeddings.
 - **Expected running cost:** about $7–10/month at launch.
+
+## Working on the code
+
+```sh
+pnpm install
+pnpm check    # lint, typecheck, unit tests, quiz check
+```
+
+Local development, the E2E tests and the project's rules are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Quiz drafts
 
