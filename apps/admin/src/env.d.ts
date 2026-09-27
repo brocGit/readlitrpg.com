@@ -10,3 +10,12 @@ declare namespace App {
     editorial: { tokenSlot: number } | null;
   }
 }
+
+// Secrets are set with `wrangler secret put` and never appear in wrangler.jsonc, so `wrangler types`
+// can't see them (DESIGN Appendix D, docs/runbooks/editorial-runs.md).
+declare namespace Cloudflare {
+  interface Env {
+    /** Access service-token client IDs allowed to call the editorial API, comma-separated. */
+    EDITORIAL_ACCESS_CLIENT_IDS?: string;
+  }
+}

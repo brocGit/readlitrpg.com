@@ -56,6 +56,7 @@ openssl rand -base64 48 | pnpm exec wrangler secret put ADMIN_AUTH_SECRET
 6. First deploy: `cd apps/jobs && pnpm exec wrangler deploy`, then `pnpm --filter @rlr/web run deploy` and `pnpm --filter @rlr/admin run deploy`. Check `https://readlitrpg.com/healthz` returns `{"ok":true}`.
 7. Make the owner an admin: [bootstrap-admin.md](bootstrap-admin.md).
 8. Set `DEPLOY_ENABLED=true` in GitHub. From then on every merge to `main` deploys after your approval.
+9. Editorial runs (M2): the service token, the editorial token and the scheduled routines are in [editorial-runs.md](editorial-runs.md).
 
 ## Staging (before launch)
 

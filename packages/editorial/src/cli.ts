@@ -25,6 +25,7 @@ import {
   scoreEval,
   toBaseline,
 } from "./eval";
+import { applyResolutions, type GoldenInput, mergePasses, type Resolution } from "./golden";
 
 export function repoRoot(from = process.cwd()): string {
   let dir = resolve(from);
@@ -137,6 +138,10 @@ export async function main(argv: string[], fetchImpl: typeof fetch = fetch): Pro
       notes: { type: "string" },
       failed: { type: "boolean" },
       golden: { type: "string" },
+      inputs: { type: "string" },
+      a: { type: "string" },
+      b: { type: "string" },
+      resolve: { type: "string" },
       baseline: { type: "string" },
       "update-baseline": { type: "boolean" },
     },
@@ -369,9 +374,46 @@ export async function main(argv: string[], fetchImpl: typeof fetch = fetch): Pro
       return 0;
     }
 
+    case "golden-merge": {
+      if (!values.inputs || !values.a || !values.b) {
+        throw new UsageError(
+          "Usage: pnpm editorial golden-merge --inputs <work.json> --a <pass-a.json[,…]> --b <pass-b.json[,…]> [--resolve <resolutions.json>] [--out data/eval/golden.jsonl]",
+        );
+      }
+      const readMany = (list: string) => list.split(",").flatMap((f) => readProposals(f.trim()));
+      const inputsRaw = JSON.parse(readFileSync(values.inputs, "utf8")) as
+        | GoldenInput[]
+        | { items: GoldenInput[] };
+      const inputs = Array.isArray(inputsRaw) ? inputsRaw : inputsRaw.items;
+      const merged = mergePasses(inputs, readMany(values.a), readMany(values.b));
+      const resolutions = values.resolve
+        ? (JSON.parse(readFileSync(values.resolve, "utf8")) as Resolution[])
+        : [];
+      const { golden, open } = applyResolutions(merged, resolutions);
+      const conflictsFile = join(state(), "golden", "conflicts.json");
+      writeJson(conflictsFile, open);
+      console.log(
+        `${inputs.length} books, ${merged.conflicts.length} disagreements, ${open.length} still open → ${relative(ROOT, conflictsFile)}`,
+      );
+      if (open.length) {
+        console.log("Adjudicate the open disagreements, then run again with --resolve.");
+        return 1;
+      }
+      const problems = lintGolden(golden);
+      if (problems.length) {
+        for (const p of problems) console.log(`  - ${p}`);
+        return 1;
+      }
+      const out = values.out ? resolve(values.out) : join(ROOT, "data/eval/golden.jsonl");
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, `${golden.map((g) => JSON.stringify(g)).join("\n")}\n`);
+      console.log(`Wrote ${golden.length} golden books → ${relative(ROOT, out)}`);
+      return 0;
+    }
+
     default:
       console.log(
-        "Usage: pnpm editorial <start|pull|template|validate|push|finish|status|brief|eval-input|eval> [options]\nSee .claude/skills/editorial-run/SKILL.md.",
+        "Usage: pnpm editorial <start|pull|template|validate|push|finish|status|brief|eval-input|eval|golden-merge> [options]\nSee .claude/skills/editorial-run/SKILL.md.",
       );
       return command ? 2 : 0;
   }

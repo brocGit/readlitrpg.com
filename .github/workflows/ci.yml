@@ -44,6 +44,8 @@ jobs:
         run: node scripts/quiz-tool.mjs check
       - name: Taxonomy is valid, matches TAXONOMY.md, and its generated module is current
         run: node scripts/taxonomy-build.mjs --check
+      - name: The classification golden set is valid against the taxonomy
+        run: pnpm eval:classify
       - name: Migrations match the schema
         run: |
           pnpm db:generate --name ci-check

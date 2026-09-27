@@ -8,7 +8,9 @@
 | `TURNSTILE_SECRET` | web | Turnstile dashboard → rotate, then set it in the Worker | None |
 | `SES_ACCESS_KEY_ID` / `SES_SECRET_ACCESS_KEY` | jobs | Create a new IAM key, set both, then delete the old key | None if done in that order |
 | `CLOUDFLARE_API_TOKEN` | GitHub env + Claude env | Roll it in the Cloudflare dashboard and update both secret stores | None |
-| Editorial token (M2) | admin (hash) + Claude env | Documented with the editorial API | Scheduled runs pause until updated |
+| Editorial token | admin (`EDITORIAL_TOKEN_HASH`) + Claude env (`EDITORIAL_TOKEN`) | Two hashes side by side, then the new one alone: [editorial-runs.md](editorial-runs.md#rotating-or-revoking) | None if done in that order |
+| Access service token (`rlr-editorial`) | Zero Trust + admin (`EDITORIAL_ACCESS_CLIENT_IDS`) + Claude env | [editorial-runs.md](editorial-runs.md#rotating-or-revoking) | None if both IDs are allowed during the switch |
+| `CF_API_TOKEN` (Workers AI) | jobs | Roll it in the Cloudflare dashboard, then `wrangler secret put CF_API_TOKEN` in `apps/jobs` | Embeddings pause until updated |
 
 If a secret may have leaked, also:
 

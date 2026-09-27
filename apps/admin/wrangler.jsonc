@@ -16,9 +16,7 @@
     "PUBLIC_ORIGIN": "https://admin.readlitrpg.com",
     "RP_ID": "readlitrpg.com",
     "ACCESS_TEAM_DOMAIN": "https://readlitrpg.cloudflareaccess.com",
-    "ACCESS_AUD": "set-at-setup",
-    // Access service-token client IDs allowed to call the editorial API (comma-separated).
-    "EDITORIAL_ACCESS_CLIENT_IDS": "set-at-setup"
+    "ACCESS_AUD": "set-at-setup"
   },
   "d1_databases": [
     {
