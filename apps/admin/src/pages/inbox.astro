@@ -1,6 +1,6 @@
 ---
-import { AUTHOR_INBOX_HANDLERS } from "@rlr/core/authors";
 import { decideInboxItem, decideWithHandler, getInboxItem, listOpenInbox } from "@rlr/core/inbox";
+import { INBOX_HANDLERS } from "@rlr/core/inbox/handlers";
 import { can } from "@rlr/core/policy";
 import Console from "../layouts/Console.astro";
 import { adminActor } from "../lib/admin-session";
@@ -19,22 +19,16 @@ if (Astro.request.method === "POST") {
     form.decision === "rejected" ? "rejected" : form.decision === "approved" ? "approved" : "resolved";
   const item = await getInboxItem(db, form.id ?? "");
   // Author items do something when decided: publish the listing, apply the change, verify (M6).
-  const handled = item && status !== "resolved" && AUTHOR_INBOX_HANDLERS[item.type];
+  const handled = item && status !== "resolved" && INBOX_HANDLERS[item.type];
   const changed = !item
     ? false
     : handled
-      ? await decideWithHandler(
-          db,
-          item,
-          status === "approved" ? "approve" : "reject",
-          AUTHOR_INBOX_HANDLERS,
-          {
-            decidedBy: admin.userId,
-            note: form.note || undefined,
-            now: new Date(),
-            settings: await Astro.locals.settings(),
-          },
-        )
+      ? await decideWithHandler(db, item, status === "approved" ? "approve" : "reject", INBOX_HANDLERS, {
+          decidedBy: admin.userId,
+          note: form.note || undefined,
+          now: new Date(),
+          settings: await Astro.locals.settings(),
+        })
       : await decideInboxItem(db, item.id, { status, decidedBy: admin.userId, note: form.note || undefined });
   if (changed) {
     await audit(admin, Astro.locals.requestId, {
@@ -138,6 +132,12 @@ const recommendation: Record<string, string> = {
                     Someone else claims <a href={`/catalog/authors/${field(item.payload, "authorId")}`}>{field(item.payload, "name")}</a>, which already has members. Approve adds them as an owner (you can remove members on the profile page).
                   </p>
                 )}
+                {item.type === "post_review" && (
+                  <p>
+                    <a href={`/blog/${field(item.payload, "postId") ?? item.subjectId}`}>Read it in the editor</a>. Approve
+                    publishes it (guest posts and interviews take their calendar slot); reject keeps it off the site.
+                  </p>
+                )}
                 {item.type === "author_report" && (
                   <p>{field(item.payload, "text")} · <a href={`/catalog/books/${field(item.payload, "bookId")}`}>The book</a></p>
                 )}
@@ -153,7 +153,7 @@ const recommendation: Record<string, string> = {
                 <form method="post" class="inline">
                   <input type="hidden" name="id" value={item.id} />
                   <input type="text" name="note" placeholder="Note (optional)" maxlength="500" />
-                  {AUTHOR_INBOX_HANDLERS[item.type] && (item.subjectType === "submission" || !["possible_duplicate", "scope_check"].includes(item.type)) ? (
+                  {INBOX_HANDLERS[item.type] && (item.subjectType === "submission" || !["possible_duplicate", "scope_check"].includes(item.type)) ? (
                     <>
                       <button class="button small" name="decision" value="approved" type="submit">Approve</button>
                       <button class="button small secondary" name="decision" value="rejected" type="submit">Reject</button>

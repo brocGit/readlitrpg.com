@@ -153,6 +153,32 @@ export const JOBS = [
     cron: "*/5 * * * *",
     description: "Match the next chunks of imported Goodreads / StoryGraph libraries to the catalog",
   },
+  {
+    key: "news.from_catalog",
+    cron: "12 * * * *",
+    description: "Turn new announcements, date changes, cancellations and completed series into news tips",
+  },
+  {
+    key: "news.daily_roundup",
+    cron: "30 10 * * *",
+    description: 'Build and publish "Today in LitRPG", then post it to Bluesky and Mastodon if set up',
+  },
+  {
+    key: "news.daily_send",
+    cron: "*/5 11-13 * * *",
+    description: "Email today's roundup to Patch Notes Daily readers, a chunk a run",
+  },
+  {
+    key: "blog.weekly_roundup",
+    cron: "4 11 * * 1",
+    description: "Build the week's release roundup (publishes, or waits a day in the inbox for a veto)",
+  },
+  {
+    key: "blog.monthly_roundups",
+    cron: "8 11 1,15 * *",
+    description:
+      "Build the monthly roundups: audiobooks and new series on the 1st, most followed on the 15th",
+  },
 ] as const satisfies readonly JobDef[];
 
 export type JobKey = (typeof JOBS)[number]["key"];

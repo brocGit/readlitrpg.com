@@ -15,11 +15,12 @@ import {
   dataExports,
   emailSends,
   jobRuns,
+  newsTips,
   rateCounters,
   sessions,
   verifications,
 } from "@rlr/core/schema";
-import { and, eq, lt, ne } from "drizzle-orm";
+import { and, eq, inArray, lt, ne } from "drizzle-orm";
 import type { JobContext } from "./types";
 
 export const JOB_RUN_RETENTION_DAYS = 90;
@@ -41,6 +42,9 @@ export async function purgeExpired(ctx: JobContext): Promise<number> {
       .delete(authorPastes)
       .where(and(ne(authorPastes.status, "queued"), lt(authorPastes.createdAt, daysAgo(7)))),
     db.delete(changeNotifications).where(lt(changeNotifications.emailedAt, daysAgo(90))),
+    db
+      .delete(newsTips)
+      .where(and(inArray(newsTips.status, ["used", "rejected"]), lt(newsTips.updatedAt, daysAgo(90)))),
   ]);
   const notices = await purgeSentNotices(db, now);
   const takes = await purgeAnonymousTakes(db, now);

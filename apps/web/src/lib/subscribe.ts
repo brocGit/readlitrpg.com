@@ -23,6 +23,8 @@ export interface ConfirmMessage {
   url: string;
   className: string | null;
   listOnly: boolean;
+  /** Patch Notes Daily only (M7). */
+  daily: boolean;
 }
 
 export interface SubscribeDeps {
@@ -81,6 +83,7 @@ export function parseSource(raw: unknown, plan: unknown, inputs: unknown): Sourc
       inputs: decoded,
     };
   }
+  if (text === "daily") return { source: "daily", lists: ["daily_digest"], className: null, inputs: null };
   return { source: "newsletter", lists: ["weekly_digest"], className: null, inputs: null };
 }
 
@@ -141,6 +144,7 @@ export async function requestSubscribe(
       url: url.toString(),
       className: source.className,
       listOnly: !source.lists.includes("weekly_digest"),
+      daily: source.lists.includes("daily_digest"),
     });
   } catch {
     return { ok: false, code: "unavailable" };

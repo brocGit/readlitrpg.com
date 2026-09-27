@@ -37,6 +37,7 @@ export const TEMPLATES = [
   "welcome_3",
   "welcome_4",
   "weekly_digest",
+  "daily_digest",
   "release_alert",
   "export_ready",
   "author_invite",
@@ -62,6 +63,7 @@ export const emailJobSchema = z.discriminatedUnion("kind", [
     url: z.url().max(2048),
     className: z.string().max(80).nullable(),
     listOnly: z.boolean(),
+    daily: z.boolean().optional(),
     requestedAt: z.iso.datetime(),
   }),
   /** A team invite for an author profile (M6). Sent from the web Worker's Team page. */

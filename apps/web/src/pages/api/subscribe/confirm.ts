@@ -27,14 +27,16 @@ export const POST: APIRoute = async (ctx) => {
     confirmed.source,
     await ctx.locals.settings(),
   );
-  await startSequence(
-    db,
-    confirmed.userId,
-    confirmed.lists.includes("weekly_digest") ? "welcome" : "list_only",
-    {
-      source: confirmed.source,
-    },
-  );
+  // The welcome emails follow the weekly or the reading list; Patch Notes Daily alone has none.
+  if (confirmed.lists.includes("weekly_digest") || confirmed.lists.includes("reading_list"))
+    await startSequence(
+      db,
+      confirmed.userId,
+      confirmed.lists.includes("weekly_digest") ? "welcome" : "list_only",
+      {
+        source: confirmed.source,
+      },
+    );
 
   // Someone else is signed in on this browser: confirm, but don't switch accounts.
   const session = await ctx.locals.session();

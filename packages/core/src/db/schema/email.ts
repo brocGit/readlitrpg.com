@@ -8,10 +8,11 @@ import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "driz
 const isoNow = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 
 /**
- * weekly_digest: Patch Notes (§13.5). release_alerts: one bundled email a day on release days
+ * weekly_digest: Patch Notes (§13.5). daily_digest: Patch Notes Daily, the morning roundup (M7,
+ * opt-in, §14.6). release_alerts: one bundled email a day on release days
  * (§13.6). reading_list: the one-off quiz reading list and welcome emails for "just the list".
  */
-export const EMAIL_LISTS = ["weekly_digest", "release_alerts", "reading_list"] as const;
+export const EMAIL_LISTS = ["weekly_digest", "daily_digest", "release_alerts", "reading_list"] as const;
 export type EmailList = (typeof EMAIL_LISTS)[number];
 export const CONSENT_STATUS = ["pending", "active", "unsubscribed"] as const;
 
@@ -96,7 +97,7 @@ export const newsletterIssues = sqliteTable(
   "newsletter_issues",
   {
     id: text("id").primaryKey(),
-    kind: text("kind", { enum: ["weekly"] })
+    kind: text("kind", { enum: ["weekly", "daily"] })
       .notNull()
       .default("weekly"),
     week: text("week").notNull(),

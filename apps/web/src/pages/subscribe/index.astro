@@ -13,6 +13,7 @@ const code = q.get("error");
 const error =
   code && code in SUBSCRIBE_MESSAGES ? SUBSCRIBE_MESSAGES[code as keyof typeof SUBSCRIBE_MESSAGES] : null;
 const siteKey = env.ENVIRONMENT === "local" ? null : env.TURNSTILE_SITE_KEY;
+const daily = q.get("list") === "daily_digest";
 ---
 
 <Base title="Patch Notes: this week in LitRPG" description="A free weekly email of new LitRPG and progression fantasy matched to your taste.">
@@ -42,12 +43,28 @@ const siteKey = env.ENVIRONMENT === "local" ? null : env.TURNSTILE_SITE_KEY;
               {error}
             </p>
           )}
-          <ul>
-            <li>New books that fit your taste, with the reason each one fits.</li>
-            <li>What's out this week from the series and authors you follow.</li>
-            <li>What's coming soon, and a quiz of the week.</li>
-          </ul>
-          <SubscribeForm client:load source="newsletter" siteKey={siteKey} cta="Subscribe" />
+          {daily ? (
+            <>
+              <h2>Patch Notes Daily</h2>
+              <p>
+                <a href="/news/today">Today in LitRPG</a> in your inbox every morning: books out today, new announcements,
+                date changes and completed series. Short. Most readers prefer the weekly one; this is for the ones who
+                can't wait.
+              </p>
+              <SubscribeForm client:load source="daily" siteKey={siteKey} cta="Get it every morning" />
+              <p class="muted small"><a href="/subscribe">The weekly Patch Notes instead</a></p>
+            </>
+          ) : (
+            <>
+              <ul>
+                <li>New books that fit your taste, with the reason each one fits.</li>
+                <li>What's out this week from the series and authors you follow.</li>
+                <li>What's coming soon, and a quiz of the week.</li>
+              </ul>
+              <SubscribeForm client:load source="newsletter" siteKey={siteKey} cta="Subscribe" />
+              <p class="muted small">Want news every morning? <a href="/subscribe?list=daily_digest">Patch Notes Daily</a></p>
+            </>
+          )}
         </>
       )
     }

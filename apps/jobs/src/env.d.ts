@@ -9,6 +9,12 @@ interface Env {
   CF_ACCOUNT_ID?: string;
   /** A Cloudflare API token scoped to Workers AI. */
   CF_API_TOKEN?: string;
+  /** Optional: post "Today in LitRPG" to Bluesky (an app password, never the account password). */
+  BLUESKY_HANDLE?: string;
+  BLUESKY_APP_PASSWORD?: string;
+  /** Optional: post it to Mastodon (the instance's https URL and an access token with write:statuses). */
+  MASTODON_URL?: string;
+  MASTODON_TOKEN?: string;
 }
 
 // Bundled binaries (wrangler.jsonc "rules"): WebAssembly as a compiled module, fonts as bytes.

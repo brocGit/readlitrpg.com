@@ -7,6 +7,11 @@ export const LIST_INFO: Record<EmailList, { name: string; blurb: string }> = {
     name: "Patch Notes (weekly)",
     blurb: "Fridays: new matches for your taste, what's out from what you follow, and what's coming soon.",
   },
+  daily_digest: {
+    name: "Patch Notes Daily",
+    blurb:
+      "Every morning: books out today, new announcements and date changes. Short, and only if you want it.",
+  },
   release_alerts: {
     name: "Release-day alerts",
     blurb: "One email on days something you follow comes out. At most one a day.",

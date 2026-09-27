@@ -210,6 +210,11 @@ export const SETTINGS = {
   ),
   "blog.publish_hour_utc": def(z.number().int().min(0).max(23), 13, "Hour (UTC) slotted posts go live"),
   "blog.ai_draft_veto_hours": def(hours, 72, "Hours an AI-drafted post waits for a veto before it publishes"),
+  "news.daily_min_items": def(
+    z.number().int().min(0).max(50),
+    3,
+    'Fewest items a "Today in LitRPG" needs to be indexed by search engines (thinner days still publish)',
+  ),
   "blog.guest_review_days": def(
     z.number().int().min(1).max(30),
     5,

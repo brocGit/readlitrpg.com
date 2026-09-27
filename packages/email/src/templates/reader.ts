@@ -119,15 +119,22 @@ export const yourClass = (className: string) => className.replace(/^the\s+/i, ""
 // ---------------------------------------------------------------------------------------------
 // E0: confirm the subscription (double opt-in)
 
-export function renderConfirm(o: { url: string; className?: string | null; listOnly: boolean }): Rendered {
+export function renderConfirm(o: {
+  url: string;
+  className?: string | null;
+  listOnly: boolean;
+  daily?: boolean;
+}): Rendered {
   const subject = o.className
     ? `Confirm to get your ${yourClass(o.className)} reading list`
     : "Confirm your ReadLitRPG subscription";
-  const what = o.className
-    ? o.listOnly
-      ? `Confirm and we'll send your ${yourClass(o.className)} reading list. Just the list: no weekly email.`
-      : `Confirm and we'll send your ${yourClass(o.className)} reading list, then a weekly email of new matches for your taste.`
-    : "Confirm and we'll send Patch Notes, a weekly email of new LitRPG matches for your taste.";
+  const what = o.daily
+    ? "Confirm and we'll send Patch Notes Daily: a short morning email of books out today, new announcements and date changes."
+    : o.className
+      ? o.listOnly
+        ? `Confirm and we'll send your ${yourClass(o.className)} reading list. Just the list: no weekly email.`
+        : `Confirm and we'll send your ${yourClass(o.className)} reading list, then a weekly email of new matches for your taste.`
+      : "Confirm and we'll send Patch Notes, a weekly email of new LitRPG matches for your taste.";
   return compose({
     subject,
     preheader: "One click to confirm. Nothing is sent until you do.",
@@ -276,6 +283,8 @@ export interface DigestParts {
   comingSoon: EmailBook[];
   savedSearches: { name: string; url: string; books: EmailBook[] }[];
   quiz: { title: string; url: string } | null;
+  /** The week's newest blog post (DESIGN §14.2 distribution), if any. */
+  post?: { title: string; url: string; dek: string | null } | null;
   footer: Footer;
 }
 
@@ -324,6 +333,14 @@ export function renderDigest(d: DigestParts): Rendered {
       ? block(
           h2("Quiz of the week") + p(a(d.quiz.url, d.quiz.title)),
           `QUIZ OF THE WEEK\n${d.quiz.title} ${d.quiz.url}`,
+        )
+      : block("", ""),
+    d.post
+      ? block(
+          h2("On the blog") +
+            p(a(d.post.url, d.post.title)) +
+            (d.post.dek ? p(escapeHtml(d.post.dek), muted) : ""),
+          `ON THE BLOG\n${d.post.title} ${d.post.url}`,
         )
       : block("", ""),
   ];
@@ -390,5 +407,34 @@ export function renderExportReady(o: { url: string; days: number }): Rendered {
       ),
       block(button(o.url, "Download my data"), `Download: ${o.url}`),
     ],
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Patch Notes Daily (M7, DESIGN §14.6): "Today in LitRPG" by email, for readers who opted in.
+
+export interface DailyParts {
+  title: string;
+  dek: string;
+  url: string;
+  sections: { heading: string; books: EmailBook[] }[];
+  footer: Footer;
+}
+
+export function renderDaily(o: DailyParts): Rendered {
+  const blocks = [
+    block(system("[Patch Notes Daily]"), "[Patch Notes Daily]"),
+    block(p(escapeHtml(o.dek)), o.dek),
+    ...o.sections
+      .filter((s) => s.books.length)
+      .flatMap((s) => [block(h2(s.heading), `\n${s.heading}`), block(bookList(s.books), bookText(s.books))]),
+    block(button(o.url, "Read today's roundup"), `Read it on the site: ${o.url}`),
+  ];
+  return compose({
+    subject: o.title,
+    preheader: o.dek,
+    blocks,
+    footer: o.footer,
+    footerText: "Patch Notes Daily from ReadLitRPG.",
   });
 }

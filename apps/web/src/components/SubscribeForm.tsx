@@ -120,13 +120,15 @@ export default function SubscribeForm({
         {state === "busy" ? "Sending…" : plan === "list" ? "Email me the list" : cta}
       </button>
       <p class="muted small">
-        {source === "newsletter"
-          ? "Patch Notes arrives on Fridays: new matches for your taste and what's out from what you follow. One click to unsubscribe. We never share your email."
-          : plan === "weekly"
-            ? `We'll send ${who} and a weekly email of new matches. One click to unsubscribe. We never share your email.`
-            : `We'll send ${who} once. No weekly email. We never share your email.`}
+        {source === "daily"
+          ? "Patch Notes Daily arrives every morning: books out today, new announcements and date changes. One click to unsubscribe. We never share your email."
+          : source === "newsletter"
+            ? "Patch Notes arrives on Fridays: new matches for your taste and what's out from what you follow. One click to unsubscribe. We never share your email."
+            : plan === "weekly"
+              ? `We'll send ${who} and a weekly email of new matches. One click to unsubscribe. We never share your email.`
+              : `We'll send ${who} once. No weekly email. We never share your email.`}
       </p>
-      {source !== "newsletter" && (
+      {source !== "newsletter" && source !== "daily" && (
         <button
           type="button"
           class="link-button small"

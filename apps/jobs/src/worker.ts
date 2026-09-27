@@ -4,10 +4,10 @@
 //   queue      rlr-jobs: run one job; rlr-email: send email; *-dlq: open an Owner Inbox item
 
 import { createLogger, type Logger, maskEmail, ulid } from "@rlr/core";
-import { AUTHOR_INBOX_HANDLERS } from "@rlr/core/authors";
 import { publishDuePosts } from "@rlr/core/content";
 import { createDb, type Db } from "@rlr/core/db";
 import { openInboxItem, runInboxDefaults } from "@rlr/core/inbox";
+import { INBOX_HANDLERS } from "@rlr/core/inbox/handlers";
 import { publishDueQuizzes } from "@rlr/core/quiz";
 import { isSuppressed } from "@rlr/core/readers";
 import {
@@ -41,6 +41,7 @@ import { enrichCatalog } from "./jobs/enrich";
 import { importCatalog } from "./jobs/import";
 import { buildMatchModel } from "./jobs/match";
 import { findCovers, processMedia } from "./jobs/media";
+import { catalogNews, dailyRoundup, dailySend, monthlyRoundups, weeklyRoundup } from "./jobs/news";
 import { renderShareImages } from "./jobs/og";
 import { announceQuizzes } from "./jobs/quizzes";
 import { buildExports, matchLibraryImports } from "./jobs/readers";
@@ -78,6 +79,11 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "authors.change_digest": sendChangeDigests,
   "release.confirm_asks": sendReleaseAsks,
   "release.rollover": rollover,
+  "news.from_catalog": catalogNews,
+  "news.daily_roundup": dailyRoundup,
+  "news.daily_send": dailySend,
+  "blog.weekly_roundup": weeklyRoundup,
+  "blog.monthly_roundups": monthlyRoundups,
 };
 
 type QueueKind = "jobs" | "email" | "dlq";
@@ -108,7 +114,7 @@ export default {
     try {
       // Author items (M6) have side effects: publish a listing, apply a date change.
       const settings = await loadSettings({ db, kv: env.CONFIG, log });
-      defaults = await runInboxDefaults(db, now, { handlers: AUTHOR_INBOX_HANDLERS, settings });
+      defaults = await runInboxDefaults(db, now, { handlers: INBOX_HANDLERS, settings });
       const published = await publishDueQuizzes(db, now);
       defaults += published.length;
       if (published.length) log.info("quiz.auto_published", { quizzes: published });

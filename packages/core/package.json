@@ -15,6 +15,7 @@
     "./db/backup": "./src/db/backup.ts",
     "./editorial": "./src/editorial/index.ts",
     "./inbox": "./src/inbox/index.ts",
+    "./inbox/handlers": "./src/inbox/handlers.ts",
     "./match": "./src/match/index.ts",
     "./media": "./src/media/index.ts",
     "./net": "./src/net/safe-fetch.ts",

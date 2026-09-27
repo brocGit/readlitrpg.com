@@ -30,7 +30,12 @@ export function buildEmail(job: EmailJob, now = new Date()): EmailMessage | null
         stream: "transactional",
         template: "confirm_subscription",
         userId: job.userId,
-        ...renderConfirm({ url: job.url, className: job.className, listOnly: job.listOnly }),
+        ...renderConfirm({
+          url: job.url,
+          className: job.className,
+          listOnly: job.listOnly,
+          daily: job.daily,
+        }),
       };
     }
     case "author_invite":

@@ -4,6 +4,7 @@
 // issue if bounces or complaints climb; a daily cap and the newsletter kill switch stop it too.
 
 import { ulid } from "@rlr/core";
+import { BLOG_TYPES, listPosts, postPath } from "@rlr/core/content";
 import { openInboxItem } from "@rlr/core/inbox";
 import { liveQuizzes, READER_CLASSES } from "@rlr/core/quiz";
 import {
@@ -45,6 +46,8 @@ interface IssueContent {
   newBookIds: string[];
   quiz: { slug: string; title: string } | null;
   sendDate: string;
+  /** The week's newest blog post (M7). */
+  post?: { title: string; path: string; dek: string | null } | null;
 }
 
 export async function buildDigestIssue(ctx: JobContext): Promise<number> {
@@ -70,7 +73,12 @@ export async function buildDigestIssue(ctx: JobContext): Promise<number> {
   const quizzes = (await liveQuizzes(db)).filter((q) => q.kind === "fun");
   const weekNo = Number(week.slice(-2));
   const quiz = quizzes.length ? quizzes[weekNo % quizzes.length] : undefined;
+  const [latest] = await listPosts(db, { types: BLOG_TYPES, limit: 1 });
   const content: IssueContent = {
+    post:
+      latest && latest.publishedAt >= addDays(now, -7).toISOString()
+        ? { title: latest.title, path: postPath(latest), dek: latest.dek }
+        : null,
     newBookIds: fresh.map((b) => b.id),
     quiz: quiz ? { slug: quiz.slug, title: quiz.title } : null,
     // The send day, for the subject line: this week's Friday.
@@ -89,7 +97,7 @@ export async function buildDigestIssue(ctx: JobContext): Promise<number> {
 }
 
 /** Pause the issue when bounces or complaints cross their limits (after enough sends to judge). */
-async function tripped(mc: MailContext, issueId: string): Promise<string | null> {
+export async function tripped(mc: MailContext, issueId: string): Promise<string | null> {
   const rows = await mc.db
     .select({ status: emailSends.status, n: count() })
     .from(emailSends)
@@ -111,6 +119,7 @@ export async function sendDigestChunk(ctx: JobContext): Promise<number> {
     .from(newsletterIssues)
     .where(
       and(
+        eq(newsletterIssues.kind, "weekly"),
         inArray(newsletterIssues.status, ["ready", "sending"]),
         gte(newsletterIssues.createdAt, addDays(mc.now, -4).toISOString()),
       ),
@@ -257,6 +266,13 @@ async function digestFor(
       savedSearches,
       quiz: content.quiz
         ? { title: content.quiz.title, url: `${mc.origin}/quiz/${content.quiz.slug}?src=newsletter` }
+        : null,
+      post: content.post
+        ? {
+            title: content.post.title,
+            url: `${mc.origin}${content.post.path}?src=newsletter`,
+            dek: content.post.dek,
+          }
         : null,
       footer,
     },

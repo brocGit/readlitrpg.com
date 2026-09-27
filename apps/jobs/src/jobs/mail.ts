@@ -83,6 +83,7 @@ export async function subscribedTo(
 
 const REASON: Record<EmailList, string> = {
   weekly_digest: "You're getting this because you subscribed to Patch Notes on ReadLitRPG.",
+  daily_digest: "You're getting this because you subscribed to Patch Notes Daily on ReadLitRPG.",
   release_alerts: "You're getting this because you asked for release-day emails for books you follow.",
   reading_list: "You're getting this because you asked for your reading list on ReadLitRPG.",
 };
