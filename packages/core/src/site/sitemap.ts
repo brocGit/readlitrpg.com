@@ -152,6 +152,7 @@ export function robotsTxt(origin: string): string {
     "Disallow: /subscribe/confirm",
     "Disallow: /u/",
     "Disallow: /m/",
+    "Disallow: /dashboard",
     "",
     "# Crawlers that only collect training data.",
     ...TRAINING_ONLY_CRAWLERS.map((ua) => `User-agent: ${ua}`),

@@ -47,6 +47,8 @@ const weekly = consents.some((c) => c.list === "weekly_digest" && c.status === "
       {!weekly && <a class="button secondary" href="/account/email">Get Patch Notes weekly</a>}
     </p>
 
+    <p class="muted small">Are you an author? <a href="/dashboard">Manage your books</a>.</p>
+
     <h2>Passkeys</h2>
     {
       passkeys.length === 0 ? (

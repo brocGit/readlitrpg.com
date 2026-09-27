@@ -1,0 +1,237 @@
+---
+// The author book form's fields (DESIGN §10.3). Plain HTML: it works without JavaScript and needs
+// no inline scripts under the CSP. Used by "add a book" (mode new) and the edit page (mode edit).
+import { AI_USE, HAREM, NARRATION } from "@rlr/core/schema";
+import { CONTENT_FLAG_DEFS, CRUNCH_LEVELS, DIALS, FACETS, ROMANCE_LEVELS, TAGS } from "@rlr/core/taxonomy";
+import { RELEASE_FIELDS } from "../../lib/book-form";
+
+interface Values {
+  title?: string;
+  subtitle?: string | null;
+  series?: { name: string; position?: number } | null;
+  coAuthors?: string[];
+  genre?: string;
+  blurb?: string | null;
+  links?: string[];
+  dates?: Record<string, string>;
+  kindleUnlimited?: boolean;
+  narrators?: string[];
+  narration?: string;
+  tags?: string[];
+  dials?: Record<string, number>;
+  crunchLevel?: number | null;
+  romanceLevel?: number | null;
+  harem?: string;
+  contentFlags?: string[];
+  aiUse?: string;
+  embargoUntil?: string | null;
+}
+interface Props {
+  mode: "new" | "edit";
+  values: Values;
+  /** Slugs the deterministic suggester pre-selected (no AI). */
+  suggested?: string[];
+}
+const { mode, values: v, suggested = [] } = Astro.props;
+const active = TAGS.filter((t) => (t.status ?? "active") === "active");
+const genres = active.filter((t) => t.facet === "genre");
+const groups = FACETS.filter((f) => f.key !== "genre")
+  .map((f) => ({ facet: f, tags: active.filter((t) => t.facet === f.key) }))
+  .filter((g) => g.tags.length > 0);
+const chosen = new Set([...(v.tags ?? []), ...suggested]);
+const flags = new Set(v.contentFlags ?? []);
+const AI_LABEL: Record<string, string> = {
+  human: "Written by people (no AI for the text)",
+  ai_assisted: "AI-assisted (for example editing or brainstorming)",
+  ai_generated: "Mostly AI-generated text",
+};
+---
+
+<fieldset>
+  <legend>The book</legend>
+  <div class="field">
+    <label for="title">Title</label>
+    <input id="title" name="title" required maxlength="300" value={v.title ?? ""} />
+  </div>
+  <div class="field">
+    <label for="subtitle">Subtitle <span class="muted">(optional)</span></label>
+    <input id="subtitle" name="subtitle" maxlength="300" value={v.subtitle ?? ""} />
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label for="series_name">Series <span class="muted">(optional)</span></label>
+      <input id="series_name" name="series_name" maxlength="200" value={v.series?.name ?? ""} />
+    </div>
+    <div class="field">
+      <label for="series_position">Book number</label>
+      <input id="series_position" name="series_position" inputmode="decimal" maxlength="6" value={v.series?.position ?? ""} />
+    </div>
+  </div>
+  {
+    mode === "new" && (
+      <>
+        <div class="field">
+          <label for="coauthors">Co-authors <span class="muted">(comma-separated, optional)</span></label>
+          <input id="coauthors" name="coauthors" maxlength="500" value={(v.coAuthors ?? []).join(", ")} />
+        </div>
+        <div class="field">
+          <label for="genre">Genre</label>
+          <select id="genre" name="genre" required>
+            <option value="">Choose…</option>
+            {genres.map((g) => (
+              <option value={g.slug} selected={v.genre === g.slug}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </>
+    )
+  }
+  <div class="field">
+    <label for="blurb">Blurb <span class="muted">(yours; shown once you're verified)</span></label>
+    <textarea id="blurb" name="blurb" rows="6" maxlength="5000">{v.blurb ?? ""}</textarea>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>{mode === "new" ? "Where to read it, and when" : "Add links"}</legend>
+  <div class="field">
+    <label for="links">Store and platform links <span class="muted">(one per line)</span></label>
+    <textarea id="links" name="links" rows="4" maxlength="10000" placeholder={"https://www.amazon.com/dp/…\nhttps://www.royalroad.com/fiction/…"}>{(v.links ?? []).join("\n")}</textarea>
+    <p class="muted small">We read the book's identifiers from these links. We never fetch Amazon or Royal Road pages.</p>
+  </div>
+  {
+    mode === "new" &&
+      RELEASE_FIELDS.map(([, name, label]) => (
+        <div class="field">
+          <label for={name}>
+            {label} release date <span class="muted">(2026-11-03, Nov 2026, Q1 2027 or TBA)</span>
+          </label>
+          <input id={name} name={name} maxlength="40" value={v.dates?.[name] ?? ""} />
+        </div>
+      ))
+  }
+  <label class="check"><input type="checkbox" name="ku" checked={v.kindleUnlimited} /> In Kindle Unlimited</label>
+  <div class="field-row">
+    <div class="field">
+      <label for="narrators">Audiobook narrators <span class="muted">(comma-separated)</span></label>
+      <input id="narrators" name="narrators" maxlength="500" value={(v.narrators ?? []).join(", ")} />
+    </div>
+    {
+      mode === "new" && (
+        <div class="field">
+          <label for="narration">Narration</label>
+          <select id="narration" name="narration">
+            <option value="">—</option>
+            {NARRATION.map((n) => (
+              <option value={n} selected={v.narration === n}>
+                {n.replace("_", " ")}
+              </option>
+            ))}
+          </select>
+        </div>
+      )
+    }
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Tags</legend>
+  <p class="muted small">
+    {suggested.length ? `We ticked ${suggested.length} from your title, blurb and series. ` : ""}Untick anything that's wrong and add what's missing. The next editorial check may suggest changes; we'll email you if it does.
+  </p>
+  {
+    groups.map((g) => (
+      <details open={g.tags.some((t) => chosen.has(t.slug))}>
+        <summary>{g.facet.name}</summary>
+        <div class="chips">
+          {g.tags.map((t) => (
+            <label class="chip" title={t.definition}>
+              <input type="checkbox" name="tags" value={t.slug} checked={chosen.has(t.slug)} /> {t.name}
+            </label>
+          ))}
+        </div>
+      </details>
+    ))
+  }
+</fieldset>
+
+<fieldset>
+  <legend>Content and levels</legend>
+  <div class="field-row">
+    <div class="field">
+      <label for="crunch">Crunch (how much system is on the page)</label>
+      <select id="crunch" name="crunch">
+        <option value="">Not sure</option>
+        {CRUNCH_LEVELS.map((c) => <option value={c.value} selected={v.crunchLevel === c.value}>{c.label}</option>)}
+      </select>
+    </div>
+    <div class="field">
+      <label for="romance">Romance</label>
+      <select id="romance" name="romance">
+        <option value="">Not sure</option>
+        {ROMANCE_LEVELS.map((r) => <option value={r.value} selected={v.romanceLevel === r.value}>{r.label}</option>)}
+      </select>
+    </div>
+    <div class="field">
+      <label for="harem">Harem</label>
+      <select id="harem" name="harem">
+        {HAREM.map((h) => <option value={h} selected={(v.harem ?? "unknown") === h}>{h === "unknown" ? "Not sure" : h.replace("_", " ")}</option>)}
+      </select>
+    </div>
+  </div>
+  <p class="muted small">Content notes readers can filter on:</p>
+  <div class="chips">
+    {
+      CONTENT_FLAG_DEFS.map((f) => (
+        <label class="chip" title={f.definition}>
+          <input type="checkbox" name="flags" value={f.slug} checked={flags.has(f.slug)} /> {f.name}
+        </label>
+      ))
+    }
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>AI use <span class="muted">(required)</span></legend>
+  {
+    AI_USE.filter((a) => a !== "unknown").map((a) => (
+      <label class="check">
+        <input type="radio" name="ai" value={a} required checked={v.aiUse === a} /> {AI_LABEL[a]}
+      </label>
+    ))
+  }
+</fieldset>
+
+<details>
+  <summary>Taste dials (optional)</summary>
+  <p class="muted small">How the book feels to read, 0 to 10. Your answer nudges our estimate; readers' appraisals decide over time.</p>
+  <div class="dials">
+    {
+      DIALS.map((d) => (
+        <div class="field">
+          <label for={`dial.${d.key}`}>
+            {d.name} <span class="muted small">(0 {d.anchors["0"]} · 10 {d.anchors["10"]})</span>
+          </label>
+          <select id={`dial.${d.key}`} name={`dial.${d.key}`}>
+            <option value="">Not set</option>
+            {Array.from({ length: 11 }, (_, n) => (
+              <option value={n} selected={v.dials?.[d.key] === n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+      ))
+    }
+  </div>
+</details>
+
+<details>
+  <summary>Hide until a date (cover reveals)</summary>
+  <div class="field">
+    <label for="embargo">Keep the listing hidden until</label>
+    <input id="embargo" name="embargo" type="date" value={v.embargoUntil ?? ""} />
+  </div>
+</details>

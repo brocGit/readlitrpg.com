@@ -1,0 +1,117 @@
+---
+import { SubmissionError, submitBook } from "@rlr/core/authors";
+import { suggestTags } from "@rlr/core/catalog";
+import { authorSubmissions, authors } from "@rlr/core/schema";
+import { and, eq } from "drizzle-orm";
+import type BookFields from "../../../components/dashboard/BookFields.astro";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { profileAccess, TRUST_LABEL } from "../../../lib/authors";
+import { submissionFromForm } from "../../../lib/book-form";
+import { withinLimit } from "../../../lib/match";
+import { env, getDb } from "../../../lib/runtime";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// Add a book (DESIGN §10.3). "Suggest tags" re-renders the form with deterministic suggestions from
+// the title, blurb and the author's other books (no AI); "Submit" runs the publish policy.
+const authorId = Astro.url.searchParams.get("author") ?? "";
+const access = await profileAccess(Astro.locals, authorId);
+if (!access) return Astro.redirect("/dashboard", 303);
+const db = getDb();
+const [a] = await db
+  .select({ name: authors.name, trust: authors.trustLevel })
+  .from(authors)
+  .where(eq(authors.id, authorId));
+if (!a) return Astro.redirect("/dashboard", 303);
+const draftId = Astro.url.searchParams.get("draft");
+const [draft] = draftId
+  ? await db
+      .select()
+      .from(authorSubmissions)
+      .where(
+        and(
+          eq(authorSubmissions.id, draftId),
+          eq(authorSubmissions.authorId, authorId),
+          eq(authorSubmissions.status, "draft"),
+        ),
+      )
+  : [];
+
+type Values = Parameters<typeof BookFields>[0]["values"];
+let values: Values = {};
+let suggested: string[] = [];
+let error: string | null = null;
+if (draft) {
+  const p = draft.payload as Record<string, unknown>;
+  const rel = (kind: string) =>
+    ((p.releases as { kind: string; date: string }[] | undefined) ?? []).find((r) => r.kind === kind)?.date ??
+    "";
+  values = {
+    ...(p as Values),
+    genre: typeof p.primaryGenre === "string" ? p.primaryGenre : undefined,
+    dates: { date_ebook: rel("ebook"), date_audio: rel("audio"), date_print: rel("print") },
+  };
+}
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const input = submissionFromForm(form);
+  values = {
+    ...input,
+    series: input.series ?? null,
+    genre: input.primaryGenre,
+    narration: input.narrationType,
+    dates: Object.fromEntries(
+      ["date_ebook", "date_audio", "date_print"].map((k) => [k, String(form.get(k) ?? "")]),
+    ),
+  };
+  if (form.get("intent") === "suggest") {
+    const found = await suggestTags(db, {
+      authorIds: [authorId],
+      text: [input.title, input.blurb].filter(Boolean).join("\n"),
+    });
+    suggested = found.filter((s) => s.score >= 0.5).map((s) => s.slug);
+  } else if (!(await withinLimit(env.RL_WRITE, "dash:submit", Astro.request, Astro.clientAddress))) {
+    error = "Too many submissions at once. Wait a minute.";
+  } else {
+    try {
+      const r = await submitBook(
+        db,
+        { userId: access.actor.userId, authorId, settings: await Astro.locals.settings() },
+        input,
+        draft?.id,
+      );
+      if (r.outcome === "published") return Astro.redirect(`/dashboard/books/${r.bookId}?published=1`, 303);
+      if (r.outcome === "in_review") return Astro.redirect("/dashboard?submitted=review", 303);
+      return Astro.redirect(
+        `/dashboard?submitted=rejected&why=${encodeURIComponent(r.reasons[0] ?? "")}`,
+        303,
+      );
+    } catch (e) {
+      if (!(e instanceof SubmissionError)) throw e;
+      error = e.message.charAt(0).toUpperCase() + e.message.slice(1);
+    }
+  }
+}
+---
+
+<Base title="Add a book" noIndex>
+  <h1>Add a book</h1>
+  <DashNav authorId={authorId} />
+  <p>
+    As <strong>{a.name}</strong> <span class={`badge${a.trust === "T1" || a.trust === "T2" ? " ok" : ""}`}>{TRUST_LABEL[a.trust]}</span>.
+    {a.trust === "T1" || a.trust === "T2" ? " Your book goes live when you submit." : " We check new books from unverified profiles by hand, usually within 72 hours."}
+  </p>
+  {draft && <p class="notice" role="status">We filled this in from what you pasted. Check everything, fix what's wrong, then submit.</p>}
+  {error && <p class="notice error" role="alert">{error}</p>}
+  <form method="post">
+    <BookFields mode="new" values={values} suggested={suggested} />
+    <p>
+      <button class="button secondary" type="submit" name="intent" value="suggest" formnovalidate>Suggest tags</button>
+      <button class="button" type="submit" name="intent" value="submit">Submit</button>
+    </p>
+    <p class="muted small">By submitting you confirm the details are accurate and that you have the right to share the blurb. Nothing here is sold or shared.</p>
+  </form>
+</Base>

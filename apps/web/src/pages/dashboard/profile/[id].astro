@@ -1,0 +1,68 @@
+---
+import { cleanText } from "@rlr/core/catalog";
+import { authors } from "@rlr/core/schema";
+import { eq } from "drizzle-orm";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { profileAccess, TRUST_LABEL } from "../../../lib/authors";
+import { getDb } from "../../../lib/runtime";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// The public author page's own words (DESIGN §10.1 step 4). Links used for verification are set by
+// ReadLitRPG or by a passed verification, never typed here (§10.2), so these are display links only.
+const authorId = Astro.params.id ?? "";
+const access = await profileAccess(Astro.locals, authorId);
+if (!access) return new Response("Not found", { status: 404 });
+const db = getDb();
+const url = (raw: FormDataEntryValue | null) => {
+  const v = String(raw ?? "").trim();
+  return /^https:\/\/[^\s]{4,500}$/.test(v) ? v : null;
+};
+let saved = false;
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const bio = cleanText(String(form.get("bio") ?? "")).slice(0, 2000);
+  await db
+    .update(authors)
+    .set({
+      bio: bio || null,
+      newsletterUrl: url(form.get("newsletter")),
+      patreonUrl: url(form.get("patreon")),
+      royalroadUrl: url(form.get("royalroad")),
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(authors.id, authorId));
+  saved = true;
+}
+const [a] = await db.select().from(authors).where(eq(authors.id, authorId));
+if (!a) return new Response("Not found", { status: 404 });
+---
+
+<Base title={`${a.name}: profile`} noIndex>
+  <h1>{a.name}</h1>
+  <DashNav authorId={authorId} />
+  {saved && <p class="notice" role="status">Saved. The public page updates within half an hour.</p>}
+  <p>
+    <span class={`badge${a.verifiedAt ? " ok" : ""}`}>{TRUST_LABEL[a.trustLevel]}</span>{" "}
+    <a href={`/authors/${a.slug}`}>See your public page</a>
+  </p>
+  <form method="post">
+    <div class="field">
+      <label for="bio">Bio</label>
+      <textarea id="bio" name="bio" rows="5" maxlength="2000">{a.bio ?? ""}</textarea>
+    </div>
+    <div class="field"><label for="newsletter">Newsletter signup (https://…)</label><input id="newsletter" name="newsletter" value={a.newsletterUrl ?? ""} maxlength="500" /></div>
+    <div class="field"><label for="patreon">Patreon (https://…)</label><input id="patreon" name="patreon" value={a.patreonUrl ?? ""} maxlength="500" /></div>
+    <div class="field"><label for="royalroad">Royal Road profile (https://…)</label><input id="royalroad" name="royalroad" value={a.royalroadUrl ?? ""} maxlength="500" /></div>
+    <button class="button" type="submit">Save</button>
+  </form>
+  {a.links.length > 0 && (
+    <section>
+      <h2>Official links</h2>
+      <ul>{a.links.map((l) => <li>{l}</li>)}</ul>
+      <p class="muted small">Set by ReadLitRPG or a passed verification. Write to hello@readlitrpg.com to change them.</p>
+    </section>
+  )}
+</Base>

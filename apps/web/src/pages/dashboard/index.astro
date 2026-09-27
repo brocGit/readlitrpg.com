@@ -1,0 +1,150 @@
+---
+import { dashboardBooks, profilesFor } from "@rlr/core/authors";
+import { authorSubmissions, books, changeNotifications } from "@rlr/core/schema";
+import { formatDate, RELEASE_LABEL } from "@rlr/core/site";
+import { and, desc, eq, inArray } from "drizzle-orm";
+import DashNav from "../../components/dashboard/DashNav.astro";
+import Base from "../../layouts/Base.astro";
+import { TRUST_LABEL } from "../../lib/authors";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+import "../../styles/dashboard.css";
+
+// The author dashboard (DESIGN §10.5): books with status, completeness and to-dos; submissions in
+// review; and what others changed. Signed-in only; everything is scoped to the member's profiles.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/dashboard", 303);
+const db = getDb();
+const profiles = await profilesFor(db, session.userId);
+if (profiles.length === 0) return Astro.redirect("/dashboard/start", 303);
+const ids = profiles.map((p) => p.id);
+const list = await dashboardBooks(db, ids);
+const pending = await db
+  .select()
+  .from(authorSubmissions)
+  .where(
+    and(
+      inArray(authorSubmissions.authorId, ids),
+      inArray(authorSubmissions.status, ["in_review", "draft", "rejected"]),
+    ),
+  )
+  .orderBy(desc(authorSubmissions.updatedAt))
+  .limit(20);
+const changes = await db
+  .select({
+    summary: changeNotifications.summary,
+    at: changeNotifications.createdAt,
+    title: books.title,
+    bookId: books.id,
+  })
+  .from(changeNotifications)
+  .innerJoin(books, eq(books.id, changeNotifications.bookId))
+  .where(inArray(changeNotifications.authorId, ids))
+  .orderBy(desc(changeNotifications.createdAt))
+  .limit(10);
+const q = Astro.url.searchParams;
+const first = profiles[0];
+const STATUS: Record<string, string> = {
+  published: "Live",
+  pending: "In review",
+  draft: "Draft",
+  hidden: "Hidden",
+  removed: "Removed",
+};
+const SUB_STATUS: Record<string, string> = {
+  in_review: "In review",
+  draft: "Draft to check",
+  rejected: "Not listed",
+};
+const title = (p: unknown) =>
+  typeof (p as { title?: unknown }).title === "string" ? (p as { title: string }).title : "Untitled";
+---
+
+<Base title="Author dashboard" noIndex>
+  <h1>Author dashboard</h1>
+  <DashNav authorId={first?.id} />
+  {q.get("submitted") === "published" && <p class="notice" role="status">Your book is live.</p>}
+  {q.get("submitted") === "review" && <p class="notice" role="status">Thanks! It's in review, usually within 72 hours. We'll email you.</p>}
+  {q.get("submitted") === "rejected" && <p class="notice error" role="alert">We couldn't list that book: {q.get("why") ?? "it's outside what we cover"}.</p>}
+  {q.get("claimed") === "conflict" && <p class="notice" role="status">That profile already has a manager, so we'll check your claim by hand and email you.</p>}
+
+  <section>
+    <h2>Your profiles</h2>
+    <ul class="rows">
+      {
+        profiles.map((p) => (
+          <li>
+            <span>
+              <a href={`/authors/${p.slug}`}>{p.name}</a> <span class={`badge${p.verifiedAt ? " ok" : ""}`}>{TRUST_LABEL[p.trust]}</span>{" "}
+              <span class="muted small">{p.role} · {p.books} books</span>
+            </span>
+            <span>
+              {!p.verifiedAt && <a href={`/dashboard/verify/${p.id}`}>Verify to publish without waiting</a>}{" "}
+              <a class="button small" href={`/dashboard/books/new?author=${p.id}`}>Add a book</a>
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="muted small"><a href="/dashboard/start">Claim or add another pen name</a></p>
+  </section>
+
+  {
+    pending.length > 0 && (
+      <section>
+        <h2>Submissions</h2>
+        <ul class="rows">
+          {pending.map((s) => (
+            <li>
+              <span>{title(s.payload)}</span>
+              <span class="muted">{SUB_STATUS[s.status]}{s.status === "rejected" && s.reasons[0] ? `: ${s.reasons[0]}` : ""}</span>
+              {s.status === "draft" && <a class="button small" href={`/dashboard/books/new?author=${s.authorId}&draft=${s.id}`}>Check and submit</a>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <section>
+    <h2>Your books</h2>
+    {
+      list.length === 0 ? (
+        <p class="muted">No books yet. <a href={`/dashboard/books/new?author=${first?.id}`}>Add your first</a> or <a href={`/dashboard/paste?author=${first?.id}`}>paste your book list</a>.</p>
+      ) : (
+        <table class="dash-books">
+          <thead><tr><th>Book</th><th>Status</th><th>Next release</th><th>Complete</th><th>To do</th></tr></thead>
+          <tbody>
+            {list.map((b) => (
+              <tr>
+                <td><a href={`/dashboard/books/${b.id}`}>{b.title}</a>{b.series && <div class="muted small">{b.series}{b.position ? ` #${b.position}` : ""}</div>}</td>
+                <td>{STATUS[b.visibility] ?? b.visibility}</td>
+                <td>{b.nextRelease ? `${RELEASE_LABEL[b.nextRelease.kind] ?? b.nextRelease.kind}: ${formatDate(b.nextRelease.date, b.nextRelease.precision)}` : <span class="muted">—</span>}</td>
+                <td><meter class="meter" min="0" max="100" value={b.completeness} aria-label={`${b.completeness}% complete`} /> {b.completeness}%</td>
+                <td>{b.todos.length ? <ul class="small">{b.todos.slice(0, 3).map((t) => <li>{t}</li>)}</ul> : <span class="muted">Nothing</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+  </section>
+
+  {
+    changes.length > 0 && (
+      <section>
+        <h2>Changes by others</h2>
+        <p class="muted small">We email these once a day. Your own edit wins over most of them.</p>
+        <ul class="rows">
+          {changes.map((c) => (
+            <li>
+              <span><a href={`/dashboard/books/${c.bookId}`}>{c.title}</a>: {c.summary}</span>
+              <span class="muted small">{c.at.slice(0, 10)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</Base>

@@ -39,6 +39,10 @@ export const TEMPLATES = [
   "weekly_digest",
   "release_alert",
   "export_ready",
+  "author_invite",
+  "author_notice",
+  "change_digest",
+  "release_ask",
 ] as const;
 
 /** Messages on Q_EMAIL. Validated when consumed; unknown kinds go to the DLQ. */
@@ -58,6 +62,15 @@ export const emailJobSchema = z.discriminatedUnion("kind", [
     url: z.url().max(2048),
     className: z.string().max(80).nullable(),
     listOnly: z.boolean(),
+    requestedAt: z.iso.datetime(),
+  }),
+  /** A team invite for an author profile (M6). Sent from the web Worker's Team page. */
+  z.object({
+    kind: z.literal("author_invite"),
+    to: z.email().max(320),
+    url: z.url().max(2048),
+    authorName: z.string().min(1).max(200),
+    role: z.enum(["owner", "editor"]),
     requestedAt: z.iso.datetime(),
   }),
   /** Built and rendered by a job (welcome, digest, alerts, exports); the consumer only sends it. */

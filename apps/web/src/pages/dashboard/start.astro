@@ -1,0 +1,99 @@
+---
+import { claimProfile, createProfile, MembershipError, searchProfiles } from "@rlr/core/authors";
+import DashNav from "../../components/dashboard/DashNav.astro";
+import Base from "../../layouts/Base.astro";
+import { withinLimit } from "../../lib/match";
+import { env, getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+import "../../styles/dashboard.css";
+
+// "I'm an author" (DESIGN §10.1): find your profile and claim it, or add a new pen name. Claiming an
+// unclaimed profile makes you its owner, unverified until you verify; a claimed one goes to review.
+const actor = await Astro.locals.actor();
+if (actor.kind !== "user") return Astro.redirect("/signin?next=/dashboard/start", 303);
+const db = getDb();
+let error: string | null = null;
+
+if (Astro.request.method === "POST") {
+  if (!(await withinLimit(env.RL_WRITE, "dash:start", Astro.request, Astro.clientAddress)))
+    error = "Too many tries. Wait a minute.";
+  else if (actor.state === "restricted") error = "This account can't manage author profiles.";
+  else {
+    const form = await Astro.request.formData();
+    try {
+      if (form.get("intent") === "claim") {
+        const r = await claimProfile(db, actor.userId, String(form.get("author") ?? ""));
+        return Astro.redirect(
+          r.status === "conflict" ? "/dashboard?claimed=conflict" : "/dashboard?claimed=1",
+          303,
+        );
+      }
+      const r = await createProfile(db, actor.userId, {
+        name: String(form.get("name") ?? ""),
+        bio: String(form.get("bio") ?? ""),
+      });
+      if (r.status === "created") return Astro.redirect(`/dashboard/verify/${r.authorId}?created=1`, 303);
+      error = "That name is already in our catalog. Find it below and claim it, so your books stay together.";
+    } catch (e) {
+      if (!(e instanceof MembershipError)) throw e;
+      error = e.message;
+    }
+  }
+}
+const q = (Astro.url.searchParams.get("q") ?? "").slice(0, 100);
+const results = q ? await searchProfiles(db, q) : [];
+---
+
+<Base title="I'm an author" noIndex>
+  <h1>I'm an author</h1>
+  <DashNav />
+  {error && <p class="notice error" role="alert">{error}</p>}
+  <p class="lead">Your books may already be listed: readers suggest them and we add well-known series. Find your pen name and claim it, or add a new one.</p>
+  <form method="get" class="field-row">
+    <div class="field">
+      <label for="q">Your pen name</label>
+      <input id="q" name="q" value={q} maxlength="100" required />
+    </div>
+    <div class="field"><label>&nbsp;</label><button class="button" type="submit">Find it</button></div>
+  </form>
+  {
+    q && (
+      <section>
+        {results.length === 0 ? (
+          <p class="muted">No profile called that yet.</p>
+        ) : (
+          <ul class="rows">
+            {results.map((r) => (
+              <li>
+                <span>
+                  <a href={`/authors/${r.slug}`}>{r.name}</a> <span class="muted small">{r.books} books{r.claimed ? " · already managed" : ""}</span>
+                </span>
+                <form method="post">
+                  <input type="hidden" name="intent" value="claim" />
+                  <input type="hidden" name="author" value={r.id} />
+                  <button class="button small" type="submit">{r.claimed ? "Claim anyway (we'll check)" : "This is me"}</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    )
+  }
+  <section>
+    <h2>Add a new pen name</h2>
+    <form method="post">
+      <input type="hidden" name="intent" value="create" />
+      <div class="field">
+        <label for="name">Pen name</label>
+        <input id="name" name="name" required maxlength="200" value={q} />
+      </div>
+      <div class="field">
+        <label for="bio">Short bio <span class="muted">(optional)</span></label>
+        <textarea id="bio" name="bio" rows="3" maxlength="2000"></textarea>
+      </div>
+      <button class="button" type="submit">Create the profile</button>
+    </form>
+  </section>
+</Base>

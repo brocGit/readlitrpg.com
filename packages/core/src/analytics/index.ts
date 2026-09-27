@@ -3,7 +3,7 @@
 // and subject, the referring site and the country. No cookies, no IPs, no user agents are kept.
 // The stats.rollup job copies daily totals into D1 for the console.
 
-import { and, desc, gte, sql } from "drizzle-orm";
+import { and, desc, gte, inArray, sql } from "drizzle-orm";
 import type { Db } from "../db";
 import { pageViewsDaily, referrersDaily } from "../db/schema";
 import { type SafeFetchOptions, safeFetch } from "../net/safe-fetch";
@@ -86,6 +86,27 @@ export interface ViewPoint {
   country: string;
 }
 
+/**
+ * Events that aren't page views, counted the same way. A match appearance is a book shown on a
+ * reader's match results (DESIGN §10.5 author stats): the results page reports the slugs it showed.
+ */
+export const EVENT_KINDS = ["match_appearance"] as const;
+const COUNTED_KINDS: ReadonlySet<string> = new Set([...PAGE_KINDS, ...EVENT_KINDS]);
+
+/** Up to 15 well-formed book slugs from a beacon body; anything else is dropped. */
+export function appearanceSlugs(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [
+    ...new Set(raw.filter((s): s is string => typeof s === "string" && /^[a-z0-9-]{1,200}$/.test(s))),
+  ].slice(0, 15);
+}
+
+export const toAppearancePoint = (slug: string, country: string): AnalyticsEngineDataPoint => ({
+  indexes: ["match_appearance"],
+  blobs: ["match_appearance", slug, "", country],
+  doubles: [1],
+});
+
 export const toDataPoint = (v: ViewPoint): AnalyticsEngineDataPoint => ({
   indexes: [v.kind],
   blobs: [v.kind, v.key, v.referrer, v.country],
@@ -140,7 +161,7 @@ export async function rollupViews(db: Db, deps: RollupDeps, days = 2, now = new 
   );
   const cleanDay = (d: string) => String(d).slice(0, 10);
   const viewRows = views
-    .filter((v) => (PAGE_KINDS as readonly string[]).includes(v.kind))
+    .filter((v) => COUNTED_KINDS.has(v.kind))
     .map((v) => ({
       day: cleanDay(v.day),
       kind: v.kind,
@@ -183,7 +204,7 @@ export async function trafficSummary(db: Db, days = 7, now = new Date()) {
     db
       .select({ day: pageViewsDaily.day, views: sql<number>`sum(${pageViewsDaily.views})` })
       .from(pageViewsDaily)
-      .where(gte(pageViewsDaily.day, since))
+      .where(and(gte(pageViewsDaily.day, since), inArray(pageViewsDaily.kind, [...PAGE_KINDS])))
       .groupBy(pageViewsDaily.day)
       .orderBy(pageViewsDaily.day),
     db
@@ -193,7 +214,13 @@ export async function trafficSummary(db: Db, days = 7, now = new Date()) {
         views: sql<number>`sum(${pageViewsDaily.views})`,
       })
       .from(pageViewsDaily)
-      .where(and(gte(pageViewsDaily.day, since), sql`${pageViewsDaily.key} != ''`))
+      .where(
+        and(
+          gte(pageViewsDaily.day, since),
+          sql`${pageViewsDaily.key} != ''`,
+          inArray(pageViewsDaily.kind, [...PAGE_KINDS]),
+        ),
+      )
       .groupBy(pageViewsDaily.kind, pageViewsDaily.key)
       .orderBy(desc(sql`sum(${pageViewsDaily.views})`))
       .limit(20),

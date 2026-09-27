@@ -1,0 +1,24 @@
+---
+// The author dashboard's sections (DESIGN §10.5).
+interface Props {
+  authorId?: string;
+}
+const { authorId } = Astro.props;
+const here = Astro.url.pathname;
+const links: [string, string][] = [
+  ["/dashboard", "Books"],
+  ...(authorId
+    ? ([
+        [`/dashboard/books/new?author=${authorId}`, "Add a book"],
+        [`/dashboard/paste?author=${authorId}`, "Paste your book list"],
+        [`/dashboard/profile/${authorId}`, "Profile"],
+        [`/dashboard/verify/${authorId}`, "Verify"],
+        [`/dashboard/team/${authorId}`, "Team"],
+      ] as [string, string][])
+    : []),
+];
+---
+
+<nav class="account-nav" aria-label="Author dashboard">
+  {links.map(([href, label]) => <a href={href} aria-current={here === href.split("?")[0] ? "page" : undefined}>{label}</a>)}
+</nav>

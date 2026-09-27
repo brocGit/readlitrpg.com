@@ -3,7 +3,7 @@
 // runs). `applyEdit` makes the changes, always as the author, so provenance and precedence decide
 // what readers see and nothing here notifies the author about their own edit.
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 import { setVisibility } from "../catalog/confirm";
 import { type FieldWrite, writeBookFields } from "../catalog/fields";
@@ -17,13 +17,16 @@ import {
   AI_USE,
   bookAuthors,
   bookLinks,
+  bookScores,
   books,
   bookTags,
   editionNarrators,
   editions,
   HAREM,
+  narrators as narrators_,
   RELEASE_KINDS,
   releases,
+  series as seriesTable,
   tags,
 } from "../db/schema";
 import { ulid } from "../ids";
@@ -294,12 +297,15 @@ export async function applyEdit(
     done.push("narrators");
   }
   if (patch.tags !== undefined) {
-    // The author's list replaces their earlier assertions: tags they dropped become "no".
+    // The author's list is their whole answer: a tag they asserted before, or one the book shows now,
+    // that isn't on the list becomes the author's "no" (blended with the AI's evidence, §6.2).
     const earlier = await db
       .select({ slug: tags.slug })
       .from(bookTags)
       .innerJoin(tags, eq(tags.id, bookTags.tagId))
-      .where(and(eq(bookTags.bookId, bookId), eq(bookTags.authorAsserted, true)));
+      .where(
+        and(eq(bookTags.bookId, bookId), or(eq(bookTags.authorAsserted, true), gte(bookTags.score, 0.5))),
+      );
     const keep = new Set(patch.tags);
     const writes = [
       ...patch.tags.map((slug) => ({ slug, value: 1 })),
@@ -348,4 +354,112 @@ export async function bookIdsFor(db: Db, authorIds: string[]): Promise<string[]>
     .from(bookAuthors)
     .where(inArray(bookAuthors.authorId, authorIds.slice(0, 90)));
   return rows.map((r) => r.id);
+}
+
+/** A book as the edit form shows it, so a submitted form can be reduced to what actually changed. */
+export interface Editable {
+  title: string;
+  subtitle: string | null;
+  series: { name: string; position?: number } | null;
+  blurb: string | null;
+  kindleUnlimited: boolean;
+  narrators: string[];
+  tags: string[];
+  dials: Record<string, number>;
+  crunchLevel: number | null;
+  romanceLevel: number | null;
+  harem: string;
+  contentFlags: string[];
+  aiUse: string;
+  embargoUntil: string | null;
+}
+
+export async function editableBook(db: Db, bookId: string): Promise<Editable | null> {
+  const [b] = await db
+    .select({ book: books, seriesName: seriesTable.name })
+    .from(books)
+    .leftJoin(seriesTable, eq(seriesTable.id, books.seriesId))
+    .where(eq(books.id, bookId));
+  if (!b) return null;
+  const [eds, shown, scores] = await Promise.all([
+    db.select().from(editions).where(eq(editions.bookId, bookId)),
+    db
+      .select({ slug: tags.slug, facet: tags.facet })
+      .from(bookTags)
+      .innerJoin(tags, eq(tags.id, bookTags.tagId))
+      .where(and(eq(bookTags.bookId, bookId), gte(bookTags.score, 0.5))),
+    db
+      .select({ key: bookScores.key, authorValue: bookScores.authorValue })
+      .from(bookScores)
+      .where(and(eq(bookScores.bookId, bookId), eq(bookScores.kind, "dial"))),
+  ]);
+  const audio = eds.find((e) => e.format === "audiobook");
+  const narrators = audio
+    ? (
+        await db
+          .select({ name: narrators_.name })
+          .from(editionNarrators)
+          .innerJoin(narrators_, eq(narrators_.id, editionNarrators.narratorId))
+          .where(eq(editionNarrators.editionId, audio.id))
+          .orderBy(editionNarrators.position)
+      ).map((n) => n.name)
+    : [];
+  const book = b.book;
+  return {
+    title: book.title,
+    subtitle: book.subtitle,
+    series: b.seriesName
+      ? { name: b.seriesName, ...(book.seriesPosition !== null ? { position: book.seriesPosition } : {}) }
+      : null,
+    blurb: book.blurbAuthor,
+    kindleUnlimited: eds.some((e) => e.format === "ebook" && e.kindleUnlimited),
+    narrators,
+    tags: shown
+      .filter((t) => t.facet !== "genre")
+      .map((t) => t.slug)
+      .sort(),
+    dials: Object.fromEntries(
+      scores.filter((s) => s.authorValue !== null).map((s) => [s.key, s.authorValue as number]),
+    ),
+    crunchLevel: book.crunchLevel,
+    romanceLevel: book.romanceLevel,
+    harem: book.harem,
+    contentFlags: [...(book.contentFlags ?? [])].sort(),
+    aiUse: book.isAiGenerated,
+    embargoUntil: book.embargoUntil ? book.embargoUntil.slice(0, 10) : null,
+  };
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+/** Keep only what differs from the book now: an untouched field must never become a change. */
+export function diffEdit(current: Editable, next: EditPatch): EditPatch {
+  const out: EditPatch = {};
+  const put = <K extends keyof EditPatch>(key: K, value: EditPatch[K]) => {
+    out[key] = value;
+  };
+  if (next.title !== undefined && next.title !== current.title) put("title", next.title);
+  if (next.subtitle !== undefined && (next.subtitle || null) !== current.subtitle)
+    put("subtitle", next.subtitle || null);
+  if (next.series !== undefined && !same(next.series, current.series)) put("series", next.series);
+  if (next.blurb !== undefined && (next.blurb || null) !== current.blurb) put("blurb", next.blurb || null);
+  if (next.kindleUnlimited !== undefined && next.kindleUnlimited !== current.kindleUnlimited)
+    put("kindleUnlimited", next.kindleUnlimited);
+  if (next.narrators !== undefined && !same(next.narrators, current.narrators))
+    put("narrators", next.narrators);
+  if (next.tags !== undefined && !same([...next.tags].sort(), current.tags)) put("tags", next.tags);
+  if (next.dials !== undefined && !same(next.dials, current.dials)) put("dials", next.dials);
+  if (next.crunchLevel !== undefined && next.crunchLevel !== current.crunchLevel)
+    put("crunchLevel", next.crunchLevel);
+  if (next.romanceLevel !== undefined && next.romanceLevel !== current.romanceLevel)
+    put("romanceLevel", next.romanceLevel);
+  if (next.harem !== undefined && next.harem !== current.harem) put("harem", next.harem);
+  if (next.contentFlags !== undefined && !same([...next.contentFlags].sort(), current.contentFlags))
+    put("contentFlags", next.contentFlags);
+  if (next.aiUse !== undefined && next.aiUse !== current.aiUse) put("aiUse", next.aiUse);
+  if (next.embargoUntil !== undefined && (next.embargoUntil || null) !== current.embargoUntil)
+    put("embargoUntil", next.embargoUntil || null);
+  for (const key of ["addLinks", "release", "cancelRelease", "hidden"] as const)
+    if (next[key] !== undefined) put(key, next[key] as never);
+  return out;
 }

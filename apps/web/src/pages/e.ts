@@ -1,4 +1,11 @@
-import { classifyPath, isAutomated, referrerHost, toDataPoint } from "@rlr/core/analytics";
+import {
+  appearanceSlugs,
+  classifyPath,
+  isAutomated,
+  referrerHost,
+  toAppearancePoint,
+  toDataPoint,
+} from "@rlr/core/analytics";
 import type { APIRoute } from "astro";
 import { env } from "../lib/runtime";
 
@@ -12,7 +19,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (isAutomated(request.headers)) return noContent();
   const text = await request.text().catch(() => "");
   if (text.length > 1_000) return noContent();
-  let body: { p?: unknown; r?: unknown };
+  let body: { p?: unknown; r?: unknown; m?: unknown };
   try {
     body = JSON.parse(text);
   } catch {
@@ -21,11 +28,18 @@ export const POST: APIRoute = async ({ request }) => {
   const page = typeof body.p === "string" ? classifyPath(body.p) : null;
   if (!page) return noContent();
   const cf = (request as Request & { cf?: { country?: string } }).cf;
+  const country = typeof cf?.country === "string" ? cf.country.slice(0, 2) : "";
+  // Match results report the books they showed (author stats, DESIGN §10.5). Not a page view.
+  if (body.m !== undefined) {
+    if (page.kind === "match")
+      for (const slug of appearanceSlugs(body.m)) env.EVENTS.writeDataPoint(toAppearancePoint(slug, country));
+    return noContent();
+  }
   env.EVENTS.writeDataPoint(
     toDataPoint({
       ...page,
       referrer: referrerHost(body.r, new URL(env.PUBLIC_ORIGIN).host),
-      country: typeof cf?.country === "string" ? cf.country.slice(0, 2) : "",
+      country,
     }),
   );
   return noContent();

@@ -1,0 +1,229 @@
+---
+import { bookHistory, bookStats, diffEdit, EditError, editableBook, editBook } from "@rlr/core/authors";
+import { openInboxItem } from "@rlr/core/inbox";
+import { acceptImage, MediaError, UPLOAD_COVER_RULES } from "@rlr/core/media";
+import { bookLinks, books, changeNotifications, releases } from "@rlr/core/schema";
+import { formatDate, RELEASE_LABEL } from "@rlr/core/site";
+import { desc, eq } from "drizzle-orm";
+import BookFields from "../../../components/dashboard/BookFields.astro";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { bookAccess } from "../../../lib/authors";
+import { editFromForm, RELEASE_FIELDS } from "../../../lib/book-form";
+import { withinLimit } from "../../../lib/match";
+import { env, getDb } from "../../../lib/runtime";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// One book (DESIGN §10.4–10.5): edit under the protected-field rules, release dates, hide, cover,
+// 90-day stats (aggregate only), who changed what, and "Report a problem" with a change.
+const bookId = Astro.params.id ?? "";
+const access = await bookAccess(Astro.locals, bookId);
+if (!access) return new Response("Not found", { status: 404 });
+const db = getDb();
+const settings = await Astro.locals.settings();
+const trust = access.membership.trust;
+const verified = trust === "T1" || trust === "T2";
+const ctx = { userId: access.actor.userId, authorId: access.membership.authorId, trust, settings };
+let message: { ok: boolean; text: string } | null = null;
+const said = (r: { applied: string[]; queued: string[] }) =>
+  r.queued.length
+    ? {
+        ok: true,
+        text: `${r.applied.length ? "Saved. " : ""}Some changes need a quick check first (${r.queued.join("; ")}). We'll email you.`,
+      }
+    : { ok: true, text: r.applied.length ? "Saved." : "Nothing changed." };
+
+if (Astro.request.method === "POST") {
+  if (!(await withinLimit(env.RL_WRITE, "dash:edit", Astro.request, Astro.clientAddress))) {
+    message = { ok: false, text: "Too many changes at once. Wait a minute." };
+  } else {
+    const form = await Astro.request.formData();
+    const intent = String(form.get("intent") ?? "");
+    try {
+      if (intent === "details") {
+        const current = await editableBook(db, bookId);
+        if (current) message = said(await editBook(db, bookId, diffEdit(current, editFromForm(form)), ctx));
+      } else if (intent === "release") {
+        message = said(
+          await editBook(
+            db,
+            bookId,
+            { release: { kind: String(form.get("kind")), date: String(form.get("date") ?? "") } },
+            ctx,
+          ),
+        );
+      } else if (intent === "cancel_release") {
+        message = said(await editBook(db, bookId, { cancelRelease: String(form.get("release") ?? "") }, ctx));
+      } else if (intent === "hide" || intent === "show") {
+        message = said(await editBook(db, bookId, { hidden: intent === "hide" }, ctx));
+      } else if (intent === "cover" && verified) {
+        const file = form.get("cover");
+        if (!(file instanceof File) || file.size === 0) throw new MediaError("choose an image first");
+        await acceptImage(
+          db,
+          { private: env.PRIVATE },
+          new Uint8Array(await file.arrayBuffer()),
+          {
+            purpose: "cover",
+            source: "upload",
+            subjectType: "book",
+            subjectId: bookId,
+            uploadedBy: access.actor.userId,
+          },
+          UPLOAD_COVER_RULES,
+        );
+        message = {
+          ok: true,
+          text: "Cover received. It appears within a few minutes, once it's been resized.",
+        };
+      } else if (intent === "report") {
+        const text = String(form.get("text") ?? "")
+          .trim()
+          .slice(0, 2000);
+        if (text) {
+          await openInboxItem(db, {
+            type: "author_report",
+            title: "An author reports a problem with their listing",
+            subjectType: "book",
+            subjectId: bookId,
+            priority: 50,
+            payload: { bookId, authorId: ctx.authorId, userId: ctx.userId, text },
+          });
+          message = { ok: true, text: "Thanks. We'll look and email you." };
+        }
+      }
+    } catch (e) {
+      if (!(e instanceof EditError || e instanceof MediaError)) throw e;
+      message = { ok: false, text: e.message.charAt(0).toUpperCase() + e.message.slice(1) };
+    }
+  }
+}
+const [book] = await db.select().from(books).where(eq(books.id, bookId));
+const current = await editableBook(db, bookId);
+if (!book || !current) return new Response("Not found", { status: 404 });
+const [rels, links, stats, history, changes] = await Promise.all([
+  db.select().from(releases).where(eq(releases.bookId, bookId)),
+  db.select({ kind: bookLinks.kind, url: bookLinks.url }).from(bookLinks).where(eq(bookLinks.bookId, bookId)),
+  bookStats(db, book),
+  bookHistory(db, bookId, 40),
+  db
+    .select()
+    .from(changeNotifications)
+    .where(eq(changeNotifications.bookId, bookId))
+    .orderBy(desc(changeNotifications.createdAt))
+    .limit(10),
+]);
+const live = rels.filter((r) => r.status !== "cancelled");
+const STATUS: Record<string, string> = {
+  published: "Live",
+  pending: "In review",
+  draft: "Draft",
+  hidden: "Hidden",
+  removed: "Removed",
+};
+---
+
+<Base title={`${book.title}: dashboard`} noIndex>
+  <h1>{book.title}</h1>
+  <DashNav authorId={access.membership.authorId} />
+  {Astro.url.searchParams.get("published") === "1" && <p class="notice" role="status">Your book is live. Add a cover and check the tags below.</p>}
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  <p>
+    <strong>{STATUS[book.visibility] ?? book.visibility}</strong>
+    {book.visibility === "published" && <> · <a href={`/books/${book.slug}`}>See the public page</a></>}
+  </p>
+
+  <section>
+    <h2>Last 90 days</h2>
+    <div class="stats">
+      <div class="stat"><strong>{stats.views}</strong>page views</div>
+      <div class="stat"><strong>{stats.matchAppearances}</strong>match appearances</div>
+      <div class="stat"><strong>{stats.follows}</strong>new follows</div>
+      <div class="stat"><strong>{stats.read}</strong>readers marked it read</div>
+      <div class="stat"><strong>{stats.loved}</strong>loved it</div>
+    </div>
+    <p class="muted small">Totals only. We never show which readers.</p>
+  </section>
+
+  <section>
+    <h2>Release dates</h2>
+    <ul class="rows">
+      {live.map((r) => (
+        <li>
+          <span>{RELEASE_LABEL[r.kind] ?? r.kind}: <strong>{formatDate(r.date, r.datePrecision)}</strong> <span class="muted small">{r.status}</span></span>
+          <form method="post">
+            <input type="hidden" name="intent" value="cancel_release" />
+            <input type="hidden" name="release" value={r.id} />
+            <button class="link-button" type="submit">Mark cancelled</button>
+          </form>
+        </li>
+      ))}
+    </ul>
+    <form method="post" class="field-row">
+      <input type="hidden" name="intent" value="release" />
+      <div class="field">
+        <label for="kind">Format</label>
+        <select id="kind" name="kind">{RELEASE_FIELDS.map(([kind, , label]) => <option value={kind}>{label}</option>)}</select>
+      </div>
+      <div class="field"><label for="date">Date (2026-11-03, Nov 2026, Q1 2027, TBA)</label><input id="date" name="date" required maxlength="40" /></div>
+      <div class="field"><label>&nbsp;</label><button class="button secondary" type="submit">Set the date</button></div>
+    </form>
+    <p class="muted small">A date change within 3 days of release is checked first. Followers see "Delayed from…" when a date slips.</p>
+  </section>
+
+  <section>
+    <h2>Details</h2>
+    {links.length > 0 && <p class="small">Links: {links.map((l) => <><a href={l.url} rel="noopener">{l.kind}</a> </>)}</p>}
+    <form method="post">
+      <input type="hidden" name="intent" value="details" />
+      <BookFields mode="edit" values={{ ...current, links: [] }} />
+      <button class="button" type="submit">Save changes</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Cover</h2>
+    {
+      verified ? (
+        <form method="post" enctype="multipart/form-data">
+          <input type="hidden" name="intent" value="cover" />
+          <div class="field"><label for="cover">JPEG, PNG or WebP, at least 600×900</label><input id="cover" name="cover" type="file" accept="image/jpeg,image/png,image/webp" required /></div>
+          <button class="button secondary" type="submit">Upload</button>
+        </form>
+      ) : (
+        <p class="muted">Verify your profile to upload covers. Until then we use a licensed cover if one exists.</p>
+      )
+    }
+  </section>
+
+  <section>
+    <h2>Visibility</h2>
+    <form method="post">
+      {book.visibility === "hidden" ? (
+        <><input type="hidden" name="intent" value="show" /><button class="button secondary" type="submit">Show it again</button></>
+      ) : (
+        <><input type="hidden" name="intent" value="hide" /><button class="button secondary" type="submit">Hide this listing</button></>
+      )}
+    </form>
+    <p class="muted small">Hiding is immediate. We keep the record (for our audit trail) but readers can't see it.</p>
+  </section>
+
+  <section>
+    <h2>Changes</h2>
+    {changes.length > 0 && <ul>{changes.map((c) => <li>{c.summary} <span class="muted small">{c.createdAt.slice(0, 10)}</span></li>)}</ul>}
+    <details>
+      <summary>Full history</summary>
+      <table class="dash-books history">
+        <thead><tr><th>When</th><th>Field</th><th>Who</th><th>Value</th></tr></thead>
+        <tbody>{history.map((h) => <tr><td>{h.at.slice(0, 16).replace("T", " ")}</td><td>{h.field}</td><td>{h.who}</td><td>{h.value}</td></tr>)}</tbody>
+      </table>
+    </details>
+    <form method="post">
+      <input type="hidden" name="intent" value="report" />
+      <div class="field"><label for="text">Report a problem (a wrong change, a wrong tag, anything)</label><textarea id="text" name="text" rows="3" maxlength="2000" required></textarea></div>
+      <button class="button secondary" type="submit">Send</button>
+    </form>
+  </section>
+</Base>

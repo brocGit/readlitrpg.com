@@ -1,0 +1,97 @@
+---
+import { inviteLink, MembershipError, membersOf, removeMember } from "@rlr/core/authors";
+import { authors } from "@rlr/core/schema";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { deliverInvite, profileAccess } from "../../../lib/authors";
+import { withinLimit } from "../../../lib/match";
+import { env, getDb, getLinkKeys } from "../../../lib/runtime";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// Team members (DESIGN §10.2, §10.5): owners invite editors (a PA, a publisher contact) or other
+// owners by email, and remove members. Editors manage books; only owners manage the team.
+const authorId = Astro.params.id ?? "";
+const access = await profileAccess(Astro.locals, authorId);
+if (!access) return new Response("Not found", { status: 404 });
+const isOwner = access.membership.role === "owner";
+const db = getDb();
+const [a] = await db.select({ name: authors.name }).from(authors).where(eq(authors.id, authorId));
+if (!a) return new Response("Not found", { status: 404 });
+let message: { ok: boolean; text: string } | null = null;
+if (Astro.request.method === "POST" && isOwner) {
+  const form = await Astro.request.formData();
+  try {
+    if (form.get("intent") === "remove") {
+      await removeMember(db, authorId, access.actor.userId, String(form.get("user") ?? ""));
+      message = { ok: true, text: "Removed." };
+    } else if (!(await withinLimit(env.RL_WRITE, "dash:invite", Astro.request, Astro.clientAddress))) {
+      message = { ok: false, text: "Too many invites. Wait a minute." };
+    } else {
+      const email = z
+        .email()
+        .max(320)
+        .safeParse(
+          String(form.get("email") ?? "")
+            .trim()
+            .toLowerCase(),
+        );
+      const role = form.get("role") === "owner" ? "owner" : "editor";
+      if (!email.success) throw new MembershipError("that doesn't look like an email address");
+      const url = await inviteLink(getLinkKeys(), env.PUBLIC_ORIGIN, { authorId, email: email.data, role });
+      await deliverInvite(env, { to: email.data, url, authorName: a.name, role });
+      message = { ok: true, text: `Invite sent to ${email.data}. It works for 7 days.` };
+    }
+  } catch (e) {
+    if (!(e instanceof MembershipError)) throw e;
+    message = { ok: false, text: e.message.charAt(0).toUpperCase() + e.message.slice(1) };
+  }
+}
+const members = await membersOf(db, authorId);
+---
+
+<Base title={`${a.name}: team`} noIndex>
+  <h1>{a.name}: team</h1>
+  <DashNav authorId={authorId} />
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  <ul class="rows">
+    {
+      members.map((m) => (
+        <li>
+          <span>{m.email} <span class="muted small">{m.role} · since {m.since.slice(0, 10)}</span></span>
+          {isOwner && (
+            <form method="post">
+              <input type="hidden" name="intent" value="remove" />
+              <input type="hidden" name="user" value={m.userId} />
+              <button class="link-button" type="submit">{m.userId === access.actor.userId ? "Leave" : "Remove"}</button>
+            </form>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+  {
+    isOwner ? (
+      <section>
+        <h2>Invite someone</h2>
+        <form method="post">
+          <input type="hidden" name="intent" value="invite" />
+          <div class="field-row">
+            <div class="field"><label for="email">Their email address</label><input id="email" name="email" type="email" required maxlength="320" /></div>
+            <div class="field">
+              <label for="role">Role</label>
+              <select id="role" name="role"><option value="editor">Editor: manages books</option><option value="owner">Owner: also manages the team</option></select>
+            </div>
+          </div>
+          <button class="button" type="submit">Send invite</button>
+        </form>
+        <p class="muted small">Every owner is emailed when someone joins.</p>
+      </section>
+    ) : (
+      <p class="muted">Only owners can invite or remove members.</p>
+    )
+  }
+</Base>

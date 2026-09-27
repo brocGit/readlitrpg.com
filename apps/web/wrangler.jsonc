@@ -33,7 +33,8 @@
   "r2_buckets": [
     // Read-only here: /media serves variants when the media domain isn't in front (local dev).
     { "binding": "MEDIA", "bucket_name": "rlr-media" },
-    // Data exports only: readers download their own, and account deletion removes them (DESIGN §9.8).
+    // Private objects: readers' data exports (download, delete) and authors' cover originals (M6),
+    // which the jobs Worker re-encodes into MEDIA. Nothing here is served directly.
     { "binding": "PRIVATE", "bucket_name": "rlr-private" }
   ],
   // Page views from the beacon (DESIGN §4.5): counts only, no IPs or cookies.

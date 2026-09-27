@@ -2,6 +2,7 @@
 // be edge-cached; personal bits load in islands from /api/me (DESIGN §4.6).
 
 import type { WebAuth } from "@rlr/core/auth";
+import { membershipsFor } from "@rlr/core/authors";
 import type { Db } from "@rlr/core/db";
 import type { Actor } from "@rlr/core/policy";
 import { users } from "@rlr/core/schema";
@@ -42,8 +43,8 @@ export async function resolveActor(session: SessionInfo | null, db: Db): Promise
     state: row.state,
     emailVerified: row.emailVerified,
     createdAt: row.createdAt,
-    // Author and publisher memberships arrive with the author features (M6).
-    authors: [],
+    authors: await membershipsFor(db, session.userId),
+    // Publisher accounts come later (DESIGN §10.6).
     publishers: [],
   };
 }

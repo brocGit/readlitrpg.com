@@ -1,0 +1,70 @@
+---
+import { answerAsk, readAsk } from "@rlr/core/authors";
+import { authorMembers, authors, bookAuthors } from "@rlr/core/schema";
+import { formatDate, RELEASE_LABEL } from "@rlr/core/site";
+import { and, eq } from "drizzle-orm";
+import Base from "../../../layouts/Base.astro";
+import { getDb, getLinkKeys } from "../../../lib/runtime";
+
+// "Still on for Oct 12?" (DESIGN §7.7). The signed link names the ask and the member, so it works
+// without signing in; a GET changes nothing, and an answered ask takes no more changes.
+const db = getDb();
+const ask = await readAsk(db, getLinkKeys(), Astro.params.token ?? "");
+const [member] = ask
+  ? await db
+      .select({ authorId: authorMembers.authorId, trust: authors.trustLevel })
+      .from(authorMembers)
+      .innerJoin(bookAuthors, eq(bookAuthors.authorId, authorMembers.authorId))
+      .innerJoin(authors, eq(authors.id, authorMembers.authorId))
+      .where(and(eq(authorMembers.userId, ask.userId), eq(bookAuthors.bookId, ask.bookId)))
+  : [];
+let result: "done" | "queued" | "already" | null = null;
+if (Astro.request.method === "POST" && ask && member) {
+  const form = await Astro.request.formData();
+  const answer =
+    form.get("answer") === "new_date"
+      ? "new_date"
+      : form.get("answer") === "delayed"
+        ? "delayed"
+        : "confirmed";
+  result = await answerAsk(db, ask, {
+    answer,
+    newDate: String(form.get("date") ?? "").slice(0, 40),
+    trust: member.trust as "T-1" | "T0" | "T1" | "T2",
+    authorId: member.authorId,
+    settings: await Astro.locals.settings(),
+  });
+}
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Referrer-Policy", "same-origin");
+const kind = ask ? (RELEASE_LABEL[ask.kind] ?? ask.kind).toLowerCase() : "";
+---
+
+<Base title="Release date" noIndex noReferrer>
+  <div class="prose">
+    {
+      !ask || !member ? (
+        <><h1>That link has expired</h1><p>Update the date from your <a href="/dashboard">dashboard</a> instead.</p></>
+      ) : result === "already" || (ask.answered && !result) ? (
+        <><h1>Already answered</h1><p>Thanks: we have your answer for {ask.title}. Change it from your <a href="/dashboard">dashboard</a>.</p></>
+      ) : result ? (
+        <div class="status-screen" role="status">
+          <p class="label">[Quest log updated]</p>
+          <p>{result === "queued" ? "Thanks. Because the release is so close, we'll check the new date first and email you." : "Thanks, that's updated. Followers see it on the book's page."}</p>
+        </div>
+      ) : (
+        <>
+          <p class="label">[Quest check-in]</p>
+          <h1>Is the {kind} of {ask.title} still coming out on {formatDate(ask.date, "day")}?</h1>
+          <form method="post"><input type="hidden" name="answer" value="confirmed" /><button class="button" type="submit">Yes, that's the date</button></form>
+          <form method="post" class="field-row">
+            <input type="hidden" name="answer" value="new_date" />
+            <div class="field"><label for="date">No, the new date is</label><input id="date" name="date" required maxlength="40" placeholder="2026-11-03 or Nov 2026" /></div>
+            <div class="field"><label>&nbsp;</label><button class="button secondary" type="submit">Change the date</button></div>
+          </form>
+          <form method="post"><input type="hidden" name="answer" value="delayed" /><button class="link-button" type="submit">It's delayed, no new date yet</button></form>
+        </>
+      )
+    }
+  </div>
+</Base>

@@ -1,0 +1,47 @@
+---
+import { acceptInvite, notifyAuthor, readInvite } from "@rlr/core/authors";
+import Base from "../../../layouts/Base.astro";
+import { getDb, getLinkKeys } from "../../../lib/runtime";
+
+// Accepting a team invite (DESIGN §10.5): the link names the profile, address and role; accepting
+// needs a sign-in with that same address. Existing owners are told (§10.2).
+const token = Astro.params.token ?? "";
+const db = getDb();
+const invite = await readInvite(db, getLinkKeys(), token);
+const session = await Astro.locals.session();
+if (invite && !session) return Astro.redirect(`/signin?next=${encodeURIComponent(Astro.url.pathname)}`, 303);
+let outcome: "added" | "already" | "wrong_account" | null = null;
+if (Astro.request.method === "POST" && invite && session) {
+  outcome = await acceptInvite(db, invite, { userId: session.userId, email: session.email });
+  if (outcome === "added")
+    await notifyAuthor(db, {
+      authorId: invite.authorId,
+      kind: "member_added",
+      payload: { role: invite.role },
+    });
+}
+Astro.response.headers.set("Referrer-Policy", "same-origin");
+---
+
+<Base title="Team invite" noIndex noReferrer>
+  <div class="prose">
+    {
+      !invite ? (
+        <><h1>That invite has expired</h1><p>Invites work for 7 days. Ask for a new one.</p></>
+      ) : outcome === "added" || outcome === "already" ? (
+        <div class="status-screen" role="status">
+          <p class="label">[Party joined]</p>
+          <p>You can now manage {invite.authorName}'s books. <a href="/dashboard">Open the dashboard</a></p>
+        </div>
+      ) : outcome === "wrong_account" || (session && session.email !== invite.email) ? (
+        <><h1>Wrong account</h1><p>This invite is for a different email address. Sign out and sign in with the address the invite was sent to.</p></>
+      ) : (
+        <>
+          <h1>Join {invite.authorName}</h1>
+          <p>You're invited as {invite.role === "owner" ? "an owner" : "an editor"}.</p>
+          <form method="post"><button class="button" type="submit">Accept</button></form>
+        </>
+      )
+    }
+  </div>
+</Base>

@@ -1,9 +1,11 @@
+import { renderAuthorInvite } from "./templates/author";
 import { renderMagicLink } from "./templates/magic-link";
 import { renderConfirm } from "./templates/reader";
 import type { EmailJob, EmailMessage } from "./types";
 
 export { ConsoleProvider } from "./providers/console";
 export { SesError, SesProvider } from "./providers/ses";
+export * from "./templates/author";
 export { escapeHtml } from "./templates/layout";
 export { renderMagicLink } from "./templates/magic-link";
 export * from "./templates/reader";
@@ -31,6 +33,15 @@ export function buildEmail(job: EmailJob, now = new Date()): EmailMessage | null
         ...renderConfirm({ url: job.url, className: job.className, listOnly: job.listOnly }),
       };
     }
+    case "author_invite":
+      // Past the invite link's 7 days, sending it would only disappoint.
+      if (now.getTime() - Date.parse(job.requestedAt) > 7 * 86_400_000) return null;
+      return {
+        to: job.to,
+        stream: "transactional",
+        template: "author_invite",
+        ...renderAuthorInvite({ authorName: job.authorName, role: job.role, url: job.url }),
+      };
     case "rendered":
       return {
         to: job.to,

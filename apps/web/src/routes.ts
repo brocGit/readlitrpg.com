@@ -83,6 +83,18 @@ export const ROUTES = {
   "/api/me/export": SIGNED_IN,
   "/api/me/delete": SIGNED_IN,
   "/api/me/takes": SIGNED_IN,
+  // Authors (M6). Pages check the member's access to each profile and book themselves; the release
+  // link authenticates with its signed token.
+  "/for-authors": PUBLIC,
+  "/dashboard": SIGNED_IN,
+  "/dashboard/start": SIGNED_IN,
+  "/dashboard/profile/[id]": SIGNED_IN,
+  "/dashboard/verify/[id]": SIGNED_IN,
+  "/dashboard/team/[id]": SIGNED_IN,
+  "/dashboard/invite/[token]": SIGNED_IN,
+  "/dashboard/books/new": SIGNED_IN,
+  "/dashboard/books/[id]": SIGNED_IN,
+  "/dashboard/release/[token]": PUBLIC,
 } satisfies RouteRegistry;
 
 /**
@@ -93,4 +105,12 @@ export const ROUTES = {
 export const CROSS_SITE_POSTS: ReadonlySet<string> = new Set(["/api/webhooks/ses", "/u/[token]"]);
 
 /** Routes whose responses are personal and must never be cached anywhere. */
-export const PRIVATE_PREFIXES = ["/account", "/api/", "/welcome", "/subscribe/confirm", "/u/", "/m/"];
+export const PRIVATE_PREFIXES = [
+  "/account",
+  "/api/",
+  "/welcome",
+  "/subscribe/confirm",
+  "/u/",
+  "/m/",
+  "/dashboard",
+];

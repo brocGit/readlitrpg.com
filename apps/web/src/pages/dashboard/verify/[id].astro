@@ -1,0 +1,176 @@
+---
+import { checkVerification, requestsFor, startVerification, VerificationError } from "@rlr/core/authors";
+import { authors, type VerifyMethod } from "@rlr/core/schema";
+import { eq } from "drizzle-orm";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { profileAccess, TRUST_LABEL } from "../../../lib/authors";
+import { withinLimit } from "../../../lib/match";
+import { env, getDb } from "../../../lib/runtime";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// Verification (DESIGN §10.2): put a code somewhere only the real author controls, then check.
+const authorId = Astro.params.id ?? "";
+const access = await profileAccess(Astro.locals, authorId);
+if (!access) return new Response("Not found", { status: 404 });
+const session = await Astro.locals.session();
+const db = getDb();
+const [a] = await db.select().from(authors).where(eq(authors.id, authorId));
+if (!a || !session) return new Response("Not found", { status: 404 });
+
+const METHODS: {
+  key: Exclude<VerifyMethod, "owner_override">;
+  name: string;
+  target: string;
+  how: (code: string, target: string) => string;
+}[] = [
+  {
+    key: "website_file",
+    name: "A file on your website",
+    target: "Your website (yourname.com)",
+    how: (c, t) => `Create https://${t}/.well-known/readlitrpg-verify.txt containing ${c}`,
+  },
+  {
+    key: "meta_tag",
+    name: "A tag on your homepage",
+    target: "Your website (yourname.com)",
+    how: (c) => `Add <meta name="readlitrpg-verify" content="${c}"> to your homepage's <head>`,
+  },
+  {
+    key: "dns_txt",
+    name: "A DNS record",
+    target: "Your domain (yourname.com)",
+    how: (c, t) => `Add a TXT record for _readlitrpg.${t} with the value ${c}`,
+  },
+  {
+    key: "email_domain",
+    name: "Your email address",
+    target: "Your website's domain (yourname.com)",
+    how: (_c, t) => `Works if you signed in with an address at ${t} and ${t} is on your profile`,
+  },
+  {
+    key: "bluesky",
+    name: "Your Bluesky bio",
+    target: "Your handle (yourname.bsky.social)",
+    how: (c) => `Put ${c} anywhere in your Bluesky bio`,
+  },
+  {
+    key: "profile_code",
+    name: "Royal Road, Amazon Author Central, Patreon, X or Facebook",
+    target: "The page's https:// address",
+    how: (c) =>
+      `Put ${c} in your bio or a public post there. We check it by hand; we never fetch those sites automatically.`,
+  },
+];
+
+let message: { ok: boolean; text: string } | null = null;
+let shown: { method: string; code: string; target: string } | null = null;
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  if (!(await withinLimit(env.RL_WRITE, "dash:verify", Astro.request, Astro.clientAddress)))
+    message = { ok: false, text: "Too many checks. Wait a minute." };
+  else
+    try {
+      if (form.get("intent") === "start") {
+        const method = String(form.get("method")) as Exclude<VerifyMethod, "owner_override">;
+        if (!METHODS.some((m) => m.key === method)) throw new VerificationError("pick a method");
+        const r = await startVerification(db, {
+          authorId,
+          userId: session.userId,
+          method,
+          target: String(form.get("target") ?? ""),
+        });
+        shown = { method, code: r.code, target: r.target };
+      } else {
+        const r = await checkVerification(db, String(form.get("request") ?? ""), {
+          userEmail: session.email,
+        });
+        message =
+          r.status === "verified"
+            ? { ok: true, text: "Verified! New books and edits now go live straight away." }
+            : { ok: r.status === "review", text: r.message };
+      }
+    } catch (e) {
+      if (!(e instanceof VerificationError)) throw e;
+      message = { ok: false, text: e.message.charAt(0).toUpperCase() + e.message.slice(1) };
+    }
+}
+const [fresh] = await db
+  .select({ trust: authors.trustLevel, verifiedAt: authors.verifiedAt })
+  .from(authors)
+  .where(eq(authors.id, authorId));
+const requests = (await requestsFor(db, authorId)).filter(
+  (r) => r.userId === session.userId && (r.status === "pending" || r.status === "review"),
+);
+const methodName = (k: string) => METHODS.find((m) => m.key === k)?.name ?? k;
+const howTo = (k: string, code: string, target: string) =>
+  METHODS.find((m) => m.key === k)?.how(code, target) ?? "";
+---
+
+<Base title={`Verify ${a.name}`} noIndex>
+  <h1>Verify {a.name}</h1>
+  <DashNav authorId={authorId} />
+  {Astro.url.searchParams.get("created") === "1" && <p class="notice" role="status">Profile created. Verify it so your books publish without waiting.</p>}
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  <p>Status: <span class={`badge${fresh?.verifiedAt ? " ok" : ""}`}>{TRUST_LABEL[fresh?.trust ?? "T0"]}</span></p>
+  {
+    fresh?.verifiedAt ? (
+      <p>This profile is verified. Books and edits go live straight away.</p>
+    ) : (
+      <>
+        <p>Until you verify, everything you submit is checked by hand first (usually within 72 hours). To verify, put a code somewhere only you control.</p>
+        {shown && (
+          <div class="status-screen">
+            <p class="label">[Your code]</p>
+            <p class="code">{shown.code}</p>
+            <p>{howTo(shown.method, shown.code, shown.target)}</p>
+            <p class="muted small">Then press Check below. The code works for 14 days.</p>
+          </div>
+        )}
+        {requests.length > 0 && (
+          <section>
+            <h2>In progress</h2>
+            <ul class="rows">
+              {requests.map((r) => (
+                <li>
+                  <span>
+                    {methodName(r.method)}: {r.target} <span class="code small">{r.code}</span>
+                    <div class="muted small">{howTo(r.method, r.code, r.target ?? "")}</div>
+                  </span>
+                  {r.status === "review" ? (
+                    <span class="muted">Waiting for a check by hand</span>
+                  ) : (
+                    <form method="post">
+                      <input type="hidden" name="intent" value="check" />
+                      <input type="hidden" name="request" value={r.id} />
+                      <button class="button small" type="submit">Check</button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        <section>
+          <h2>Start</h2>
+          {METHODS.map((m) => (
+            <details>
+              <summary>{m.name}</summary>
+              <form method="post">
+                <input type="hidden" name="intent" value="start" />
+                <input type="hidden" name="method" value={m.key} />
+                <div class="field">
+                  <label for={`t-${m.key}`}>{m.target}</label>
+                  <input id={`t-${m.key}`} name="target" required maxlength="500" />
+                </div>
+                <button class="button small" type="submit">Get my code</button>
+              </form>
+            </details>
+          ))}
+        </section>
+      </>
+    )
+  }
+</Base>

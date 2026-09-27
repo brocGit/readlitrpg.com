@@ -3,7 +3,7 @@
 // the URL, never the person.
 
 import type { MatchInputs } from "@rlr/core/match";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import type { MatchResponse, ResultCard } from "../lib/match";
 import SaveMatch from "./SaveMatch";
 
@@ -129,6 +129,20 @@ export default function MatchResults({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Report which books were shown, for authors' "match appearances" (counts only, no identifiers).
+  useEffect(() => {
+    const slugs = [...data.best, ...data.more, ...(data.wildcard ? [data.wildcard] : [])].map((b) => b.slug);
+    const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
+    if (
+      !slugs.length ||
+      nav.globalPrivacyControl ||
+      nav.doNotTrack === "1" ||
+      typeof nav.sendBeacon !== "function"
+    )
+      return;
+    nav.sendBeacon("/e", JSON.stringify({ p: location.pathname, m: slugs }));
+  }, [data]);
 
   async function rerun(next: MatchInputs) {
     setInputs(next);

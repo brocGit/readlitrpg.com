@@ -38,6 +38,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
         "/find",
         "/new",
         "/tags",
+        "/for-authors",
+        "/subscribe",
         "/lists",
         ...LIVING_LISTS.map((l) => `/lists/${l.slug}`),
         "/quiz",
