@@ -22,6 +22,7 @@ import type { TasteProfile } from "../match/profile";
 import type { Settings } from "../settings";
 import { nowIso } from "../time";
 import { checkBook } from "./campaigns";
+import { productIdFor } from "./catalog";
 import {
   type CreativeInput,
   checkCreativeForSale,
@@ -81,19 +82,16 @@ export async function startSponsoredMatch(
     throw new PromotionError(error instanceof Error ? error.message : "that book can't be promoted");
   }
   await checkCreativeForSale(db, input);
-  const [product] = await db
-    .select({ id: adProducts.id, name: adProducts.name })
-    .from(adProducts)
-    .where(eq(adProducts.key, SPONSORED_MATCH));
-  if (!product) throw new PromotionError("the ad catalog isn't set up yet");
+  const productId = await productIdFor(db, SPONSORED_MATCH);
+  if (!productId) throw new PromotionError("the ad catalog isn't set up yet");
   const end = addDays(input.startDate, days - 1);
   const campaignId = ulid();
   const risk = creativeRisk(`${input.headline} ${input.body ?? ""}`, trust);
   await db.insert(campaigns).values({
     id: campaignId,
     advertiserId: advertiser.id,
-    productId: product.id,
-    name: `${product.name}: ${input.headline.trim()}`.slice(0, 120),
+    productId,
+    name: `Sponsored Match: ${input.headline.trim()}`.slice(0, 120),
     bookId: input.bookId,
     status: "held",
     // No inventory: it only ever shows in its own place in match results.

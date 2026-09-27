@@ -9,12 +9,13 @@ import {
   generateInventory,
   inventoryCalendar,
   placementsFor,
+  productIdFor,
   resolveGo,
   setCampaignState,
 } from "../src/ads";
 import { addConfirmation, ingestBook, setVisibility } from "../src/catalog";
 import { createDb, type Db } from "../src/db";
-import { bookings, campaigns, inventoryUnits } from "../src/db/schema";
+import { adProducts, bookings, campaigns, inventoryUnits } from "../src/db/schema";
 import { parseLinkKeys, signLink } from "../src/readers";
 import { syncTaxonomy } from "../src/taxonomy";
 import { createTestD1 } from "../src/testing";
@@ -55,6 +56,14 @@ describe("inventory", () => {
       periodStart: today,
       periodEnd: "2026-10-11",
     });
+  });
+
+  it("finds a product added since the catalog was last synced", async () => {
+    await db.delete(adProducts).where(eq(adProducts.key, "sponsored_match"));
+    const id = await productIdFor(db, "sponsored_match");
+    expect(id).toBeTruthy();
+    expect(await productIdFor(db, "sponsored_match")).toBe(id);
+    expect(await productIdFor(db, "no_such_product")).toBeNull();
   });
 });
 

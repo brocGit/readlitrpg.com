@@ -127,6 +127,19 @@ export async function ensureAdCatalog(db: Db): Promise<void> {
   }
 }
 
+/**
+ * A product's row id. A product added in a release has no row until the daily inventory job runs,
+ * so a miss syncs the catalog once before giving up.
+ */
+export async function productIdFor(db: Db, key: string): Promise<string | null> {
+  const find = async () =>
+    (await db.select({ id: adProducts.id }).from(adProducts).where(eq(adProducts.key, key)))[0]?.id ?? null;
+  const id = await find();
+  if (id || !AD_PRODUCTS.some((p) => p.key === key)) return id;
+  await ensureAdCatalog(db);
+  return find();
+}
+
 export async function houseAdvertiserId(db: Db): Promise<string> {
   const [row] = await db
     .select({ id: advertisers.id })

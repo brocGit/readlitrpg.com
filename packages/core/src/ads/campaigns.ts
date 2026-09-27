@@ -17,7 +17,7 @@ import {
 } from "../db/schema";
 import { ulid } from "../ids";
 import { nowIso } from "../time";
-import { AD_PRODUCTS, houseAdvertiserId } from "./catalog";
+import { AD_PRODUCTS, houseAdvertiserId, productIdFor } from "./catalog";
 import { ensureUnit, giveBack, periodFor, sellUnit } from "./inventory";
 
 export const CTA_LABELS = [
@@ -118,11 +118,8 @@ export async function createHouseCampaign(
 ): Promise<{ campaignId: string; booked: number }> {
   const def = AD_PRODUCTS.find((p) => p.key === input.productKey);
   if (!def) throw new CampaignError("unknown product");
-  const [product] = await db
-    .select({ id: adProducts.id })
-    .from(adProducts)
-    .where(eq(adProducts.key, def.key));
-  if (!product) throw new CampaignError("the ad catalog isn't set up yet");
+  const productId = await productIdFor(db, def.key);
+  if (!productId) throw new CampaignError("the ad catalog isn't set up yet");
   const slots = (input.slots ?? []).filter((s) => def.slots.includes(s));
   if (input.mode === "reserved" && slots.length !== 1)
     throw new CampaignError("a reserved campaign takes one slot");
@@ -160,7 +157,7 @@ export async function createHouseCampaign(
   await db.insert(campaigns).values({
     id,
     advertiserId,
-    productId: product.id,
+    productId,
     name: input.name.trim().slice(0, 120) || input.headline.slice(0, 60),
     bookId: input.bookId ?? null,
     status: "scheduled",

@@ -245,7 +245,7 @@ export const SETTINGS = {
   ),
   "ads.checkout_attempts_per_hour": def(
     z.number().int().min(1).max(100),
-    3,
+    6,
     "Checkouts one advertiser may start in an hour",
   ),
   "ads.sponsored_match_cpm_cents": def(cents, 800, "Sponsored Match price per 1,000 qualified impressions"),

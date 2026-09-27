@@ -13,7 +13,8 @@
     "test": "vitest run",
     "e2e": "node e2e/admin-flow.mjs",
     "e2e:author": "node e2e/author-flow.mjs",
-    "e2e:content": "node e2e/content-flow.mjs"
+    "e2e:content": "node e2e/content-flow.mjs",
+    "e2e:money": "node e2e/money-flow.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "14.3.3",

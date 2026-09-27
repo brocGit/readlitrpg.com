@@ -33,7 +33,7 @@ import { hitWindow } from "../ratelimit";
 import type { Settings } from "../settings";
 import { nowIso } from "../time";
 import { CampaignError, checkBook } from "./campaigns";
-import { AD_PRODUCTS, type ProductDef } from "./catalog";
+import { AD_PRODUCTS, type ProductDef, productIdFor } from "./catalog";
 import { ensureUnit, giveBack, holdUnit, periodFor } from "./inventory";
 
 /** Products an author can buy in Phase 1.5 (§11.2). Sponsored Match is budget-paced (./sponsored). */
@@ -356,16 +356,13 @@ export async function startPromotion(
   const risk = creativeRisk(`${input.headline} ${input.body ?? ""}`, trust);
 
   const campaignId = ulid();
-  const [product] = await db
-    .select({ id: adProducts.id })
-    .from(adProducts)
-    .where(eq(adProducts.key, quote.product.key));
-  if (!product) throw new PromotionError("the ad catalog isn't set up yet");
+  const productId = await productIdFor(db, quote.product.key);
+  if (!productId) throw new PromotionError("the ad catalog isn't set up yet");
   const target = (input.target ?? "").trim();
   await db.insert(campaigns).values({
     id: campaignId,
     advertiserId: advertiser.id,
-    productId: product.id,
+    productId,
     name: `${quote.product.name}: ${input.headline.trim()}`.slice(0, 120),
     bookId: input.bookId,
     status: "held",
