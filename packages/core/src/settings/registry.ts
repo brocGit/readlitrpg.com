@@ -48,6 +48,28 @@ export const SETTINGS = {
   "tags.exclude_min": def(share, 0.3, "Minimum tag score for exclude filters"),
   "tags.crowd_min_votes": def(z.number().int().min(1), 8, "Reader votes before crowd tags count"),
 
+  // Catalog (§7.3, §7.4)
+  "catalog.fuzzy_title_min": def(
+    share,
+    0.6,
+    "Title similarity (same author) that flags a possible duplicate",
+  ),
+  "enrich.batch_size": def(
+    z.number().int().min(1).max(100),
+    25,
+    "Books looked up in Open Library and Google Books per run",
+  ),
+  "enrich.retry_days": def(
+    z.number().int().min(1).max(365),
+    30,
+    "Days before a book with no match is looked up again",
+  ),
+  "import.chunk_size": def(
+    z.number().int().min(1).max(40),
+    20,
+    "Rows ingested per import job run (D1 allows 1,000 queries per run)",
+  ),
+
   // Matching (§7.8)
   "match.weights": def(
     z

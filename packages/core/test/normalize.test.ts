@@ -43,7 +43,7 @@ describe("text", () => {
     expect(slugify("Beware of Chicken")).toBe("beware-of-chicken");
     expect(slugify("José's Café & Dungeon")).toBe("joses-cafe-and-dungeon");
     expect(slugify("!!!")).toBe("untitled");
-    expect(slugify("a".repeat(30) + " " + "b".repeat(60)).length).toBeLessThanOrEqual(80);
+    expect(slugify(`${"a".repeat(30)} ${"b".repeat(60)}`).length).toBeLessThanOrEqual(80);
   });
 });
 

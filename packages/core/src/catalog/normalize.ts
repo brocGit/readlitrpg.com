@@ -55,9 +55,9 @@ export function nameKey(value: string): string {
   return out.join(" ");
 }
 
-const MARKETING = String.raw`litrpg|lit rpg|gamelit|progression fantasy|progression|cultivation|xianxia|wuxia|dungeon core|system apocalypse|isekai|portal fantasy|epic fantasy|fantasy|sci-fi|scifi|science fiction|novel|adventure|saga|series|epic|story|harem`;
+const MARKETING = `litrpg|lit rpg|gamelit|progression fantasy|progression|cultivation|xianxia|wuxia|dungeon core|system apocalypse|isekai|portal fantasy|epic fantasy|fantasy|sci-fi|scifi|science fiction|novel|adventure|saga|series|epic|story|harem`;
 const MARKETING_RE = new RegExp(`\\b(${MARKETING})\\b`, "i");
-const VOLUME_WORDS = String.raw`book|volume|vol|part|episode|arc`;
+const VOLUME_WORDS = `book|volume|vol|part|episode|arc`;
 
 /**
  * Matching key for book titles. Removes what retailers bolt on ("(The Primal Hunter Book 2)",
