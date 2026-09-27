@@ -1,0 +1,71 @@
+---
+import { setMark, verifyLink } from "@rlr/core/readers";
+import { books, MARK_STATUS, type MarkStatus } from "@rlr/core/schema";
+import { and, eq } from "drizzle-orm";
+import Base from "../../layouts/Base.astro";
+import { getDb, getLinkKeys } from "../../lib/runtime";
+
+// One-click book choices from emails (QUIZZES §3.4): the link opens this page with the choice
+// pre-selected and a confirm tap. Email link scanners only ever GET, so they can't record choices.
+const data = await verifyLink(getLinkKeys(), Astro.params.token ?? "", "mark");
+const [userId, bookId, rawStatus] = data ?? [];
+const status = MARK_STATUS.includes(rawStatus as MarkStatus) ? (rawStatus as MarkStatus) : null;
+const db = getDb();
+const [book] =
+  userId && bookId && status
+    ? await db
+        .select({ slug: books.slug, title: books.title })
+        .from(books)
+        .where(and(eq(books.id, bookId), eq(books.visibility, "published")))
+    : [];
+const LABEL: Record<MarkStatus, string> = {
+  loved: "Loved it",
+  read: "Read it",
+  dnf: "Not for me",
+  want: "Want to read",
+};
+let done = false;
+if (Astro.request.method === "POST" && book && userId && status) {
+  await setMark(db, userId, book.slug, status, "email");
+  done = true;
+}
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+---
+
+<Base title="Mark a book" noIndex noReferrer>
+  <div class="prose">
+    {
+      !book || !status ? (
+        <>
+          <h1>That link has expired</h1>
+          <p>
+            Mark books from their pages instead: <a href="/account/books">your books</a>.
+          </p>
+        </>
+      ) : done ? (
+        <div class="status-screen" role="status">
+          <p class="label">[Matches recalibrated]</p>
+          <p>
+            <a href={`/books/${book.slug}`}>{book.title}</a>: {LABEL[status]}. Your matches just got sharper.
+          </p>
+          <p>
+            <a href="/account/preferences">See my matches</a>
+          </p>
+        </div>
+      ) : (
+        <>
+          <h1>{book.title}</h1>
+          <form method="post">
+            <button class="button" type="submit">
+              Mark as "{LABEL[status]}"
+            </button>
+          </form>
+          <p class="muted">
+            Wrong choice? <a href={`/books/${book.slug}`}>Open the book</a> and pick another.
+          </p>
+        </>
+      )
+    }
+  </div>
+</Base>

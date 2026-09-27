@@ -1,29 +1,51 @@
 ---
+import { consentsFor, getReaderProfile } from "@rlr/core/readers";
+import AccountNav from "../../components/AccountNav.astro";
 import AddPasskey from "../../components/AddPasskey";
+import AttachTakes from "../../components/AttachTakes";
 import SignOut from "../../components/SignOut";
 import Base from "../../layouts/Base.astro";
-import { getAuth } from "../../lib/runtime";
+import { classInfo, levelInfo } from "../../lib/readers";
+import { getAuth, getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
 
 // Signed-in only (see src/routes.ts). Never cached.
 const session = await Astro.locals.session();
 if (!session) return Astro.redirect("/signin?next=/account", 303);
 
-const passkeys = await getAuth().api.listPasskeys({ headers: Astro.request.headers });
-const welcome = Astro.url.searchParams.get("welcome") === "1";
+const db = getDb();
+const [passkeys, profile, consents] = await Promise.all([
+  getAuth().api.listPasskeys({ headers: Astro.request.headers }),
+  getReaderProfile(db, session.userId),
+  consentsFor(db, session.userId),
+]);
+const level = levelInfo(profile.level);
+const cls = classInfo(profile.readerClass);
+const weekly = consents.some((c) => c.list === "weekly_digest" && c.status === "active");
 ---
 
-<Base title="Your account">
+<Base title="Your account" noIndex>
   <div class="prose">
-    {
-      welcome && (
-        <div class="status-screen" role="status">
-          <p class="label">[New character created]</p>
-          <p>Welcome to ReadLitRPG. Add a passkey below and next time you can sign in with your fingerprint or face.</p>
-        </div>
-      )
-    }
     <h1>Your account</h1>
     <p>Signed in as <strong>{session.email}</strong>.</p>
+    <AccountNav />
+
+    <section class="status-screen level">
+      <p class="label">[Profile · Level {level.level}: {level.title}]</p>
+      <progress max="100" value={level.xp} aria-label={`Profile level ${level.level} of 5`}></progress>
+      {cls && <p>Class: <strong>{cls.name}</strong>. {cls.tagline}</p>}
+      {level.next ? (
+        <p>Next level: <a href={level.next.href}>{level.next.text}</a>. Each level sharpens your matches.</p>
+      ) : (
+        <p>Max level. Your appraisals help every reader's matches too.</p>
+      )}
+    </section>
+
+    <p>
+      <a class="button" href="/account/preferences">See my matches</a>
+      {!weekly && <a class="button secondary" href="/account/email">Get Patch Notes weekly</a>}
+    </p>
 
     <h2>Passkeys</h2>
     {
@@ -45,4 +67,5 @@ const welcome = Astro.url.searchParams.get("welcome") === "1";
     <h2>Sign out</h2>
     <SignOut client:load />
   </div>
+  <AttachTakes client:load />
 </Base>

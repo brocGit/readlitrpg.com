@@ -1,0 +1,74 @@
+---
+import { importsFor } from "@rlr/core/readers";
+import AccountNav from "../../components/AccountNav.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+
+// Goodreads / StoryGraph library import (DESIGN §9.7 option A, §7.15: the reader's own export file;
+// we never fetch from those sites).
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/account/import", 303);
+const imports = await importsFor(getDb(), session.userId);
+const started = Astro.url.searchParams.get("started");
+const error = Astro.url.searchParams.get("error");
+const ERRORS: Record<string, string> = {
+  size: "That file is over 5 MB. Export again, or remove the to-read shelf first.",
+  missing: "Choose your export file first.",
+  format: "That doesn't look like a Goodreads or StoryGraph export. Check you picked the CSV file.",
+};
+---
+
+<Base title="Import your library" noIndex>
+  <div class="prose">
+    <h1>Import your library</h1>
+    <AccountNav />
+    {started && <p class="notice" role="status">Got it: {started} books. We're matching them now; this page shows progress.</p>}
+    {error && <p class="notice error" role="alert">{ERRORS[error] ?? "That didn't work. Try again."}</p>}
+    <p>
+      Your ratings and shelves become your profile in one step: books you rated 4–5 stars count as loved, 1–2 stars
+      and did-not-finish as "not for me", and everything you've read stays out of your matches.
+    </p>
+    <ol>
+      <li>
+        <strong>Goodreads:</strong> My Books → Import and export → Export library, then download the CSV.
+      </li>
+      <li>
+        <strong>StoryGraph:</strong> Manage account → Export StoryGraph library, then download the CSV.
+      </li>
+    </ol>
+    <form method="post" action="/api/me/import" enctype="multipart/form-data">
+      <div class="field">
+        <label for="file">Export file (CSV, up to 5 MB)</label>
+        <input id="file" name="file" type="file" accept=".csv,text/csv" required />
+      </div>
+      <button class="button" type="submit">Import</button>
+    </form>
+    <p class="muted small">We keep the matched marks, not the file. Rows that don't match a book in our catalog are dropped.</p>
+
+    {
+      imports.length > 0 && (
+        <>
+          <h2>Your imports</h2>
+          <ul class="rows">
+            {imports.map((i) => (
+              <li>
+                <span>
+                  {i.source === "goodreads" ? "Goodreads" : "StoryGraph"} · {i.createdAt.slice(0, 10)}
+                </span>
+                <span class="muted">
+                  {i.status === "done"
+                    ? `Done: ${i.matched} of ${i.total} books matched`
+                    : i.status === "failed"
+                      ? "Failed. Try again."
+                      : `Matching… ${i.processed} of ${i.total}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )
+    }
+  </div>
+</Base>

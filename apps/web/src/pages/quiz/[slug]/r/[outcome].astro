@@ -3,11 +3,13 @@
 // It shows a result, never a person: the URL carries only the quiz and the outcome key.
 import { quizOgKey } from "@rlr/core/media";
 import { getOutcome, getQuiz, isLive } from "@rlr/core/quiz";
+import SubscribeForm from "../../../../components/SubscribeForm";
 import Base from "../../../../layouts/Base.astro";
 import { booksForOutcome, publicOutcome } from "../../../../lib/quiz";
-import { getDb } from "../../../../lib/runtime";
+import { getDb, turnstileSiteKey } from "../../../../lib/runtime";
 import { mediaUrl } from "../../../../lib/site";
 import "../../../../styles/discover.css";
+import "../../../../styles/reader.css";
 
 const quiz = getQuiz(Astro.params.slug ?? "");
 const found = quiz ? getOutcome(quiz, Astro.params.outcome ?? "") : undefined;
@@ -42,6 +44,12 @@ const card = mediaUrl(quizOgKey(quiz.slug, outcome.key));
           ))}
         </ol>
       )}
+    </section>
+  )}
+
+  {quiz.kind === "fun" && (
+    <section class="capture">
+      <SubscribeForm client:visible collapsed source={`quiz:${quiz.slug}:${outcome.key}`} className={outcome.name} siteKey={turnstileSiteKey()} />
     </section>
   )}
 

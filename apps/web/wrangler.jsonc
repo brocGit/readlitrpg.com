@@ -30,8 +30,12 @@
     }
   ],
   "kv_namespaces": [{ "binding": "CONFIG", "id": "00000000000040008000000000000002" }],
-  // Read-only here: /media serves variants when the media domain isn't in front (local dev).
-  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "rlr-media" }],
+  "r2_buckets": [
+    // Read-only here: /media serves variants when the media domain isn't in front (local dev).
+    { "binding": "MEDIA", "bucket_name": "rlr-media" },
+    // Data exports only: readers download their own, and account deletion removes them (DESIGN §9.8).
+    { "binding": "PRIVATE", "bucket_name": "rlr-private" }
+  ],
   // Page views from the beacon (DESIGN §4.5): counts only, no IPs or cookies.
   "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "rlr_events" }],
   "queues": { "producers": [{ "binding": "Q_EMAIL", "queue": "rlr-email" }] },

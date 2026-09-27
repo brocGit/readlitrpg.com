@@ -1,0 +1,57 @@
+---
+import { isLive } from "@rlr/core/quiz";
+import { getReaderProfile } from "@rlr/core/readers";
+import AttachTakes from "../components/AttachTakes";
+import Base from "../layouts/Base.astro";
+import { classInfo, levelInfo } from "../lib/readers";
+import { getDb } from "../lib/runtime";
+import "../styles/discover.css";
+import "../styles/reader.css";
+
+// Onboarding (DESIGN §9.7, QUIZZES §4.4): "How should we learn your taste?" Each option raises the
+// profile level, and every answer stays editable at /account/preferences.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/welcome", 303);
+const db = getDb();
+const profile = await getReaderProfile(db, session.userId);
+const level = levelInfo(profile.level);
+const cls = classInfo(profile.readerClass);
+const classQuiz = "whats-your-litrpg-class";
+const quizHref = (await isLive(db, classQuiz)) ? `/quiz/${classQuiz}` : "/quiz";
+const confirmed = Astro.url.searchParams.get("confirmed") === "1";
+---
+
+<Base title="Welcome" noIndex>
+  <div class="prose">
+    <div class="status-screen" role="status">
+      <p class="label">{confirmed ? "[Email confirmed]" : "[New character created]"}</p>
+      <p>
+        {cls ? <>Welcome, <strong>{cls.name}</strong>. </> : "Welcome to ReadLitRPG. "}
+        {confirmed ? "Your reading list is on its way. " : ""}Profile level {level.level}: {level.title}.
+      </p>
+      <progress max="100" value={level.xp} aria-label={`Profile level ${level.level} of 5`}></progress>
+    </div>
+    <h1>How should we learn your taste?</h1>
+    <p>Pick one. Each makes your matches sharper, and you can change everything later.</p>
+    <div class="options">
+      <a class="option-card" href={quizHref}>
+        <strong>Quick quiz (90 s)</strong>
+        Find your reader class in eight questions.
+      </a>
+      <a class="option-card" href="/match/quiz">
+        <strong>Rate books (60 s)</strong>
+        Rate a few classics you've read. The biggest boost to your matches.
+      </a>
+      <a class="option-card" href="/account/import">
+        <strong>Import Goodreads</strong>
+        Or StoryGraph. Your ratings and shelves, in one step.
+      </a>
+    </div>
+    <form method="post" action="/api/me/profile">
+      <input type="hidden" name="action" value="onboarded" />
+      <button class="link-button" type="submit">Skip for now</button>
+    </form>
+    <p class="muted small">Your tastes decide what we show and send you. We never sell or share your email.</p>
+  </div>
+  <AttachTakes client:load />
+</Base>

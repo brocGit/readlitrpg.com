@@ -2,6 +2,7 @@
 // A narrator (DESIGN §9.5): every audiobook here they read, and what's coming. Following narrators
 // is a LitRPG habit, since so much of the audience listens.
 import { breadcrumbJsonLd, formatDuration, narratorPage, personJsonLd } from "@rlr/core/site";
+import FollowButton from "../../components/FollowButton";
 import BookRow from "../../components/site/BookRow.astro";
 import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
 import ReleaseList from "../../components/site/ReleaseList.astro";
@@ -10,6 +11,7 @@ import { getDb } from "../../lib/runtime";
 import { notFound, origin } from "../../lib/site";
 import "../../styles/discover.css";
 import "../../styles/site.css";
+import "../../styles/reader.css";
 
 const found = await narratorPage(getDb(), Astro.params.slug ?? "");
 if (found.kind !== "found") return notFound();
@@ -32,6 +34,7 @@ Astro.cache.set({ tags: [`narrator:${n.slug}`] });
   <Breadcrumbs crumbs={crumbs} />
   <h1>{n.name}</h1>
   <p class="lead">{lead}</p>
+  <FollowButton client:idle type="narrator" slug={n.slug} name={n.name} />
   <ul class="book-list">
     {n.books.map((b) => <BookRow book={b} note={formatDuration(b.durationMinutes) ? `Listening time: ${formatDuration(b.durationMinutes)}` : null} />)}
   </ul>

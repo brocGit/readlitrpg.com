@@ -1,0 +1,89 @@
+---
+import { followsFor, hasFeed } from "@rlr/core/readers";
+import AccountNav from "../../components/AccountNav.astro";
+import Base from "../../layouts/Base.astro";
+import { env, getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+
+// Follows and the private calendar feed (DESIGN §9.6).
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/account/follows", 303);
+const db = getDb();
+const [list, feed] = await Promise.all([followsFor(db, session.userId), hasFeed(db, session.userId)]);
+const feedParam = Astro.url.searchParams.get("feed");
+const newToken = feedParam && /^[A-Za-z0-9_-]{30,64}$/.test(feedParam) ? feedParam : null;
+const feedUrl = newToken ? `${env.PUBLIC_ORIGIN}/feeds/${newToken}.ics` : null;
+const saved = Astro.url.searchParams.get("saved") === "1";
+const TYPE_LABEL: Record<string, string> = {
+  author: "Author",
+  series: "Series",
+  narrator: "Narrator",
+  tag: "Tag",
+  book: "Book",
+  publisher: "Publisher",
+};
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+---
+
+<Base title="Following" noIndex noReferrer>
+  <div class="prose">
+    <h1>Following</h1>
+    <AccountNav />
+    {saved && <p class="notice" role="status">Saved.</p>}
+    {
+      list.length === 0 ? (
+        <p class="muted">
+          Nothing yet. Follow a series, author, narrator or tag from its page and we'll tell you when something new is
+          out.
+        </p>
+      ) : (
+        <ul class="rows">
+          {list.map((f) => (
+            <li>
+              <span>
+                <span class="muted small">{TYPE_LABEL[f.type]}</span> <a href={f.path}>{f.name}</a>
+              </span>
+              <form method="post" action="/api/me/follow">
+                <input type="hidden" name="type" value={f.type} />
+                <input type="hidden" name="slug" value={f.path.split("/").pop()} />
+                <select name="notify" aria-label={`Emails about ${f.name}`}>
+                  <option value="digest" selected={f.notify === "digest"}>In the weekly email</option>
+                  <option value="instant" selected={f.notify === "instant"}>On release day</option>
+                  <option value="none" selected={f.notify === "none"}>No emails</option>
+                  <option value="unfollow">Unfollow</option>
+                </select>
+                <button class="button secondary small" type="submit">Save</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    <h2>Your release calendar</h2>
+    <p>A private calendar feed of release days for everything you follow. Add it to Google Calendar, Apple Calendar or Outlook.</p>
+    {
+      feedUrl && (
+        <div class="notice" role="status">
+          <p>Your feed address (copy it now: we only show it once):</p>
+          <p class="feed-url">{feedUrl}</p>
+        </div>
+      )
+    }
+    {feedParam === "revoked" && <p class="notice" role="status">Your old feed address no longer works.</p>}
+    <form method="post" action="/api/me/feed">
+      <input type="hidden" name="action" value="issue" />
+      <button class="button secondary" type="submit">{feed ? "Get a new feed address" : "Get my feed address"}</button>
+    </form>
+    {
+      feed && (
+        <form method="post" action="/api/me/feed">
+          <input type="hidden" name="action" value="revoke" />
+          <button class="link-button" type="submit">Turn off my feed</button>
+        </form>
+      )
+    }
+    <p class="muted small">Anyone with the address can see the calendar, so treat it like a password. A new address replaces the old one.</p>
+  </div>
+</Base>

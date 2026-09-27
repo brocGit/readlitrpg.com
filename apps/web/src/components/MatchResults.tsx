@@ -5,6 +5,7 @@
 import type { MatchInputs } from "@rlr/core/match";
 import { useState } from "preact/hooks";
 import type { MatchResponse, ResultCard } from "../lib/match";
+import SaveMatch from "./SaveMatch";
 
 const TUNE_DIALS = [
   { key: "pacing", label: "Pacing", low: "Slow burn", high: "Relentless" },
@@ -117,9 +118,11 @@ function Card({
 export default function MatchResults({
   initial,
   inputs: startInputs,
+  siteKey,
 }: {
   initial: MatchResponse;
   inputs: MatchInputs;
+  siteKey: string | null;
 }) {
   const [data, setData] = useState(initial);
   const [inputs, setInputs] = useState<MatchInputs>(startInputs);
@@ -237,6 +240,13 @@ export default function MatchResults({
         </button>{" "}
         · <a href={`/match/card.svg?p=${data.share}`}>Your reader class card</a>
       </p>
+      <SaveMatch
+        kind="match"
+        params={`p=${data.share}`}
+        inputs={data.share}
+        siteKey={siteKey}
+        defaultName={data.readerClass ? `Matches for ${data.readerClass.name}` : "My match"}
+      />
     </div>
   );
 }

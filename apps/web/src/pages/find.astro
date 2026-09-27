@@ -5,10 +5,12 @@
 import { bookCards, FIND_PAGE_SIZE, findBooks, findParams, parseFindParams } from "@rlr/core/match";
 import { DIALS, STATS, TAGS } from "@rlr/core/taxonomy";
 import BookTile from "../components/BookTile.astro";
+import SaveMatch from "../components/SaveMatch";
 import Base from "../layouts/Base.astro";
 import { getMatrix, matchOptions, statusScreen } from "../lib/match";
-import { getDb } from "../lib/runtime";
+import { getDb, turnstileSiteKey } from "../lib/runtime";
 import "../styles/discover.css";
+import "../styles/reader.css";
 
 const q = parseFindParams(Astro.url.searchParams);
 const m = await getMatrix();
@@ -34,6 +36,11 @@ const sortOptions = [
 ];
 const pages = Math.ceil(total / FIND_PAGE_SIZE);
 const pageUrl = (page: number) => `/find?${findParams({ ...q, page }).toString()}`;
+// What "Alert me" saves: the search itself, without the page number.
+const saveParams = findParams(q);
+saveParams.delete("page");
+const filtered =
+  q.include.length + q.exclude.length + q.formats.length + q.noes.length + Object.keys(q.dials).length > 0;
 Astro.cache.set({ tags: ["find"] });
 ---
 
@@ -132,6 +139,9 @@ Astro.cache.set({ tags: ["find"] });
             {q.page > 1 && <a href={pageUrl(q.page - 1)}>Previous</a>} Page {q.page} of {pages}{" "}
             {q.page < pages && <a href={pageUrl(q.page + 1)}>Next</a>}
           </nav>
+        )}
+        {filtered && (
+          <SaveMatch client:visible kind="find" params={saveParams.toString()} siteKey={turnstileSiteKey()} defaultName={q.include[0] ? `New ${q.include[0]}` : "My search"} />
         )}
       </>
     )

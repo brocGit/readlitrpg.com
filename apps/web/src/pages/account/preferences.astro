@@ -1,0 +1,110 @@
+---
+import { encodeInputs } from "@rlr/core/match";
+import { getQuiz } from "@rlr/core/quiz";
+import { effectiveInputs, getReaderProfile } from "@rlr/core/readers";
+import AccountNav from "../../components/AccountNav.astro";
+import Base from "../../layouts/Base.astro";
+import { runMatch } from "../../lib/match";
+import { classInfo, levelInfo } from "../../lib/readers";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+
+// Every answer is editable here (DESIGN §9.7): tastes come from the Match Quiz, quizzes, marks and
+// imports; this page shows them, the matches they produce, and the controls.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/account/preferences", 303);
+const db = getDb();
+const settings = await Astro.locals.settings();
+const profile = await getReaderProfile(db, session.userId);
+const effective = await effectiveInputs(db, session.userId);
+const matches = await runMatch(effective, settings);
+const level = levelInfo(profile.level);
+const cls = classInfo(profile.readerClass);
+const stated = profile.inputs;
+const quiz = stated.quiz ? getQuiz(stated.quiz.slug) : undefined;
+const tuneUrl = `/match/r?p=${encodeInputs(stated)}`;
+const formats = new Set(stated.formats ?? []);
+const saved = Astro.url.searchParams.get("saved") === "1";
+const cleared = Astro.url.searchParams.get("cleared") === "1";
+const FORMATS = [
+  ["ebook", "Ebook"],
+  ["ku", "Kindle Unlimited"],
+  ["audiobook", "Audiobook"],
+  ["print", "Paperback or hardcover"],
+] as const;
+---
+
+<Base title="Your tastes" noIndex>
+  <div class="prose">
+    <h1>Your tastes</h1>
+    <AccountNav />
+    {saved && <p class="notice" role="status">Saved.</p>}
+    {cleared && <p class="notice" role="status">Your stated tastes are cleared. Book marks and imports still count.</p>}
+    <p class="muted">Your tastes decide what we show and send you. We never sell or share your email.</p>
+
+    <section class="status-screen level">
+      <p class="label">[Level {level.level}: {level.title}]</p>
+      <progress max="100" value={level.xp} aria-label={`Profile level ${level.level} of 5`}></progress>
+      {cls && <p>Class: <strong>{cls.name}</strong></p>}
+      {level.next && <p>Next: <a href={level.next.href}>{level.next.text}</a></p>}
+    </section>
+
+    <h2>Your top matches</h2>
+    {
+      !matches.ready ? (
+        <p class="muted">Matches appear once the catalog opens.</p>
+      ) : matches.best.length === 0 ? (
+        <p class="muted">Tell us a little more and matches appear here.</p>
+      ) : (
+        <ol>
+          {[...matches.best, ...matches.more.slice(0, 4)].map((b) => (
+            <li>
+              <a href={`/books/${b.slug}`}>
+                <strong>{b.title}</strong>
+              </a>{" "}
+              <span class="muted">
+                {b.authors.join(", ")} · {b.percent}% match
+              </span>
+            </li>
+          ))}
+        </ol>
+      )
+    }
+    <p>
+      <a class="button" href={tuneUrl}>Tune my matches</a>
+      <a class="button secondary" href="/match/quiz">Retake the Match Quiz</a>
+    </p>
+
+    <h2>What you've told us</h2>
+    <ul>
+      <li>Quiz: {quiz ? <a href={`/quiz/${quiz.slug}`}>{quiz.title}</a> : <span class="muted">none yet</span>}</li>
+      <li>Books you loved: {stated.loved?.length ? stated.loved.length : <span class="muted">none named</span>}</li>
+      <li>Books rated in the Match Quiz: {stated.rated?.length ?? 0}</li>
+      <li>Must-haves: {stated.musts?.length ? stated.musts.join(", ") : <span class="muted">none</span>}</li>
+      <li>Hard no's: {stated.noes?.length ? stated.noes.join(", ") : <span class="muted">none</span>}</li>
+      <li>Subgenres: {stated.subgenres?.length ? stated.subgenres.join(", ") : <span class="muted">any</span>}</li>
+    </ul>
+    <p class="muted">Books you mark (Loved it, Read it, Didn't finish) count too: see <a href="/account/books">Books</a>.</p>
+
+    <h2>Formats</h2>
+    <form method="post" action="/api/me/profile" class="toggles">
+      <input type="hidden" name="action" value="formats" />
+      {
+        FORMATS.map(([key, label]) => (
+          <label>
+            <input type="checkbox" name="formats" value={key} checked={formats.has(key)} /> {label}
+          </label>
+        ))
+      }
+      <p class="muted small">Leave all unticked for any format.</p>
+      <button class="button secondary" type="submit">Save formats</button>
+    </form>
+
+    <h2>Start over</h2>
+    <form method="post" action="/api/me/profile">
+      <input type="hidden" name="action" value="clear" />
+      <button class="button secondary" type="submit">Clear my stated tastes</button>
+    </form>
+  </div>
+</Base>

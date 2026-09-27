@@ -1,0 +1,73 @@
+---
+import { unsubscribe, verifyLink } from "@rlr/core/readers";
+import { EMAIL_LISTS, type EmailList } from "@rlr/core/schema";
+import Base from "../../layouts/Base.astro";
+import { LIST_INFO } from "../../lib/lists";
+import { getDb, getLinkKeys } from "../../lib/runtime";
+
+// Unsubscribe links (DESIGN §13.3). Mail apps POST here with "List-Unsubscribe=One-Click"
+// (RFC 8058) and the list is dropped at once. A person opening the link sees a page and chooses;
+// a GET never changes anything, so link scanners can't unsubscribe anyone.
+const data = await verifyLink(getLinkKeys(), Astro.params.token ?? "", "unsub");
+const [userId, rawList] = data ?? [];
+const list = EMAIL_LISTS.includes(rawList as EmailList) ? (rawList as EmailList) : null;
+let done: EmailList | "all" | null = null;
+
+if (Astro.request.method === "POST" && userId) {
+  const form = await Astro.request.formData().catch(() => new FormData());
+  const oneClick = form.get("List-Unsubscribe") === "One-Click";
+  const scope = oneClick ? (list ?? "all") : form.get("scope") === "all" ? "all" : (list ?? "all");
+  await unsubscribe(getDb(), userId, scope);
+  done = scope;
+  if (oneClick)
+    return new Response("Unsubscribed", { status: 200, headers: { "content-type": "text/plain" } });
+}
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+---
+
+<Base title="Unsubscribe" noIndex noReferrer>
+  <div class="prose">
+    {
+      !userId ? (
+        <>
+          <h1>That link doesn't work</h1>
+          <p>
+            It may be cut off. <a href="/account/email">Sign in to manage your emails</a>, or reply to any of our emails and we'll
+            take you off by hand.
+          </p>
+        </>
+      ) : done ? (
+        <>
+          <p class="label">[Status updated]</p>
+          <h1>You're unsubscribed</h1>
+          <p>
+            {done === "all" ? "You won't get any more newsletters or alerts from us." : `You won't get any more ${LIST_INFO[done].name} emails.`}{" "}
+            Changed your mind? <a href="/account/email">Manage your emails</a>.
+          </p>
+        </>
+      ) : (
+        <>
+          <h1>Unsubscribe?</h1>
+          <form method="post">
+            {list && (
+              <p>
+                <button class="button" type="submit" name="scope" value="list">
+                  Unsubscribe from {LIST_INFO[list].name}
+                </button>
+              </p>
+            )}
+            <p>
+              <button class={list ? "button secondary" : "button"} type="submit" name="scope" value="all">
+                Unsubscribe from everything
+              </button>
+            </p>
+          </form>
+          <p class="muted">
+            Or <a href="/account/email">choose which emails you get</a>.
+          </p>
+        </>
+      )
+    }
+  </div>
+</Base>

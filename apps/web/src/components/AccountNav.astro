@@ -1,0 +1,17 @@
+---
+// The account area's sections (DESIGN §9.8).
+const LINKS = [
+  ["/account", "Overview"],
+  ["/account/preferences", "Tastes"],
+  ["/account/follows", "Following"],
+  ["/account/books", "Books"],
+  ["/account/email", "Email"],
+  ["/account/import", "Import"],
+  ["/account/privacy", "Privacy"],
+] as const;
+const here = Astro.url.pathname;
+---
+
+<nav class="account-nav" aria-label="Account">
+  {LINKS.map(([href, label]) => <a href={href} aria-current={here === href ? "page" : undefined}>{label}</a>)}
+</nav>

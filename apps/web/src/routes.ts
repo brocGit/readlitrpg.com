@@ -54,8 +54,35 @@ export const ROUTES = {
   "/feeds/releases.ics": PUBLIC,
   "/feeds/tags/[slug].xml": PUBLIC,
   "/feeds/tags/[slug].ics": PUBLIC,
-  // Readers and email (M5). The webhook checks SNS signatures itself.
+  // Readers and email (M5). The webhook checks SNS signatures itself; /u and /m links carry
+  // signed tokens; the subscribe endpoints have Turnstile and rate limits.
   "/api/webhooks/ses": PUBLIC,
+  "/subscribe": PUBLIC,
+  "/subscribe/confirm": PUBLIC,
+  "/api/subscribe": PUBLIC,
+  "/api/subscribe/confirm": PUBLIC,
+  "/u/[token]": PUBLIC,
+  "/m/[token]": PUBLIC,
+  "/goodbye": PUBLIC,
+  "/feeds/[token].ics": PUBLIC,
+  "/welcome": SIGNED_IN,
+  "/account/preferences": SIGNED_IN,
+  "/account/follows": SIGNED_IN,
+  "/account/books": SIGNED_IN,
+  "/account/email": SIGNED_IN,
+  "/account/import": SIGNED_IN,
+  "/account/privacy": SIGNED_IN,
+  "/account/export/[id]": SIGNED_IN,
+  "/api/me/follow": SIGNED_IN,
+  "/api/me/marks": SIGNED_IN,
+  "/api/me/saved": SIGNED_IN,
+  "/api/me/profile": SIGNED_IN,
+  "/api/me/email": SIGNED_IN,
+  "/api/me/feed": SIGNED_IN,
+  "/api/me/import": SIGNED_IN,
+  "/api/me/export": SIGNED_IN,
+  "/api/me/delete": SIGNED_IN,
+  "/api/me/takes": SIGNED_IN,
 } satisfies RouteRegistry;
 
 /**
@@ -63,7 +90,7 @@ export const ROUTES = {
  * proof (an SNS signature, or a signed link for RFC 8058 one-click unsubscribes from mail apps).
  * Every other POST must come from our own origin (see middleware.ts).
  */
-export const CROSS_SITE_POSTS: ReadonlySet<string> = new Set(["/api/webhooks/ses"]);
+export const CROSS_SITE_POSTS: ReadonlySet<string> = new Set(["/api/webhooks/ses", "/u/[token]"]);
 
 /** Routes whose responses are personal and must never be cached anywhere. */
-export const PRIVATE_PREFIXES = ["/account", "/api/"];
+export const PRIVATE_PREFIXES = ["/account", "/api/", "/welcome", "/subscribe/confirm", "/u/", "/m/"];

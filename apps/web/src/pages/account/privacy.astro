@@ -1,0 +1,119 @@
+---
+import { getOutcome, getQuiz } from "@rlr/core/quiz";
+import { EXPORT_TTL_DAYS } from "@rlr/core/readers";
+import { dataExports, quizTakes } from "@rlr/core/schema";
+import { desc, eq } from "drizzle-orm";
+import AccountNav from "../../components/AccountNav.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+
+// Export, quiz history and account deletion (DESIGN §9.8, §16.3). All self-serve.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/account/privacy", 303);
+const db = getDb();
+const [exports, takes] = await Promise.all([
+  db
+    .select()
+    .from(dataExports)
+    .where(eq(dataExports.userId, session.userId))
+    .orderBy(desc(dataExports.createdAt))
+    .limit(5),
+  db
+    .select({
+      id: quizTakes.id,
+      slug: quizTakes.quizSlug,
+      outcome: quizTakes.outcomeKey,
+      createdAt: quizTakes.createdAt,
+    })
+    .from(quizTakes)
+    .where(eq(quizTakes.userId, session.userId))
+    .orderBy(desc(quizTakes.createdAt))
+    .limit(50),
+]);
+const now = new Date().toISOString();
+const q = Astro.url.searchParams;
+const takeLabel = (slug: string, outcome: string) => {
+  const quiz = getQuiz(slug);
+  return { quiz: quiz?.title ?? slug, result: (quiz && getOutcome(quiz, outcome)?.name) ?? outcome };
+};
+---
+
+<Base title="Privacy and your data" noIndex>
+  <div class="prose">
+    <h1>Privacy and your data</h1>
+    <AccountNav />
+    {q.get("export") === "queued" && <p class="notice" role="status">Your export is being prepared. We'll email you a link within an hour.</p>}
+    {q.get("export") === "expired" && <p class="notice error" role="alert">That export has expired. Ask for a new one below.</p>}
+    {q.get("take") === "deleted" && <p class="notice" role="status">Quiz result deleted.</p>}
+    {q.get("error") === "confirm" && <p class="notice error" role="alert">Type DELETE to confirm.</p>}
+
+    <h2>Export my data</h2>
+    <p>
+      Everything we hold about you (profile, tastes, follows, book marks, saved searches, quiz results, appraisals and
+      email consents) as one JSON file. The link works for {EXPORT_TTL_DAYS} days.
+    </p>
+    {
+      exports.length > 0 && (
+        <ul class="rows">
+          {exports.map((e) => (
+            <li>
+              <span>Requested {e.createdAt.slice(0, 10)}</span>
+              {e.status === "ready" && e.expiresAt && e.expiresAt > now ? (
+                <a href={`/account/export/${e.id}`}>Download</a>
+              ) : e.status === "queued" ? (
+                <span class="muted">Preparing…</span>
+              ) : (
+                <span class="muted">Expired</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <form method="post" action="/api/me/export">
+      <button class="button secondary" type="submit">Export my data</button>
+    </form>
+
+    <h2>Quiz results</h2>
+    {
+      takes.length === 0 ? (
+        <p class="muted">None saved to your account.</p>
+      ) : (
+        <ul class="rows">
+          {takes.map((t) => {
+            const label = takeLabel(t.slug, t.outcome);
+            return (
+              <li>
+                <span>
+                  {label.quiz}: <strong>{label.result}</strong> <span class="muted small">{t.createdAt.slice(0, 10)}</span>
+                </span>
+                <form method="post" action="/api/me/takes">
+                  <input type="hidden" name="delete" value={t.id} />
+                  <button class="link-button" type="submit">Delete</button>
+                </form>
+              </li>
+            );
+          })}
+        </ul>
+      )
+    }
+
+    <section class="danger-zone">
+      <h2>Delete my account</h2>
+      <p>
+        This deletes your account and everything above, now. It can't be undone. We keep only a scrambled fingerprint
+        of your email address so we never email it again.
+      </p>
+      <form method="post" action="/api/me/delete">
+        <div class="field">
+          <label for="confirm">Type DELETE to confirm</label>
+          <input id="confirm" name="confirm" autocomplete="off" required />
+        </div>
+        <button class="button danger" type="submit">Delete my account</button>
+      </form>
+    </section>
+    <p class="muted small">Anything else about your data: privacy@readlitrpg.com.</p>
+  </div>
+</Base>

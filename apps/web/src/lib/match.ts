@@ -27,7 +27,14 @@ import {
   stat,
   type TasteProfile,
 } from "@rlr/core/match";
-import { getOutcome, getQuiz, outcomeSignal, QuizAnswerError, takeQuiz } from "@rlr/core/quiz";
+import {
+  getOutcome,
+  getQuiz,
+  outcomeSignal,
+  QuizAnswerError,
+  READER_CLASSES,
+  takeQuiz,
+} from "@rlr/core/quiz";
 import type { Settings } from "@rlr/core/settings";
 import { STATS } from "@rlr/core/taxonomy";
 import { env, getDb } from "./runtime";
@@ -231,6 +238,23 @@ export async function classicsFor(settings: Settings, rated: string[]) {
       authors: c.authors.map((a) => a.name).join(", "),
       series: c.series?.name ?? null,
     }));
+}
+
+/**
+ * The reader class for saved tastes (QUIZZES §2.2). A class-quiz result is the class itself;
+ * anything else goes through the match model. Empty tastes have no class yet.
+ */
+export async function classForInputs(
+  inputs: MatchInputs,
+  settings: Settings,
+): Promise<{ key: string; name: string } | null> {
+  const direct = READER_CLASSES.find((c) => c.key === inputs.quiz?.outcome);
+  if (direct) return { key: direct.key, name: direct.name };
+  if (Object.keys(inputs).length === 0) return null;
+  const m = await getMatrix();
+  if (!m || m.n === 0) return null;
+  const cls = readerClass(buildProfile(m, inputs, quizSignal(inputs, settings))).cls;
+  return { key: cls.key, name: cls.name };
 }
 
 /** Per-IP limits for the public APIs, keyed by a salted daily hash (no raw IPs; DESIGN §15.9). */

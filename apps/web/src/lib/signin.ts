@@ -69,7 +69,7 @@ export async function requestMagicLink(
       body: {
         email,
         callbackURL: "/account",
-        newUserCallbackURL: "/account?welcome=1",
+        newUserCallbackURL: "/welcome",
         errorCallbackURL: "/signin?error=link",
       },
       headers: input.headers,

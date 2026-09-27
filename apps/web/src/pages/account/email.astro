@@ -1,0 +1,57 @@
+---
+import { consentsFor, isSuppressed } from "@rlr/core/readers";
+import { EMAIL_LISTS } from "@rlr/core/schema";
+import AccountNav from "../../components/AccountNav.astro";
+import Base from "../../layouts/Base.astro";
+import { LIST_INFO } from "../../lib/lists";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+
+// Per-list choices and "unsubscribe from everything" (DESIGN §9.8, §13.3).
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/account/email", 303);
+const db = getDb();
+const consents = await consentsFor(db, session.userId);
+const active = new Set(consents.filter((c) => c.status === "active").map((c) => c.list));
+const blocked = await isSuppressed(db, session.email, "marketing");
+const saved = Astro.url.searchParams.get("saved");
+---
+
+<Base title="Email preferences" noIndex>
+  <div class="prose">
+    <h1>Email preferences</h1>
+    <AccountNav />
+    {saved === "1" && <p class="notice" role="status">Saved.</p>}
+    {saved === "all" && <p class="notice" role="status">You're unsubscribed from everything. Sign-in links still work.</p>}
+    {
+      blocked && saved !== "all" && (
+        <p class="notice">
+          Emails to {session.email} are paused because you unsubscribed from everything or a message bounced. Switch a
+          list on below to start again.
+        </p>
+      )
+    }
+    <form method="post" action="/api/me/email" class="toggles">
+      {EMAIL_LISTS.map((list) => active.has(list) && <input type="hidden" name="current" value={list} />)}
+      {
+        EMAIL_LISTS.map((list) => (
+          <label>
+            <input type="checkbox" name={list} checked={active.has(list)} />
+            <span>
+              <strong>{LIST_INFO[list].name}</strong>
+              <br />
+              <span class="muted small">{LIST_INFO[list].blurb}</span>
+            </span>
+          </label>
+        ))
+      }
+      <button class="button" type="submit">Save</button>
+    </form>
+    <form method="post" action="/api/me/email">
+      <input type="hidden" name="action" value="unsubscribe_all" />
+      <button class="link-button" type="submit">Unsubscribe from everything</button>
+    </form>
+    <p class="muted small">Sign-in links and account messages (like "your export is ready") still arrive either way.</p>
+  </div>
+</Base>

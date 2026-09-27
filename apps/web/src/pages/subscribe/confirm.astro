@@ -1,0 +1,43 @@
+---
+import TakesField from "../../components/TakesField";
+import Base from "../../layouts/Base.astro";
+
+// The emailed confirmation link lands here. Nothing happens on GET, so email scanners that follow
+// links can't subscribe anyone; the button does it (DESIGN §13.3, §15.2).
+const t = Astro.url.searchParams.get("t") ?? "";
+const p = Astro.url.searchParams.get("p") ?? "";
+const valid = /^[A-Za-z0-9_-]{20,100}$/.test(t);
+const linkError = Astro.url.searchParams.get("error") === "link";
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+---
+
+<Base title="Confirm your email" noReferrer noIndex>
+  <div class="prose">
+    {
+      valid && !linkError ? (
+        <>
+          <p class="label">[Quest offered]</p>
+          <h1>Confirm your email</h1>
+          <p>One tap and your reading list is on its way.</p>
+          <form method="post" action="/api/subscribe/confirm">
+            <input type="hidden" name="t" value={t} />
+            {/^[A-Za-z0-9_-]{1,1500}$/.test(p) && <input type="hidden" name="p" value={p} />}
+            <TakesField client:load />
+            <button class="button" type="submit">
+              Confirm my email
+            </button>
+          </form>
+          <p class="muted">One click to unsubscribe, any time. We never share your email.</p>
+        </>
+      ) : (
+        <>
+          <h1>That link has expired</h1>
+          <p>
+            Confirmation links work for 7 days, once. <a href="/subscribe">Subscribe again</a> and we'll send a fresh one.
+          </p>
+        </>
+      )
+    }
+  </div>
+</Base>

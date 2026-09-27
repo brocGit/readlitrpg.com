@@ -75,3 +75,9 @@ export const SIGNIN_LIMITS = {
   perEmail: { rule: "signin.email", limit: 3, windowSeconds: 15 * 60 },
   perIp: { rule: "signin.ip", limit: 10, windowSeconds: 60 * 60 },
 } as const satisfies Record<string, WindowLimit>;
+
+/** Subscription confirmations: a few per address a day, so nobody can flood an inbox (§15.9). */
+export const SUBSCRIBE_LIMITS = {
+  perEmail: { rule: "subscribe.email", limit: 3, windowSeconds: 24 * 60 * 60 },
+  perIp: { rule: "subscribe.ip", limit: 20, windowSeconds: 60 * 60 },
+} as const satisfies Record<string, WindowLimit>;

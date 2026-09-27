@@ -4,6 +4,7 @@
 import { useState } from "preact/hooks";
 import type { ResultCard } from "../lib/match";
 import type { PlayableQuiz } from "../lib/quiz";
+import SubscribeForm from "./SubscribeForm";
 
 interface Outcome {
   key: string;
@@ -56,10 +57,12 @@ export default function QuizPlayer({
   quiz,
   party,
   source,
+  siteKey,
 }: {
   quiz: PlayableQuiz;
   party: string | null;
   source: string | null;
+  siteKey: string | null;
 }) {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
@@ -142,6 +145,17 @@ export default function QuizPlayer({
 
         <h2>3 books for you</h2>
         <Books books={result.books} />
+
+        {quiz.kind === "fun" && (
+          <section class="capture">
+            <SubscribeForm
+              collapsed
+              source={`quiz:${quiz.slug}:${result.outcome.key}`}
+              className={result.outcome.name}
+              siteKey={siteKey}
+            />
+          </section>
+        )}
 
         <div class="quiz-actions">
           <a class="button" href={sharpen}>

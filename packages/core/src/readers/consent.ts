@@ -199,6 +199,20 @@ export async function setConsent(
           }
         : { status: "unsubscribed", unsubscribedAt: now, confirmTokenHash: null, updatedAt: now },
     });
+  if (on) {
+    // Switching a list on while signed in is a fresh, verified request: it lifts an old
+    // "unsubscribe from everything", as a confirmed subscription does. Complaints and bounces stay.
+    const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+    if (user)
+      await db
+        .delete(suppressions)
+        .where(
+          and(
+            eq(suppressions.emailHash, await emailHash(user.email)),
+            inArray(suppressions.reason, ["unsub_all", "account_deleted"]),
+          ),
+        );
+  }
 }
 
 /** One click, from any email (RFC 8058) or the account page. "all" also suppresses the address. */

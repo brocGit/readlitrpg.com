@@ -1,0 +1,93 @@
+---
+import { marksFor, savedFor } from "@rlr/core/readers";
+import AccountNav from "../../components/AccountNav.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+
+// Book marks and saved matches and searches (DESIGN §9.6).
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/account/books", 303);
+const db = getDb();
+const [marks, saved] = await Promise.all([marksFor(db, session.userId), savedFor(db, session.userId)]);
+const MARK_LABEL: Record<string, string> = {
+  loved: "Loved it",
+  read: "Read it",
+  dnf: "Didn't finish",
+  want: "Want to read",
+};
+const savedNotice = Astro.url.searchParams.get("saved") === "1";
+const savedUrl = (s: { kind: string; params: string }) =>
+  s.kind === "match" ? `/match/r?${s.params}` : `/find?${s.params}`;
+---
+
+<Base title="Your books" noIndex>
+  <div class="prose">
+    <h1>Your books</h1>
+    <AccountNav />
+    {savedNotice && <p class="notice" role="status">Saved.</p>}
+
+    <h2>Saved matches and searches</h2>
+    {
+      saved.length === 0 ? (
+        <p class="muted">
+          None yet. Under any <a href="/match">match</a> or <a href="/find">search</a>, choose "Alert me" and new books
+          that fit show up in your email.
+        </p>
+      ) : (
+        <ul class="rows">
+          {saved.map((s) => (
+            <li>
+              <a href={savedUrl(s)}>{s.name}</a>
+              <form method="post" action="/api/me/saved">
+                <input type="hidden" name="id" value={s.id} />
+                <select name="alert" aria-label={`Alerts for ${s.name}`}>
+                  <option value="digest" selected={s.alert === "digest"}>In the weekly email</option>
+                  <option value="instant" selected={s.alert === "instant"}>As soon as one is added</option>
+                  <option value="none" selected={s.alert === "none"}>No alerts</option>
+                </select>
+                <button class="button secondary small" type="submit">Save</button>
+              </form>
+              <form method="post" action="/api/me/saved">
+                <input type="hidden" name="id" value={s.id} />
+                <input type="hidden" name="remove" value="1" />
+                <button class="link-button" type="submit">Remove</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    <h2>Marked books</h2>
+    {
+      marks.length === 0 ? (
+        <p class="muted">
+          Mark books you've read from their pages, or <a href="/account/import">import your Goodreads or StoryGraph
+          library</a>.
+        </p>
+      ) : (
+        <ul class="rows">
+          {marks.map((m) => (
+            <li>
+              <a href={`/books/${m.slug}`}>{m.title}</a>
+              <form method="post" action="/api/me/marks">
+                <input type="hidden" name="book" value={m.slug} />
+                <select name="mark" aria-label={`Your mark for ${m.title}`}>
+                  {Object.entries(MARK_LABEL).map(([k, label]) => (
+                    <option value={k} selected={m.status === k}>
+                      {label}
+                    </option>
+                  ))}
+                  <option value="">Remove mark</option>
+                </select>
+                <button class="button secondary small" type="submit">Save</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</Base>

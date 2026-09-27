@@ -2,6 +2,7 @@
 // An author (DESIGN §9.5): their books by series, standalones and upcoming releases. The bio and
 // links show only once the author has verified the profile.
 import { authorPage, breadcrumbJsonLd, personJsonLd } from "@rlr/core/site";
+import FollowButton from "../../components/FollowButton";
 import BookRow from "../../components/site/BookRow.astro";
 import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
 import ReleaseList from "../../components/site/ReleaseList.astro";
@@ -10,6 +11,7 @@ import { getDb } from "../../lib/runtime";
 import { movedTo, notFound, origin } from "../../lib/site";
 import "../../styles/discover.css";
 import "../../styles/site.css";
+import "../../styles/reader.css";
 
 const found = await authorPage(getDb(), Astro.params.slug ?? "");
 if (found.kind === "redirect") return movedTo(`/authors/${found.slug}`);
@@ -33,6 +35,7 @@ Astro.cache.set({ tags: [`author:${a.slug}`] });
   <Breadcrumbs crumbs={crumbs} />
   <h1>{a.name}</h1>
   <p class="lead">{lead}</p>
+  <FollowButton client:idle type="author" slug={a.slug} name={a.name} />
   {a.bio && <p class="prose">{a.bio}</p>}
   {a.links.length > 0 && <ul class="stores">{a.links.map((l) => <li><a href={l} rel="noopener">{new URL(l).hostname.replace(/^www\./, "")}</a></li>)}</ul>}
 

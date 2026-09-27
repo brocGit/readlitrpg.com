@@ -5,8 +5,9 @@ import { getQuiz, isLive } from "@rlr/core/quiz";
 import QuizPlayer from "../../components/QuizPlayer";
 import Base from "../../layouts/Base.astro";
 import { playable } from "../../lib/quiz";
-import { getDb } from "../../lib/runtime";
+import { getDb, turnstileSiteKey } from "../../lib/runtime";
 import "../../styles/discover.css";
+import "../../styles/reader.css";
 
 const SOURCES = ["share", "search", "community", "author", "onsite", "newsletter"];
 
@@ -23,5 +24,5 @@ Astro.cache.set({ tags: ["quizzes", `quiz:${quiz.slug}`] });
   <h1>{quiz.title}</h1>
   <p class="muted">{quiz.dek}{quiz.estimated_seconds ? ` About ${Math.max(1, Math.round(quiz.estimated_seconds / 60))} min.` : ""}</p>
   {party && <p class="notice">[Party invite] A friend wants to compare results. Finish the quiz to see your party.</p>}
-  <QuizPlayer client:load quiz={playable(quiz)} party={party} source={source} />
+  <QuizPlayer client:load quiz={playable(quiz)} party={party} source={source} siteKey={turnstileSiteKey()} />
 </Base>

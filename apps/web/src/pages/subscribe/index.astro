@@ -1,0 +1,55 @@
+---
+import SubscribeForm from "../../components/SubscribeForm";
+import Base from "../../layouts/Base.astro";
+import { env } from "../../lib/runtime";
+import { SUBSCRIBE_MESSAGES } from "../../lib/subscribe";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+
+// Patch Notes signup (DESIGN §13.5). The island posts JSON; this page also shows the outcome of
+// plain form posts and confirmations.
+const q = Astro.url.searchParams;
+const code = q.get("error");
+const error =
+  code && code in SUBSCRIBE_MESSAGES ? SUBSCRIBE_MESSAGES[code as keyof typeof SUBSCRIBE_MESSAGES] : null;
+const siteKey = env.ENVIRONMENT === "local" ? null : env.TURNSTILE_SITE_KEY;
+---
+
+<Base title="Patch Notes: this week in LitRPG" description="A free weekly email of new LitRPG and progression fantasy matched to your taste.">
+  <div class="prose">
+    <h1>Patch Notes</h1>
+    <p class="lead">This week in LitRPG, matched to your taste. Every Friday, free.</p>
+    {
+      q.get("sent") === "1" ? (
+        <div class="status-screen" role="status">
+          <p class="label">[Quest accepted]</p>
+          <p>
+            <strong>Check your inbox.</strong> Click the link in the email to confirm; nothing more arrives until you do.
+          </p>
+          <p>
+            While you wait: <a href="/match/quiz">rate 3 books you've read</a> and your matches get better.
+          </p>
+        </div>
+      ) : q.get("done") === "1" ? (
+        <div class="status-screen" role="status">
+          <p class="label">[Party joined]</p>
+          <p>You're subscribed. The next Patch Notes arrives on Friday.</p>
+        </div>
+      ) : (
+        <>
+          {error && (
+            <p class="notice error" role="alert">
+              {error}
+            </p>
+          )}
+          <ul>
+            <li>New books that fit your taste, with the reason each one fits.</li>
+            <li>What's out this week from the series and authors you follow.</li>
+            <li>What's coming soon, and a quiz of the week.</li>
+          </ul>
+          <SubscribeForm client:load source="newsletter" siteKey={siteKey} cta="Subscribe" />
+        </>
+      )
+    }
+  </div>
+</Base>
