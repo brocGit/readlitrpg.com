@@ -12,8 +12,11 @@
     "build": "wrangler deploy --dry-run --outdir dist"
   },
   "dependencies": {
+    "@resvg/resvg-wasm": "2.6.2",
     "@rlr/core": "workspace:*",
     "@rlr/email": "workspace:*",
+    "@rlr/ui": "workspace:*",
+    "dejavu-fonts-ttf": "2.37.3",
     "drizzle-orm": "0.45.3",
     "zod": "4.6.5"
   },

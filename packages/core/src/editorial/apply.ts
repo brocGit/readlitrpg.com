@@ -11,6 +11,7 @@ import type { Db } from "../db";
 import { books, editorialProposals, inboxItems, type ProposalStatus } from "../db/schema";
 import { ulid } from "../ids";
 import { decideInboxItem, getInboxItem, openInboxItem } from "../inbox";
+import { rejectMedia } from "../media/pipeline";
 import { decideClassification, type InboxPlan } from "../policy/publish";
 import type { Settings } from "../settings";
 import { crunchLevelFromDial, romanceLevelFromDial } from "../taxonomy";
@@ -391,6 +392,10 @@ async function handleModeration(
 ): Promise<Handled> {
   if (p.verdict === "allow")
     return { status: "accepted", reasons: [], result: { verdict: p.verdict }, close: "done" };
+  // A blocked image comes down at once; "review" stays up until the owner decides.
+  if (p.kind === "image_review" && p.verdict === "block" && item.subjectType === "media") {
+    await rejectMedia(db, item.subjectId);
+  }
   const opened = await openInboxItem(db, {
     type: "moderation_flag",
     title: `${p.kind === "image_review" ? "Image" : "Text"} flagged (${p.verdict}): ${item.subjectType}`,

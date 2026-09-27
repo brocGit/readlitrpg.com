@@ -37,6 +37,9 @@ export const RELEASE_STATUS = ["scheduled", "confirmed", "released", "slipped", 
 export const ENRICH_STATUS = ["pending", "matched", "no_match", "error", "skipped"] as const;
 export const TRUST_LEVELS = ["T-1", "T0", "T1", "T2"] as const;
 export const TAG_STATUS = ["active", "proposed", "retired"] as const;
+/** Upload beats a fetched cover when both exist (the higher the index, the stronger). */
+export const MEDIA_SOURCES = ["openlibrary", "google_books", "upload"] as const;
+export type MediaSource = (typeof MEDIA_SOURCES)[number];
 
 /** Who supplied a field value (DESIGN §6.4). */
 export const FIELD_SOURCES = [
@@ -168,6 +171,11 @@ export const books = sqliteTable(
     confirmedAt: text("confirmed_at"),
     enrichStatus: text("enrich_status", { enum: ENRICH_STATUS }).notNull().default("pending"),
     enrichedAt: text("enriched_at"),
+    /** Last time the covers job looked for a licensed cover (DESIGN §16.5). */
+    coverCheckedAt: text("cover_checked_at"),
+    /** The rendered link-preview PNG in MEDIA, and when the og job last looked (DESIGN §7.10). */
+    ogImageKey: text("og_image_key"),
+    ogRenderedAt: text("og_rendered_at"),
     createdBy: text("created_by"),
     claimed: integer("claimed", { mode: "boolean" }).notNull().default(false),
     classificationVersion: integer("classification_version"),
@@ -398,9 +406,22 @@ export const media = sqliteTable(
     status: text("status", { enum: ["pending", "approved", "rejected"] })
       .notNull()
       .default("pending"),
+    /** Where the image came from (DESIGN §16.5: covers only from licensed sources). */
+    source: text("source", { enum: MEDIA_SOURCES }).notNull().default("upload"),
+    /** What it is for, e.g. the book whose cover it becomes once processed. */
+    subjectType: text("subject_type"),
+    subjectId: text("subject_id"),
+    /** The original in the PRIVATE bucket; variants live under `key` in MEDIA once processed. */
+    originalKey: text("original_key"),
+    processedAt: text("processed_at"),
+    error: text("error"),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("media_key_uq").on(t.bucket, t.key), index("media_sha256_idx").on(t.sha256)],
+  (t) => [
+    uniqueIndex("media_key_uq").on(t.bucket, t.key),
+    index("media_sha256_idx").on(t.sha256),
+    index("media_pending_idx").on(t.processedAt, t.status),
+  ],
 );
 
 /** Independent evidence that a record is real (DESIGN §7.15). One is enough to publish a seed. */

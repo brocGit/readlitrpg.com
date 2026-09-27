@@ -5,6 +5,8 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "rlr-jobs",
   "main": "src/index.ts",
+  // The og job's renderer bundles its fonts as data (resvg; DESIGN §7.10).
+  "rules": [{ "type": "Data", "globs": ["**/*.ttf"], "fallthrough": true }],
   "compatibility_date": "2026-09-20",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
@@ -16,7 +18,9 @@
     "ENVIRONMENT": "production",
     "EMAIL_PROVIDER": "ses",
     "EMAIL_FROM": "ReadLitRPG <hello@mail.readlitrpg.com>",
-    "SES_REGION": "us-east-1"
+    "SES_REGION": "us-east-1",
+    // Where readers see the MEDIA bucket; image review runs open covers from here.
+    "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com"
   },
   "d1_databases": [
     {
@@ -27,7 +31,14 @@
     }
   ],
   "kv_namespaces": [{ "binding": "CONFIG", "id": "00000000000040008000000000000002" }],
-  "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "rlr-backups" }],
+  "r2_buckets": [
+    { "binding": "BACKUPS", "bucket_name": "rlr-backups" },
+    // Public variants (served from media.readlitrpg.com) and private originals (DESIGN §15.7).
+    { "binding": "MEDIA", "bucket_name": "rlr-media" },
+    { "binding": "PRIVATE", "bucket_name": "rlr-private" }
+  ],
+  // Re-encodes images to WebP variants, which also strips EXIF and GPS (DESIGN §15.7).
+  "images": { "binding": "IMAGES" },
   "queues": {
     "producers": [
       { "binding": "Q_JOBS", "queue": "rlr-jobs" },

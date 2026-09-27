@@ -109,7 +109,7 @@ function fold(line: string): string {
   return out.join("\r\n ");
 }
 
-const stamp = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d+/, "").slice(0, 15) + "Z";
+const stamp = (iso: string) => `${iso.replace(/[-:]/g, "").replace(/\.\d+/, "").slice(0, 15)}Z`;
 
 /**
  * Only releases with a known day become events: a calendar entry on the 1st of a month would

@@ -119,6 +119,8 @@ describe("enrichBook", () => {
     expect(publicationGate(b as NonNullable<typeof b>)).toEqual({ ok: true });
     const [c] = await db.select().from(catalogConfirmations);
     expect(c).toMatchObject({ source: "openlibrary", sourceRef: "/works/OL27998383W" });
+    // The cover id is kept for the covers job.
+    expect(c?.evidence).toMatchObject({ coverId: 12838594 });
     expect(new URL(f.calls[0] ?? "").searchParams.get("author")).toBe("Zogarth");
   });
 

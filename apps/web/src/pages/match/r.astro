@@ -2,9 +2,11 @@
 // Shareable results (DESIGN §9.1): the inputs are in the URL, never the person. Server-rendered,
 // then the island takes over for tuning and feedback.
 import { decodeInputs } from "@rlr/core/match";
+import { classOgKey } from "@rlr/core/media";
 import MatchResults from "../../components/MatchResults";
 import Base from "../../layouts/Base.astro";
 import { runMatch } from "../../lib/match";
+import { mediaUrl } from "../../lib/site";
 import "../../styles/discover.css";
 
 const p = Astro.url.searchParams.get("p") ?? "";
@@ -15,7 +17,7 @@ Astro.cache.set({ tags: ["match"] });
 const title = data.readerClass ? `Matches for ${data.readerClass.name}` : "Your matches";
 ---
 
-<Base title={title} description="LitRPG and progression fantasy matches, with reasons and honest heads-ups." noIndex ogImage={`/match/card.svg?p=${p}`}>
+<Base title={title} description="LitRPG and progression fantasy matches, with reasons and honest heads-ups." noIndex ogImage={data.readerClass ? mediaUrl(classOgKey(data.readerClass.key)) : null}>
   <h1>{title}</h1>
   {data.loved.length > 0 && <p class="muted">Because you loved {data.loved.map((l) => l.title).join(", ")}.</p>}
   <MatchResults client:load initial={data} inputs={inputs} />

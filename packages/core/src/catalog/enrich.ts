@@ -27,6 +27,8 @@ export interface Candidate {
   pageCount: number | null;
   published: PreciseDate | null;
   isbns: string[];
+  /** Open Library's cover id, for the covers job (DESIGN §16.5). */
+  coverId?: number | null;
 }
 
 export interface EnrichDeps {
@@ -46,6 +48,7 @@ interface OpenLibraryDoc {
   first_publish_year?: number;
   isbn?: string[];
   number_of_pages_median?: number;
+  cover_i?: number;
 }
 
 export async function searchOpenLibrary(
@@ -53,7 +56,7 @@ export async function searchOpenLibrary(
   deps: EnrichDeps,
 ): Promise<Candidate[]> {
   const params = new URLSearchParams({
-    fields: "key,title,subtitle,author_name,first_publish_year,isbn,number_of_pages_median",
+    fields: "key,title,subtitle,author_name,first_publish_year,isbn,number_of_pages_median,cover_i",
     limit: "5",
   });
   if ("isbn" in query) params.set("isbn", query.isbn);
@@ -79,6 +82,7 @@ export async function searchOpenLibrary(
         ? { date: `${d.first_publish_year}-01-01`, precision: "year" as const }
         : null,
       isbns: (d.isbn ?? []).filter((i) => /^97[89]\d{10}$/.test(i)).slice(0, 10),
+      coverId: Number.isInteger(d.cover_i) && (d.cover_i ?? 0) > 0 ? (d.cover_i ?? null) : null,
     }));
 }
 
@@ -216,7 +220,12 @@ export async function enrichBook(db: Db, bookId: string, deps: EnrichDeps): Prom
       subjectId: bookId,
       source: m.source,
       sourceRef: m.ref,
-      evidence: { title: m.title, authors: m.authors.slice(0, 5), published: m.published?.date ?? null },
+      evidence: {
+        title: m.title,
+        authors: m.authors.slice(0, 5),
+        published: m.published?.date ?? null,
+        ...(m.coverId ? { coverId: m.coverId } : {}),
+      },
     });
     await writeBookFields(
       db,

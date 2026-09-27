@@ -1,7 +1,7 @@
 // Shared bits for the public entity pages (DESIGN §9.5): absolute URLs, cover images and the
 // settings the read models need. Nothing here reads the session.
 
-import { COVER_WIDTHS, variantKey } from "@rlr/core/media";
+import { COVER_WIDTHS, siteOgKey, variantKey } from "@rlr/core/media";
 import type { Settings } from "@rlr/core/settings";
 import type { Cover, PageOptions } from "@rlr/core/site";
 import { env } from "./runtime";
@@ -29,6 +29,9 @@ export function coverImage(cover: Cover, width: number) {
 
 /** The OG image for a cover-led page: the largest variant. */
 export const coverOgUrl = (cover: Cover | null) => (cover ? mediaUrl(variantKey(cover.key, 640)) : null);
+
+/** The site's own link preview, for pages without one of their own. */
+export const siteOgUrl = () => mediaUrl(siteOgKey());
 
 export const notFound = () => new Response(null, { status: 404 });
 export const movedTo = (path: string) =>

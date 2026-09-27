@@ -10,3 +10,13 @@ interface Env {
   /** A Cloudflare API token scoped to Workers AI. */
   CF_API_TOKEN?: string;
 }
+
+// Bundled binaries (wrangler.jsonc "rules"): WebAssembly as a compiled module, fonts as bytes.
+declare module "*.wasm" {
+  const module: WebAssembly.Module;
+  export default module;
+}
+declare module "*.ttf" {
+  const data: ArrayBuffer;
+  export default data;
+}

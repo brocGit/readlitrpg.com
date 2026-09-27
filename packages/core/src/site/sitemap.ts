@@ -25,7 +25,7 @@ const publicBook = (now: string) =>
 const publicBookSql = (now: string) =>
   sql`b.visibility = 'published' and b.redirect_to is null and (b.embargo_until is null or b.embargo_until <= ${now})`;
 
-function query(db: Db, kind: SitemapKind, now: string) {
+function query(kind: SitemapKind, now: string) {
   switch (kind) {
     case "books":
       return { table: books, where: publicBook(now), prefix: "/books/" };
@@ -62,7 +62,7 @@ export async function sitemapCounts(
 ): Promise<Record<SitemapKind, number>> {
   const out = {} as Record<SitemapKind, number>;
   for (const kind of SITEMAP_KINDS) {
-    const q = query(db, kind, now);
+    const q = query(kind, now);
     const [row] = await db.select({ n: count() }).from(q.table).where(q.where);
     out[kind] = row?.n ?? 0;
   }
@@ -75,7 +75,7 @@ export async function sitemapEntries(
   page: number,
   now = new Date().toISOString(),
 ): Promise<SitemapEntry[]> {
-  const q = query(db, kind, now);
+  const q = query(kind, now);
   const lastmod = "updatedAt" in q.table ? q.table.updatedAt : q.table.createdAt;
   const rows = await db
     .select({ slug: q.table.slug, lastmod })

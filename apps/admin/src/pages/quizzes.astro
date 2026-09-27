@@ -3,10 +3,11 @@
 // whether a quiz is live is decided here and audited. Stats show how results spread in practice.
 import { can } from "@rlr/core/policy";
 import { QUIZZES, quizStats, quizStatuses, setQuizStatus } from "@rlr/core/quiz";
+import { enqueueJob } from "@rlr/core/scheduler";
 import Console from "../layouts/Console.astro";
 import { adminActor } from "../lib/admin-session";
 import { flash, readForm } from "../lib/forms";
-import { getDb } from "../lib/runtime";
+import { env, getDb } from "../lib/runtime";
 
 const admin = await Astro.locals.admin();
 if (!admin) return Astro.redirect("/signin", 303);
@@ -22,6 +23,8 @@ if (Astro.request.method === "POST") {
   if (form.action === "publish" || form.action === "retire") {
     // setQuizStatus writes the audit entry.
     await setQuizStatus(db, slug, form.action === "publish" ? "live" : "retired", admin.userId);
+    // Its result cards (PNG link previews) are drawn now rather than at the next scheduled run.
+    if (form.action === "publish") await enqueueJob(db, env.Q_JOBS, "og.render");
     return Astro.redirect(
       flash(
         "/quizzes",

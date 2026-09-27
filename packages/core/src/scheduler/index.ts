@@ -68,6 +68,21 @@ export const JOBS = [
     description: "Fetch pages that research runs cite; a page naming the book confirms it",
   },
   {
+    key: "media.covers",
+    cron: "*/15 * * * *",
+    description: "Look for licensed covers (Open Library) for up to 10 books without one",
+  },
+  {
+    key: "media.process",
+    cron: "*/5 * * * *",
+    description: "Re-encode pending images into the WebP variants readers see, and queue their review",
+  },
+  {
+    key: "og.render",
+    cron: "*/15 * * * *",
+    description: "Render link-preview PNGs: the site, reader classes, live quiz results and changed books",
+  },
+  {
     key: "quiz.announce",
     cron: "9 * * * *",
     description: "Open an inbox item for each quiz that shipped in the code and awaits a publish decision",

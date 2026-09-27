@@ -64,6 +64,22 @@ export function checkUrl(raw: string, allowHosts: string[]): URL {
 }
 
 export async function safeFetch(raw: string, opts: SafeFetchOptions): Promise<SafeResponse> {
+  const { bytes, ...rest } = await fetchChecked(raw, opts);
+  return { ...rest, text: new TextDecoder().decode(bytes) };
+}
+
+/** The same checks, for binary bodies (cover images). */
+export async function safeFetchBytes(
+  raw: string,
+  opts: SafeFetchOptions,
+): Promise<Omit<SafeResponse, "text"> & { bytes: Uint8Array }> {
+  return fetchChecked(raw, { ...opts, headers: { accept: "image/*", ...opts.headers } });
+}
+
+async function fetchChecked(
+  raw: string,
+  opts: SafeFetchOptions,
+): Promise<Omit<SafeResponse, "text"> & { bytes: Uint8Array }> {
   const doFetch = opts.fetch ?? fetch;
   const maxBytes = opts.maxBytes ?? 1_000_000;
   let url = checkUrl(raw, opts.allowHosts);
@@ -91,13 +107,13 @@ export async function safeFetch(raw: string, opts: SafeFetchOptions): Promise<Sa
     }
     const declared = Number(response.headers.get("content-length") ?? 0);
     if (declared > maxBytes) throw new SafeFetchError("too_large", "response too large");
-    const text = await readCapped(response, maxBytes);
-    return { status: response.status, url: url.toString(), headers: response.headers, text };
+    const bytes = await readCapped(response, maxBytes);
+    return { status: response.status, url: url.toString(), headers: response.headers, bytes };
   }
 }
 
-async function readCapped(response: Response, maxBytes: number): Promise<string> {
-  if (!response.body) return "";
+async function readCapped(response: Response, maxBytes: number): Promise<Uint8Array> {
+  if (!response.body) return new Uint8Array();
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -117,5 +133,5 @@ async function readCapped(response: Response, maxBytes: number): Promise<string>
     all.set(c, offset);
     offset += c.byteLength;
   }
-  return new TextDecoder().decode(all);
+  return all;
 }

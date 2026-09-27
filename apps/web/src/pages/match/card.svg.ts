@@ -1,7 +1,9 @@
 import { buildProfile, decodeInputs, readerClass } from "@rlr/core/match";
+import { classCardText } from "@rlr/core/media";
 import { STATS } from "@rlr/core/taxonomy";
+import { cardSvg } from "@rlr/ui/cards";
 import type { APIRoute } from "astro";
-import { cardSvg, svgResponse } from "../../lib/cards";
+import { svgResponse } from "../../lib/cards";
 import { getMatrix, quizSignal } from "../../lib/match";
 
 const STAT_NAMES = new Map(STATS.map((s) => [s.key, s.name]));
@@ -23,15 +25,6 @@ export const GET: APIRoute = async ({ url, locals }) => {
   const musts = (inputs.musts ?? []).map((k) => STAT_NAMES.get(k) ?? k);
   const noes = (inputs.noes ?? []).map((n) => NO_LABELS[n]).filter(Boolean);
   return svgResponse(
-    cardSvg({
-      kicker: "Reader class",
-      title: cls.name,
-      subtitle: cls.tagline,
-      lines: [
-        musts.length ? `Must-haves: ${musts.join(", ")}` : "",
-        noes.length ? `Hard no: ${noes.join(", ")}` : "",
-      ].filter(Boolean),
-      footer: "Find yours at readlitrpg.com/match",
-    }),
+    cardSvg(classCardText(cls, { musts, noes: noes.filter((n): n is string => Boolean(n)) })),
   );
 };

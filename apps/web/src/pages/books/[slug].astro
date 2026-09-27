@@ -29,7 +29,7 @@ import StatusScreen from "../../components/site/StatusScreen.astro";
 import Base from "../../layouts/Base.astro";
 import { getMatrix } from "../../lib/match";
 import { getDb } from "../../lib/runtime";
-import { coverOgUrl, movedTo, notFound, origin, pageOptions } from "../../lib/site";
+import { coverOgUrl, mediaUrl, movedTo, notFound, origin, pageOptions } from "../../lib/site";
 import "../../styles/discover.css";
 import "../../styles/site.css";
 
@@ -100,6 +100,7 @@ const crumbs = [
   { name: b.title, path: `/books/${b.slug}` },
 ];
 const coverUrl = coverOgUrl(b.cover);
+const ogImage = b.ogImageKey ? mediaUrl(b.ogImageKey) : coverUrl;
 Astro.cache.set({ tags: [`book:${b.id}`] });
 ---
 
@@ -107,7 +108,7 @@ Astro.cache.set({ tags: [`book:${b.id}`] });
   title={`${b.title}${b.authors[0] ? ` by ${b.authors[0].name}` : ""}`}
   description={b.hook ?? lead}
   canonical={`/books/${b.slug}`}
-  ogImage={coverUrl}
+  ogImage={ogImage}
   jsonLd={[bookJsonLd(b, origin(), coverUrl), breadcrumbJsonLd(crumbs, origin())]}
 >
   <Breadcrumbs crumbs={crumbs} />

@@ -1,5 +1,6 @@
 ---
 import { jsonLdText } from "@rlr/core/site";
+import { siteOgUrl } from "../lib/site";
 import "@rlr/ui/tokens.css";
 import "@rlr/ui/base.css";
 
@@ -44,8 +45,8 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
     {noIndex && <meta name="robots" content="noindex, follow" />}
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
-    {ogImage && <meta property="og:image" content={new URL(ogImage, canonicalOrigin).toString()} />}
-    {ogImage && <meta name="twitter:card" content="summary_large_image" />}
+    <meta property="og:image" content={new URL(ogImage ?? siteOgUrl(), canonicalOrigin).toString()} />
+    <meta name="twitter:card" content="summary_large_image" />
     {canonical && <link rel="canonical" href={new URL(canonical, canonicalOrigin).toString()} />}
     {canonical && <meta property="og:url" content={new URL(canonical, canonicalOrigin).toString()} />}
     {jsonLd.length > 0 && <script type="application/ld+json" is:inline set:html={jsonLdText(jsonLd.length === 1 ? (jsonLd[0] ?? {}) : jsonLd)} />}

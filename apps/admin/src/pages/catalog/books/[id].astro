@@ -20,10 +20,11 @@ import {
   writeBookTags,
 } from "@rlr/core/catalog";
 import { enqueue } from "@rlr/core/editorial";
+import { acceptImage, MediaError, UPLOAD_COVER_RULES, variantKey } from "@rlr/core/media";
 import { can } from "@rlr/core/policy";
 import { enqueueJob } from "@rlr/core/scheduler";
-import { books, RELEASE_KINDS } from "@rlr/core/schema";
-import { eq } from "drizzle-orm";
+import { books, media, RELEASE_KINDS } from "@rlr/core/schema";
+import { and, desc, eq } from "drizzle-orm";
 import Console from "../../../layouts/Console.astro";
 import { adminActor } from "../../../lib/admin-session";
 import { OVERRIDABLE } from "../../../lib/catalog";
@@ -41,6 +42,48 @@ if (!admin) return Astro.redirect("/signin", 303);
 const db = getDb();
 const id = Astro.params.id ?? "";
 const here = `/catalog/books/${id}`;
+
+if (
+  Astro.request.method === "POST" &&
+  (Astro.request.headers.get("content-type") ?? "").startsWith("multipart/form-data")
+) {
+  // A cover upload (DESIGN §15.7): checked here, kept private, made public by the jobs Worker.
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash(here, "Not allowed", "error"), 303);
+  const data = await Astro.request.formData();
+  const file = data.get("cover");
+  if (!(file instanceof File) || file.size === 0)
+    return Astro.redirect(flash(here, "Choose an image first.", "error"), 303);
+  try {
+    const { id: mediaId, duplicate } = await acceptImage(
+      db,
+      { private: env.PRIVATE },
+      new Uint8Array(await file.arrayBuffer()),
+      { purpose: "cover", source: "upload", subjectType: "book", subjectId: id, uploadedBy: admin.userId },
+      UPLOAD_COVER_RULES,
+    );
+    await enqueueJob(db, env.Q_JOBS, "media.process");
+    await audit(admin, Astro.locals.requestId, {
+      action: "catalog.cover_upload",
+      subjectType: "book",
+      subjectId: id,
+      diff: { mediaId, duplicate },
+    });
+    return Astro.redirect(
+      flash(
+        here,
+        duplicate
+          ? "That image is already here."
+          : "Cover received. It appears once it's processed (a minute or two).",
+      ),
+      303,
+    );
+  } catch (error) {
+    if (error instanceof MediaError)
+      return Astro.redirect(flash(here, `Cover refused: ${error.message}.`, "error"), 303);
+    throw error;
+  }
+}
 
 if (Astro.request.method === "POST") {
   const form = await readForm(Astro.request);
@@ -69,6 +112,11 @@ if (Astro.request.method === "POST") {
         });
         await log("catalog.owner_check");
         return Astro.redirect(flash(here, "Marked as checked by you. It can be published now."), 303);
+      }
+      case "find_cover": {
+        await db.update(books).set({ coverCheckedAt: null }).where(eq(books.id, id));
+        await enqueueJob(db, env.Q_JOBS, "media.covers");
+        return Astro.redirect(flash(here, "Looking for a cover in Open Library now."), 303);
       }
       case "relookup": {
         await db.update(books).set({ enrichStatus: "pending" }).where(eq(books.id, id));
@@ -177,6 +225,13 @@ for (const p of detail.provenance) {
   ]);
 }
 const settings = await Astro.locals.settings();
+const images = await db
+  .select()
+  .from(media)
+  .where(and(eq(media.subjectType, "book"), eq(media.subjectId, id)))
+  .orderBy(desc(media.createdAt))
+  .limit(6);
+const mediaLink = (key: string) => `${env.PUBLIC_MEDIA_ORIGIN.replace(/\/$/, "")}/${variantKey(key, 640)}`;
 const [suggestions, scores, proposals, queued] = await Promise.all([
   suggestTagsForBook(db, id, settings["tags.display_min"], 12),
   bookScoreRows(db, id),
@@ -224,6 +279,31 @@ const fieldRows: [BookField, unknown][] = [
       <form method="post"><button class="button small secondary" name="action" value="relookup" type="submit">Look it up again ({book.enrichStatus})</button></form>
     </div>
   </section>
+
+  <h2>Cover</h2>
+  <p>
+    {book.coverMediaId
+      ? (() => {
+          const current = images.find((m) => m.id === book.coverMediaId);
+          return current ? <>Current cover from {current.source}: <a href={mediaLink(current.key)} rel="noopener">view</a> ({current.width}×{current.height})</> : "A cover is set.";
+        })()
+      : "No cover yet: pages show a generated placeholder."}
+  </p>
+  {images.some((m) => m.id !== book.coverMediaId) && (
+    <ul>
+      {images.filter((m) => m.id !== book.coverMediaId).map((m) => (
+        <li>{m.source} · {m.status}{m.processedAt ? "" : " (waiting to be processed)"}{m.error ? ` · ${m.error}` : ""} · {m.createdAt.slice(0, 16).replace("T", " ")}</li>
+      ))}
+    </ul>
+  )}
+  <form method="post" enctype="multipart/form-data" class="inline">
+    <label>Upload a cover (JPEG, PNG or WebP, at least 600×900) <input type="file" name="cover" accept="image/jpeg,image/png,image/webp" required /></label>
+    <button class="button small" type="submit">Upload</button>
+  </form>
+  <form method="post" class="inline">
+    <button class="button small secondary" name="action" value="find_cover" type="submit">Look for an Open Library cover</button>
+  </form>
+  <p class="muted">Only licensed covers: the author's or publisher's upload, or Open Library's (DESIGN §16.5). An upload always wins over a fetched cover.</p>
 
   <h2>Fields</h2>
   <table>

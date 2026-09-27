@@ -1,10 +1,12 @@
 ---
 // A shareable quiz result (QUIZZES.md §3.2): the outcome, three books for it, and the way in.
 // It shows a result, never a person: the URL carries only the quiz and the outcome key.
+import { quizOgKey } from "@rlr/core/media";
 import { getOutcome, getQuiz, isLive } from "@rlr/core/quiz";
 import Base from "../../../../layouts/Base.astro";
 import { booksForOutcome, publicOutcome } from "../../../../lib/quiz";
 import { getDb } from "../../../../lib/runtime";
+import { mediaUrl } from "../../../../lib/site";
 import "../../../../styles/discover.css";
 
 const quiz = getQuiz(Astro.params.slug ?? "");
@@ -13,7 +15,8 @@ if (!quiz || !found || !(await isLive(getDb(), quiz.slug))) return new Response(
 const outcome = publicOutcome(found);
 const books = quiz.kind === "fun" ? await booksForOutcome(found, await Astro.locals.settings()) : [];
 Astro.cache.set({ tags: ["quizzes", `quiz:${quiz.slug}`, "match"] });
-const card = `/quiz/${quiz.slug}/r/${outcome.key}/card.svg`;
+// The PNG the og job renders for every outcome of a live quiz (DESIGN §7.10).
+const card = mediaUrl(quizOgKey(quiz.slug, outcome.key));
 ---
 
 <Base title={`${outcome.name}: ${quiz.title}`} description={outcome.shareText} ogImage={card}>

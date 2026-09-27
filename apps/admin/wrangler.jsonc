@@ -14,6 +14,7 @@
   "vars": {
     "ENVIRONMENT": "production",
     "PUBLIC_ORIGIN": "https://admin.readlitrpg.com",
+    "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com",
     "RP_ID": "readlitrpg.com",
     "ACCESS_TEAM_DOMAIN": "https://readlitrpg.cloudflareaccess.com",
     "ACCESS_AUD": "set-at-setup"
@@ -27,6 +28,8 @@
     }
   ],
   "kv_namespaces": [{ "binding": "CONFIG", "id": "00000000000040008000000000000002" }],
+  // Cover uploads land here as private originals; the jobs Worker makes the public variants.
+  "r2_buckets": [{ "binding": "PRIVATE", "bucket_name": "rlr-private" }],
   // Producer only: the console can queue a job (an import, a lookup) but never consumes the queue.
   "queues": { "producers": [{ "binding": "Q_JOBS", "queue": "rlr-jobs" }] }
 }

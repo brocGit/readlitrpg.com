@@ -141,6 +141,8 @@ export interface BookPage {
   description: { text: string; by: "author" | "us" } | null;
   hook: string | null;
   cover: Cover | null;
+  /** The rendered link-preview PNG, once the og job has drawn it (DESIGN §7.10). */
+  ogImageKey: string | null;
   pageCount: number | null;
   wordCountEst: number | null;
   firstPublished: string | null;
@@ -334,6 +336,7 @@ export async function bookPage(db: Db, slug: string, opts: PageOptions): Promise
       description,
       hook: b.hookAi,
       cover: row.coverKey ? { key: row.coverKey, width: row.coverWidth, height: row.coverHeight } : null,
+      ogImageKey: b.ogImageKey,
       pageCount: b.pageCount,
       wordCountEst: b.wordCountEst,
       firstPublished: b.firstPublished,
