@@ -293,7 +293,7 @@ Unlike dials, more is more: each stat measures how strongly a book delivers a pa
 
 ## Classifier disambiguation notes (included in the system prompt)
 
-1. **LitRPG vs. progression fantasy vs. cultivation.** Check for visible mechanics first. Visible mechanics make it `litrpg`. Otherwise, growth as the throughline makes it `progression-fantasy`. Add `cultivation` when realms, qi and sects are present, whether or not there is a system.
+1. **LitRPG vs. progression fantasy vs. cultivation.** Is cultivation the story's frame (qi, realms, sects and daos are how the world works, as in xianxia)? Then the primary genre is `cultivation`, with a `litrpg` tag if a system is also visible (*Defiance of the Fall*). Otherwise, visible mechanics make it `litrpg`, and growth without a system makes it `progression-fantasy`. Add the `cultivation` tag when cultivation elements appear without being the frame (*Cradle*, *The Path of Ascension*).
 2. **Dungeon core vs. dungeon crawler.** Who is the dungeon? If it's the MC → `dungeon-core`. If the MC is going through dungeons → `dungeon-crawler`.
 3. **Isekai vs. VRMMO vs. trapped-in-game.** A physical transfer or rebirth into another world → `isekai`. A game players can leave → `vrmmo`. A game they can't leave → `trapped-in-game` (usually also `vrmmo`).
 4. **Regression vs. time loop.** Regression happens once (a second chance). A time loop repeats.
