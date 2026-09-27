@@ -4,7 +4,7 @@
 
 import { and, desc, eq, inArray, isNull, lt, or } from "drizzle-orm";
 import type { Db } from "../db";
-import { SUBSCRIPTION_STATUSES, subscriptions } from "../db/schema";
+import { advertisers, SUBSCRIPTION_STATUSES, subscriptions } from "../db/schema";
 import { ulid } from "../ids";
 import { nowIso } from "../time";
 import { addCredit } from "./credits";
@@ -111,4 +111,22 @@ export async function grantQuarterlyCredit(
     now,
   );
   return amountCents;
+}
+
+/** Whether an author profile has Author Pro now (priority review, the Pro stats). */
+export async function isProAuthor(db: Db, authorId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .innerJoin(advertisers, eq(advertisers.id, subscriptions.advertiserId))
+    .where(
+      and(
+        eq(advertisers.ownerType, "author"),
+        eq(advertisers.ownerId, authorId),
+        eq(subscriptions.plan, "author_pro"),
+        inArray(subscriptions.status, [...ACTIVE_STATUSES]),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
 }

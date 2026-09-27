@@ -6,6 +6,7 @@
 import { and, asc, desc, eq, inArray, isNotNull, lte, type SQL, sql } from "drizzle-orm";
 import { appendAudit } from "../audit";
 import type { StripeApi } from "../billing/stripe";
+import { isProAuthor } from "../billing/subscriptions";
 import type { Db } from "../db";
 import {
   authors,
@@ -44,6 +45,13 @@ export interface NewInboxItem {
 /** Open an item. Returns the new item, or null if one with the same dedupe key already exists. */
 export async function openInboxItem(db: Db, item: NewInboxItem): Promise<InboxItem | null> {
   const now = nowIso();
+  // Author Pro's priority review (M8): items about a Pro author sort ahead, short of "urgent".
+  const authorId = (item.payload as { authorId?: unknown } | null | undefined)?.authorId;
+  const base = item.priority ?? 50;
+  const priority =
+    typeof authorId === "string" && base < 79 && (await isProAuthor(db, authorId))
+      ? Math.min(79, base + 15)
+      : base;
   const rows = await db
     .insert(inboxItems)
     .values({
@@ -53,7 +61,7 @@ export async function openInboxItem(db: Db, item: NewInboxItem): Promise<InboxIt
       subjectType: item.subjectType ?? null,
       subjectId: item.subjectId ?? null,
       payload: item.payload ?? null,
-      priority: item.priority ?? 50,
+      priority,
       dedupeKey: item.dedupeKey ?? null,
       dueAt: item.dueAt ?? null,
       aiSummary: item.aiSummary?.slice(0, 1000) ?? null,
@@ -291,6 +299,8 @@ export interface InboxDecisionContext {
   renderEnv?: { origin: string; mediaOrigin: string };
   /** For decisions that refund (rejecting a paid ad, M8). Null where Stripe isn't configured. */
   stripe?: StripeApi | null;
+  /** For decisions that change a setting (approving price suggestions, M8). */
+  kv?: KVNamespace;
 }
 
 /**

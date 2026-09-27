@@ -1,0 +1,111 @@
+---
+import { orderDetail, RefundError, refundable, refundOrder, StripeError } from "@rlr/core/billing";
+import { can } from "@rlr/core/policy";
+import Console from "../../../layouts/Console.astro";
+import { adminActor } from "../../../lib/admin-session";
+import { audit, flash, readForm } from "../../../lib/forms";
+import { getDb, getStripe } from "../../../lib/runtime";
+
+// One order (DESIGN §12.4, §12.5): what was bought and how it was paid, its refunds, and a
+// discretionary refund, which needs a fresh passkey and a reason (it can't be undone).
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const id = Astro.params.id ?? "";
+const here = `/billing/orders/${id}`;
+const money = (c: number) => `$${(c / 100).toFixed(2)}`;
+
+if (Astro.request.method === "POST") {
+  const decision = can(adminActor(admin), "money.refund");
+  if (!decision.ok)
+    return Astro.redirect(
+      decision.reason === "step_up_required"
+        ? `/signin?stepup=1&next=${encodeURIComponent(here)}`
+        : flash(here, "Not allowed", "error"),
+      303,
+    );
+  const form = await readForm(Astro.request);
+  const cents = Math.round(Number(form.amount) * 100);
+  const reason = (form.reason ?? "").trim();
+  if (!(cents > 0)) return Astro.redirect(flash(here, "Enter an amount.", "error"), 303);
+  if (!reason) return Astro.redirect(flash(here, "Give a reason: it goes in the audit log.", "error"), 303);
+  try {
+    const toCredit = form.to === "credit";
+    const r = await refundOrder(db, getStripe(), {
+      orderId: id,
+      cardCents: toCredit ? 0 : cents,
+      creditCents: toCredit ? cents : 0,
+      reasonCode: "admin",
+      note: reason,
+      initiatedBy: admin.userId,
+    });
+    await audit(admin, Astro.locals.requestId, {
+      action: "billing.refund",
+      subjectType: "order",
+      subjectId: id,
+      diff: { cardCents: r.cardCents, creditCents: r.creditCents, reason },
+    });
+    return Astro.redirect(
+      flash(here, `Refunded ${money(r.cardCents)} to the card and ${money(r.creditCents)} as credit.`),
+      303,
+    );
+  } catch (e) {
+    if (e instanceof RefundError || e instanceof StripeError)
+      return Astro.redirect(flash(here, `Refund failed: ${e.message}`, "error"), 303);
+    throw e;
+  }
+}
+
+const detail = await orderDetail(db, id);
+if (!detail) return new Response(null, { status: 404 });
+const o = detail.order;
+const left = await refundable(db, o);
+const campaignIds = [...new Set(detail.items.map((i) => i.campaignId).filter(Boolean))];
+---
+
+<Console title={`Order ${o.id.slice(-8)}`}>
+  <p>
+    <strong>{o.status}</strong> · {o.kind} · {detail.advertiser?.name ?? "no advertiser"} · created {o.createdAt.slice(0, 16).replace("T", " ")}
+    {o.paidAt && <> · paid {o.paidAt.slice(0, 16).replace("T", " ")}</>}
+  </p>
+  <table>
+    <tbody>
+      <tr><th>Price</th><td>{money(o.amountCents)}</td></tr>
+      <tr><th>Code discount</th><td>{money(o.discountCents)}</td></tr>
+      <tr><th>Credits used</th><td>{money(o.creditsCents)}</td></tr>
+      <tr><th>Card</th><td>{money(o.chargedCents)}</td></tr>
+      <tr><th>Refunded</th><td>{money(o.refundedCents)}</td></tr>
+      <tr><th>Stripe</th><td><code>{o.stripePaymentIntentId ?? o.stripeInvoiceId ?? o.stripeCheckoutSessionId ?? "–"}</code></td></tr>
+    </tbody>
+  </table>
+  <h2>Items</h2>
+  <ul>
+    {detail.items.map((i) => <li>{i.description}: {money(i.amountCents)}</li>)}
+  </ul>
+  {campaignIds.map((c) => <p><a href={`/billing/campaigns/${c}`}>The campaign</a></p>)}
+  <h2>Refunds</h2>
+  {detail.refunds.length === 0 ? <p class="muted">None.</p> : (
+    <table>
+      <thead><tr><th>When</th><th>Amount</th><th>To</th><th>Reason</th><th>By</th><th>Status</th></tr></thead>
+      <tbody>
+        {detail.refunds.map((r) => (
+          <tr><td>{r.createdAt.slice(0, 16).replace("T", " ")}</td><td>{money(r.amountCents)}</td><td>{r.toCredits ? "credit" : "card"}</td><td>{r.reasonCode}{r.note ? `: ${r.note}` : ""}</td><td>{r.initiatedBy.slice(-6)}</td><td>{r.status}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+  {
+    left.total > 0 && ["paid", "partially_refunded", "disputed"].includes(o.status) && (
+      <section>
+        <h2>Refund</h2>
+        <p class="muted">Up to {money(left.total)} ({money(left.card)} of it to the card). Needs a passkey check in the last 15 minutes.</p>
+        <form method="post" class="inline">
+          <input name="amount" type="number" min="0.01" step="0.01" max={(left.total / 100).toFixed(2)} placeholder="Dollars" required aria-label="Amount" />
+          <select name="to" aria-label="Refund to"><option value="card">To the card</option><option value="credit">As credit</option></select>
+          <input name="reason" placeholder="Reason (required)" required maxlength="300" aria-label="Reason" />
+          <button class="button small" type="submit">Refund</button>
+        </form>
+      </section>
+    )
+  }
+</Console>

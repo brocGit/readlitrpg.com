@@ -2,7 +2,7 @@
 // two levers the owner holds: the trust level (§2.2, overridable) and the profile's official links,
 // which automated verification trusts (§10.2). Both are audited.
 
-import { and, asc, count, eq, isNotNull, isNull, like, sql } from "drizzle-orm";
+import { and, asc, count, eq, isNotNull, isNull, like, or, sql } from "drizzle-orm";
 import { appendAudit } from "../audit";
 import { nameKey } from "../catalog/normalize";
 import type { Db } from "../db";
@@ -115,4 +115,18 @@ export async function removeMemberAsAdmin(
     subjectId: authorId,
     diff: { userId },
   });
+}
+
+/** An author by id or slug, for console forms. */
+export async function findAuthorRef(
+  db: Db,
+  ref: string,
+): Promise<{ id: string; name: string; slug: string } | null> {
+  if (!ref) return null;
+  const [row] = await db
+    .select({ id: authors.id, name: authors.name, slug: authors.slug })
+    .from(authors)
+    .where(or(eq(authors.id, ref), eq(authors.slug, ref)))
+    .limit(1);
+  return row ?? null;
 }

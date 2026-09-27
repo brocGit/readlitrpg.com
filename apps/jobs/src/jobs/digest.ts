@@ -3,7 +3,7 @@
 // own profile, follows and saved searches, and queues their email. A circuit breaker pauses the
 // issue if bounces or complaints climb; a daily cap and the newsletter kill switch stop it too.
 
-import { ulid } from "@rlr/core";
+import { isoWeek, ulid } from "@rlr/core";
 import { countEmailSends, type Placement, placementsFor } from "@rlr/core/ads";
 import { BLOG_TYPES, listPosts, postPath } from "@rlr/core/content";
 import { openInboxItem } from "@rlr/core/inbox";
@@ -35,14 +35,7 @@ import {
 import type { JobContext } from "./types";
 
 /** ISO-8601 week, e.g. "2026-W40": Thursday's and Friday's are the same. */
-export function isoWeek(d: Date): string {
-  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const day = t.getUTCDay() || 7;
-  t.setUTCDate(t.getUTCDate() + 4 - day);
-  const yearStart = Date.UTC(t.getUTCFullYear(), 0, 1);
-  const week = Math.ceil(((t.getTime() - yearStart) / 86_400_000 + 1) / 7);
-  return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
-}
+export { isoWeek };
 
 interface IssueContent {
   newBookIds: string[];

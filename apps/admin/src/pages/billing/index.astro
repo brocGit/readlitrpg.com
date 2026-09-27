@@ -1,0 +1,233 @@
+---
+import { AD_PRODUCTS, advertiserForAuthor } from "@rlr/core/ads";
+import { findAuthorRef } from "@rlr/core/authors";
+import {
+  addCredit,
+  billingSummary,
+  createPromoCode,
+  creditBalances,
+  listOrders,
+  listPromoCodes,
+  listSubscriptions,
+  PromoError,
+  setPromoActive,
+} from "@rlr/core/billing";
+import { can } from "@rlr/core/policy";
+import { ORDER_STATUSES, type OrderStatus } from "@rlr/core/schema";
+import Console from "../../layouts/Console.astro";
+import { adminActor } from "../../lib/admin-session";
+import { audit, flash, readForm } from "../../lib/forms";
+import { getDb, getStripe } from "../../lib/runtime";
+
+// Billing (DESIGN §8.5, §12): the month at a glance, orders, disputes, subscriptions, promotion
+// codes and credits, and the accounting export. Giving credits or codes needs a fresh passkey.
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const money = (c: number) => `$${(c / 100).toFixed(2)}`;
+
+if (Astro.request.method === "POST") {
+  const decision = can(adminActor(admin), "money.refund");
+  if (!decision.ok)
+    return Astro.redirect(
+      decision.reason === "step_up_required"
+        ? "/signin?stepup=1&next=/billing"
+        : flash("/billing", "Not allowed", "error"),
+      303,
+    );
+  const form = await readForm(Astro.request);
+  try {
+    if (form.action === "credit") {
+      const author = await findAuthorRef(db, (form.author ?? "").trim());
+      const cents = Math.round(Number(form.amount) * 100);
+      if (!author) return Astro.redirect(flash("/billing", "No author with that slug or id.", "error"), 303);
+      if (!(cents > 0 && cents <= 100_000))
+        return Astro.redirect(flash("/billing", "Give $0.01 to $1,000.", "error"), 303);
+      const note = (form.note ?? "").trim();
+      if (!note)
+        return Astro.redirect(
+          flash("/billing", "Say why (the author sees it in their history).", "error"),
+          303,
+        );
+      const adv = await advertiserForAuthor(db, author.id);
+      const id = await addCredit(db, {
+        advertiserId: adv.id,
+        amountCents: cents,
+        reason: "comp",
+        note,
+        createdBy: admin.userId,
+      });
+      await audit(admin, Astro.locals.requestId, {
+        action: "billing.credit",
+        subjectType: "advertiser",
+        subjectId: adv.id,
+        diff: { amountCents: cents, note, entry: id, author: author.id },
+      });
+      return Astro.redirect(flash("/billing", `${money(cents)} of credit given to ${author.name}.`), 303);
+    }
+    if (form.action === "code") {
+      const pct = form.kind === "percent" ? Math.round(Number(form.value)) : null;
+      const amount = form.kind === "amount" ? Math.round(Number(form.value) * 100) : null;
+      const promo = await createPromoCode(db, {
+        code: form.code ?? "",
+        percentOff: pct,
+        amountOffCents: amount,
+        products: form.product ? [form.product] : [],
+        maxRedemptions: Number(form.uses || 1),
+        expiresAt: form.expires ? `${form.expires}T23:59:59.999Z` : null,
+        note: form.note || null,
+        createdBy: admin.userId,
+      });
+      await audit(admin, Astro.locals.requestId, {
+        action: "billing.promo_code",
+        subjectType: "promo_code",
+        subjectId: promo.id,
+        diff: { code: promo.code, percentOff: pct, amountOffCents: amount, uses: promo.maxRedemptions },
+      });
+      return Astro.redirect(flash("/billing", `Code ${promo.code} created.`), 303);
+    }
+    if (form.action === "code_active") {
+      await setPromoActive(db, form.id ?? "", form.on === "1");
+      await audit(admin, Astro.locals.requestId, {
+        action: "billing.promo_code_active",
+        subjectType: "promo_code",
+        subjectId: form.id,
+        diff: { active: form.on === "1" },
+      });
+      return Astro.redirect(flash("/billing", form.on === "1" ? "Code turned on." : "Code turned off."), 303);
+    }
+  } catch (e) {
+    if (e instanceof PromoError) return Astro.redirect(flash("/billing", e.message, "error"), 303);
+    throw e;
+  }
+}
+
+const month = /^\d{4}-\d{2}$/.test(Astro.url.searchParams.get("month") ?? "")
+  ? (Astro.url.searchParams.get("month") as string)
+  : new Date().toISOString().slice(0, 7);
+const status = Astro.url.searchParams.get("status");
+const filter = (ORDER_STATUSES as readonly string[]).includes(status ?? "")
+  ? (status as OrderStatus)
+  : undefined;
+const [summary, orderRows, codes, subs, balances] = await Promise.all([
+  billingSummary(db, month),
+  listOrders(db, { status: filter, limit: 100 }),
+  listPromoCodes(db, 50),
+  listSubscriptions(db, 50),
+  creditBalances(db, 20),
+]);
+const stripeReady = getStripe() !== null;
+const settings = await Astro.locals.settings();
+---
+
+<Console title="Billing">
+  {!stripeReady && <p class="notice error">Stripe isn't set up: card payments and refunds are off. See docs/runbooks/stripe-setup.md.</p>}
+  <p class="muted">
+    Selling is {settings["flags.ads_paid"] ? "on" : "off"} (<code>flags.ads_paid</code>); Author Pro is {settings["flags.author_pro"] ? "on" : "off"}
+    (<code>flags.author_pro</code>).
+  </p>
+  <section>
+    <h2>{month}</h2>
+    <form method="get" class="inline"><input type="month" name="month" value={month} /><button class="button small secondary" type="submit">Show</button></form>
+    <ul>
+      <li>Paid by card: <strong>{money(summary.paidCents)}</strong> over {summary.orders} order{summary.orders === 1 ? "" : "s"}</li>
+      <li>Refunded to cards: {money(summary.refundedCents)}</li>
+      <li>Credit outstanding (all time): {money(summary.creditsOutstandingCents)}</li>
+      <li>Active subscriptions: {summary.activeSubscriptions} · open disputes: {summary.openDisputes}</li>
+    </ul>
+    <p><a class="button small secondary" href={`/billing/export?month=${month}`}>Download {month} as CSV</a></p>
+  </section>
+
+  <section>
+    <h2>Orders</h2>
+    <p>
+      <a href="/billing">All</a>
+      {["open", "paid", "partially_refunded", "refunded", "disputed", "expired"].map((s) => <> · <a href={`/billing?status=${s}`}>{s.replace("_", " ")}</a></>)}
+    </p>
+    <table>
+      <thead><tr><th>Date</th><th>Advertiser</th><th>Kind</th><th>Price</th><th>Card</th><th>Refunded</th><th>Status</th></tr></thead>
+      <tbody>
+        {orderRows.map(({ order: o, advertiser }) => (
+          <tr>
+            <td><a href={`/billing/orders/${o.id}`}>{o.createdAt.slice(0, 16).replace("T", " ")}</a></td>
+            <td>{advertiser ?? "–"}</td>
+            <td>{o.kind}</td>
+            <td>{money(o.amountCents)}</td>
+            <td>{money(o.chargedCents)}</td>
+            <td>{o.refundedCents ? money(o.refundedCents) : "–"}</td>
+            <td>{o.status}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Give credit</h2>
+    <form method="post" class="inline">
+      <input type="hidden" name="action" value="credit" />
+      <input name="author" placeholder="Author slug or id" required maxlength="200" aria-label="Author" />
+      <input name="amount" type="number" min="0.01" max="1000" step="0.01" placeholder="Dollars" required aria-label="Amount" />
+      <input name="note" placeholder="Why (the author sees this)" required maxlength="300" aria-label="Note" />
+      <button class="button small" type="submit">Give credit</button>
+    </form>
+    {balances.length > 0 && (
+      <ul>{balances.filter((b) => Number(b.balance) !== 0).map((b) => <li>{b.name ?? b.advertiserId}: {money(Number(b.balance))}</li>)}</ul>
+    )}
+  </section>
+
+  <section>
+    <h2>Promotion codes</h2>
+    <form method="post" class="inline">
+      <input type="hidden" name="action" value="code" />
+      <input name="code" placeholder="CODE" required maxlength="32" aria-label="Code" />
+      <select name="kind" aria-label="Kind"><option value="percent">% off</option><option value="amount">$ off</option></select>
+      <input name="value" type="number" min="1" step="1" placeholder="Value" required aria-label="Value" />
+      <select name="product" aria-label="Product"><option value="">Any product</option>{AD_PRODUCTS.map((p) => <option value={p.key}>{p.name}</option>)}</select>
+      <input name="uses" type="number" min="1" max="10000" value="1" aria-label="Uses" />
+      <input name="expires" type="date" aria-label="Expires" />
+      <input name="note" placeholder="Note (optional)" maxlength="300" aria-label="Note" />
+      <button class="button small" type="submit">Create code</button>
+    </form>
+    <table>
+      <thead><tr><th>Code</th><th>Off</th><th>For</th><th>Used</th><th>Expires</th><th></th></tr></thead>
+      <tbody>
+        {codes.map((c) => (
+          <tr>
+            <td><code>{c.code}</code>{c.note && <div class="muted">{c.note}</div>}</td>
+            <td>{c.percentOff !== null ? `${c.percentOff}%` : money(c.amountOffCents ?? 0)}</td>
+            <td>{c.products.length ? c.products.join(", ") : "any"}</td>
+            <td>{c.redemptions} / {c.maxRedemptions}</td>
+            <td>{c.expiresAt?.slice(0, 10) ?? "–"}</td>
+            <td>
+              <form method="post" class="inline">
+                <input type="hidden" name="action" value="code_active" />
+                <input type="hidden" name="id" value={c.id} />
+                <button class="button small secondary" name="on" value={c.active ? "0" : "1"} type="submit">{c.active ? "Turn off" : "Turn on"}</button>
+              </form>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Subscriptions</h2>
+    {subs.length === 0 ? <p class="muted">None yet.</p> : (
+      <table>
+        <thead><tr><th>Advertiser</th><th>Plan</th><th>Status</th><th>Renews or ends</th></tr></thead>
+        <tbody>
+          {subs.map(({ sub, advertiser }) => (
+            <tr>
+              <td>{advertiser ?? "–"}</td>
+              <td>{sub.plan} ({sub.interval})</td>
+              <td>{sub.status}{sub.cancelAtPeriodEnd ? ", ends at period end" : ""}</td>
+              <td>{sub.currentPeriodEnd?.slice(0, 10) ?? "–"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </section>
+</Console>

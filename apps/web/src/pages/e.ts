@@ -4,12 +4,15 @@ import {
   classifyPath,
   isAutomated,
   referrerHost,
+  toAppearanceClassPoint,
   toAppearancePoint,
   toDataPoint,
 } from "@rlr/core/analytics";
+import { READER_CLASSES } from "@rlr/core/quiz";
 import type { APIRoute } from "astro";
 import { env } from "../lib/runtime";
 
+const CLASS_KEYS: ReadonlySet<string> = new Set(READER_CLASSES.map((c) => c.key));
 const noContent = () => new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
 
 /**
@@ -20,7 +23,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (isAutomated(request.headers)) return noContent();
   const text = await request.text().catch(() => "");
   if (text.length > 2_000) return noContent();
-  let body: { p?: unknown; r?: unknown; m?: unknown; a?: unknown; v?: unknown };
+  let body: { p?: unknown; r?: unknown; m?: unknown; c?: unknown; a?: unknown; v?: unknown };
   try {
     body = JSON.parse(text);
   } catch {
@@ -37,8 +40,14 @@ export const POST: APIRoute = async ({ request }) => {
   }
   // Match results report the books they showed (author stats, DESIGN §10.5). Not a page view.
   if (body.m !== undefined) {
-    if (page.kind === "match")
-      for (const slug of appearanceSlugs(body.m)) env.EVENTS.writeDataPoint(toAppearancePoint(slug, country));
+    if (page.kind === "match") {
+      // The results' reader class, for Author Pro's "who the match engine sends you" (M8).
+      const cls = typeof body.c === "string" && CLASS_KEYS.has(body.c) ? body.c : null;
+      for (const slug of appearanceSlugs(body.m)) {
+        env.EVENTS.writeDataPoint(toAppearancePoint(slug, country));
+        if (cls) env.EVENTS.writeDataPoint(toAppearanceClassPoint(slug, cls, country));
+      }
+    }
     return noContent();
   }
   // The ads the page rendered (served impressions): cached HTML means the server can't count them.

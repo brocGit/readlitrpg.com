@@ -170,7 +170,7 @@ export default function MatchResults({
       typeof nav.sendBeacon !== "function"
     )
       return;
-    nav.sendBeacon("/e", JSON.stringify({ p: location.pathname, m: slugs }));
+    nav.sendBeacon("/e", JSON.stringify({ p: location.pathname, m: slugs, c: data.readerClass?.key }));
   }, [data]);
 
   // At most one Sponsored Match per results set, for a book this reader matches well.

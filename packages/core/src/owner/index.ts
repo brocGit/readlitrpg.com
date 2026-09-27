@@ -29,9 +29,12 @@ import {
   emailConsents,
   inboxItems,
   inventoryUnits,
+  orders,
   pageViewsDaily,
   posts,
   quizTakes,
+  refunds,
+  subscriptions,
   users,
 } from "../db/schema";
 import { type InboxItem, OPEN_STATUSES } from "../inbox";
@@ -182,6 +185,27 @@ export async function weeklySummary(db: Db, now = new Date()): Promise<WeeklySum
     .from(posts)
     .where(and(eq(posts.status, "published"), gte(posts.publishedAt, weekAgo)));
 
+  // Money (M8): card payments and refunds this week, and the subscriptions paying now.
+  const [revenue] = await db
+    .select({ n: sum(orders.chargedCents), c: count() })
+    .from(orders)
+    .where(
+      and(
+        gte(orders.paidAt, weekAgo),
+        inArray(orders.status, ["paid", "partially_refunded", "refunded", "disputed"]),
+      ),
+    );
+  const [refunded] = await db
+    .select({ n: sum(refunds.amountCents) })
+    .from(refunds)
+    .where(
+      and(gte(refunds.createdAt, weekAgo), eq(refunds.toCredits, false), eq(refunds.status, "succeeded")),
+    );
+  const [pros] = await db
+    .select({ n: count() })
+    .from(subscriptions)
+    .where(inArray(subscriptions.status, ["active", "trialing", "past_due"]));
+
   const [opened] = await db.select({ n: count() }).from(inboxItems).where(gte(inboxItems.createdAt, weekAgo));
   const decided = await db
     .select({ auto: sql<number>`${inboxItems.decidedBy} like 'system:%'`.as("auto"), n: count() })
@@ -250,7 +274,10 @@ export async function weeklySummary(db: Db, now = new Date()): Promise<WeeklySum
         layer: "Catalog",
         line: `${n(catalog?.total)} published books (+${n(catalog?.fresh)}); ${n(claimed?.total)} claimed author profiles (+${n(claimedNew?.n)}); ${n(published?.n)} posts published`,
       },
-      { layer: "Money", line: "No paid products yet: house ads only" },
+      {
+        layer: "Money",
+        line: `$${(n(revenue?.n) / 100).toFixed(2)} paid by card (${n(revenue?.c)} orders), $${(n(refunded?.n) / 100).toFixed(2)} refunded; ${n(pros?.n)} Author Pro`,
+      },
     ],
     inbox: {
       opened: opened?.n ?? 0,

@@ -203,6 +203,28 @@ export const JOBS = [
       "Process recorded Stripe webhook events (a verified webhook also queues this at once), then expire lost checkouts",
   },
   {
+    key: "stripe.reconcile",
+    cron: "0 5 * * *",
+    description: "Compare the last 48 hours of Stripe checkouts with our orders; repair or report mismatches",
+  },
+  {
+    key: "ads.settle",
+    cron: "25 * * * *",
+    description:
+      "Settle finished paid campaigns (unspent budget to credit, report emailed) and make good newsletter slots that didn't go out",
+  },
+  {
+    key: "ads.price_suggestions",
+    cron: "10 6 1 * *",
+    description: "Suggest next month's placement prices from audience and sell-through (one inbox item)",
+  },
+  {
+    key: "trust.recompute",
+    cron: "0 4 * * *",
+    description:
+      "Promote verified authors who've earned it to Trusted (T2): 60 days, 3 books, a delivered campaign",
+  },
+  {
     key: "owner.alerts",
     cron: "*/5 * * * *",
     description: "Tell the owner at once about security events, disputes, circuit breakers and urgent items",

@@ -1,7 +1,7 @@
 // The author dashboard's read models (DESIGN §10.5): each book with its status, a completeness
 // score and to-dos; aggregate stats (never which readers); and who changed each field.
 
-import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, like, sql } from "drizzle-orm";
 import { CHANGE_SOURCE_LABEL, changeLabel } from "../catalog/changes";
 import type { Db } from "../db";
 import {
@@ -185,6 +185,33 @@ export async function bookStats(
     loved: byMark.get("loved") ?? 0,
     read: (byMark.get("read") ?? 0) + (byMark.get("loved") ?? 0),
   };
+}
+
+/**
+ * Author Pro (M8): which reader classes the match engine showed the book to, over `days`. Class
+ * totals across all readers of that class: never who.
+ */
+export async function appearancesByClass(
+  db: Db,
+  slug: string,
+  days = 90,
+  now = new Date(),
+): Promise<{ classKey: string; n: number }[]> {
+  const sinceDay = new Date(now.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+  const rows = await db
+    .select({ key: pageViewsDaily.key, n: sql<number>`sum(${pageViewsDaily.views})` })
+    .from(pageViewsDaily)
+    .where(
+      and(
+        eq(pageViewsDaily.kind, "match_appearance_class"),
+        like(pageViewsDaily.key, `${slug}:%`),
+        gte(pageViewsDaily.day, sinceDay),
+      ),
+    )
+    .groupBy(pageViewsDaily.key);
+  return rows
+    .map((r) => ({ classKey: r.key.slice(slug.length + 1), n: Number(r.n) }))
+    .sort((a, b) => b.n - a.n);
 }
 
 const HISTORY_SOURCE: Record<string, string> = {

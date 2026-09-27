@@ -1,7 +1,17 @@
 ---
-import { bookHistory, bookStats, diffEdit, EditError, editableBook, editBook } from "@rlr/core/authors";
+import {
+  appearancesByClass,
+  bookHistory,
+  bookStats,
+  diffEdit,
+  EditError,
+  editableBook,
+  editBook,
+} from "@rlr/core/authors";
+import { isProAuthor } from "@rlr/core/billing";
 import { openInboxItem } from "@rlr/core/inbox";
 import { acceptImage, MediaError, UPLOAD_COVER_RULES } from "@rlr/core/media";
+import { READER_CLASSES } from "@rlr/core/quiz";
 import { bookLinks, books, changeNotifications, releases } from "@rlr/core/schema";
 import { formatDate, RELEASE_LABEL } from "@rlr/core/site";
 import { desc, eq } from "drizzle-orm";
@@ -116,6 +126,10 @@ const [rels, links, stats, history, changes] = await Promise.all([
     .limit(10),
 ]);
 const live = rels.filter((r) => r.status !== "cancelled");
+// Author Pro (M8): which kinds of readers the match engine showed the book to.
+const pro = await isProAuthor(db, access.membership.authorId);
+const byClass = pro ? await appearancesByClass(db, book.slug) : [];
+const className = (key: string) => READER_CLASSES.find((c) => c.key === key)?.name ?? key;
 const STATUS: Record<string, string> = {
   published: "Live",
   pending: "In review",
@@ -145,6 +159,22 @@ const STATUS: Record<string, string> = {
       <div class="stat"><strong>{stats.loved}</strong>loved it</div>
     </div>
     <p class="muted small">Totals only. We never show which readers.</p>
+    {
+      pro ? (
+        <>
+          <h3>Who the match engine sends you</h3>
+          {byClass.length === 0 ? (
+            <p class="muted">No class data yet: it builds up as readers see the book in their matches.</p>
+          ) : (
+            <ul class="rows">{byClass.map((c) => <li><span>{className(c.classKey)}</span><span>{c.n}</span></li>)}</ul>
+          )}
+        </>
+      ) : (
+        <p class="muted small">
+          <a href="/dashboard/billing">Author Pro</a> shows which kinds of readers (by reader class) the match engine sends this book to.
+        </p>
+      )
+    }
   </section>
 
   <section>

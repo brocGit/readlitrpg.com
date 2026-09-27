@@ -95,7 +95,7 @@ export interface ViewPoint {
  * Events that aren't page views, counted the same way. A match appearance is a book shown on a
  * reader's match results (DESIGN §10.5 author stats): the results page reports the slugs it showed.
  */
-export const EVENT_KINDS = ["match_appearance"] as const;
+export const EVENT_KINDS = ["match_appearance", "match_appearance_class"] as const;
 const COUNTED_KINDS: ReadonlySet<string> = new Set([...PAGE_KINDS, ...EVENT_KINDS]);
 
 /** Up to 15 well-formed book slugs from a beacon body; anything else is dropped. */
@@ -109,6 +109,20 @@ export function appearanceSlugs(raw: unknown): string[] {
 export const toAppearancePoint = (slug: string, country: string): AnalyticsEngineDataPoint => ({
   indexes: ["match_appearance"],
   blobs: ["match_appearance", slug, "", country],
+  doubles: [1],
+});
+
+/**
+ * The same appearance by the reader class of the results (Author Pro stats, M8): the key is
+ * `slug:class`, so the rollup keeps it as one more daily count. Still aggregate only.
+ */
+export const toAppearanceClassPoint = (
+  slug: string,
+  classKey: string,
+  country: string,
+): AnalyticsEngineDataPoint => ({
+  indexes: ["match_appearance_class"],
+  blobs: ["match_appearance_class", `${slug}:${classKey}`, "", country],
   doubles: [1],
 });
 

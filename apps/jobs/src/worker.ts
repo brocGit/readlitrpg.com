@@ -37,7 +37,14 @@ import { sendReleaseAlerts } from "./jobs/alerts";
 import { verifyAudit } from "./jobs/audit-verify";
 import { rollover, sendAuthorNotices, sendChangeDigests, sendReleaseAsks } from "./jobs/authors";
 import { exportBackup } from "./jobs/backup";
-import { processStripe, stripeClient } from "./jobs/billing";
+import {
+  priceSuggestions,
+  processStripe,
+  recomputeTrust,
+  reconcile,
+  settleAds,
+  stripeClient,
+} from "./jobs/billing";
 import { buildDigestIssue, sendDigestChunk } from "./jobs/digest";
 import { buildQueue, checkCitations, watchdog } from "./jobs/editorial";
 import { enrichCatalog } from "./jobs/enrich";
@@ -100,6 +107,10 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "blog.monthly_roundups": monthlyRoundups,
   "inventory.generate": generateAdInventory,
   "stripe.events": processStripe,
+  "stripe.reconcile": reconcile,
+  "ads.settle": settleAds,
+  "ads.price_suggestions": priceSuggestions,
+  "trust.recompute": recomputeTrust,
   "owner.alerts": ownerAlerts,
   "owner.daily_digest": ownerDailyDigest,
   "owner.weekly_summary": ownerWeeklySummary,

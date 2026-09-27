@@ -25,7 +25,7 @@ import InboxKeys from "../components/InboxKeys.tsx";
 import Console from "../layouts/Console.astro";
 import { adminActor } from "../lib/admin-session";
 import { audit, flash, readForm } from "../lib/forms";
-import { getDb, getStripe, renderEnv } from "../lib/runtime";
+import { env, getDb, getStripe, renderEnv } from "../lib/runtime";
 
 const admin = await Astro.locals.admin();
 if (!admin) return Astro.redirect("/signin", 303);
@@ -62,6 +62,7 @@ async function decide(
         settings,
         renderEnv: renderEnv(),
         stripe: getStripe(),
+        kv: env.CONFIG,
       },
     );
     changed = outcome.changed;
@@ -112,6 +113,13 @@ if (Astro.request.method === "POST") {
 
   const item = await getInboxItem(db, form.id ?? "");
   if (!item) return Astro.redirect(flash(back, "That item is gone.", "error"), 303);
+  // Approving price suggestions changes a setting: that needs a passkey check in the last 15 minutes.
+  if (
+    item.type === "price_suggestions" &&
+    form.decision === "approved" &&
+    !can(adminActor(admin), "settings.change").ok
+  )
+    return Astro.redirect("/signin?stepup=1&next=/inbox", 303);
 
   if (op === "snooze") {
     const choice = SNOOZE_CHOICES.find((c) => c.key === form.for) ?? SNOOZE_CHOICES[1];
@@ -339,6 +347,29 @@ const recommendation: Record<string, string> = {
                       Approve schedules it; reject releases its dates and refunds in full (the note goes to the author).
                     </p>
                   </div>
+                )}
+                {item.type === "price_suggestions" && (
+                  <table>
+                    <thead><tr><th>Placement</th><th>Now</th><th>Suggested</th><th>Readers a period</th><th>Sold (4 weeks)</th></tr></thead>
+                    <tbody>
+                      {((item.payload as { suggestions?: { name: string; currentCents: number; suggestedCents: number; audience: number; sellThrough: number | null }[] } | null)?.suggestions ?? []).map((x) => (
+                        <tr>
+                          <td>{x.name}</td>
+                          <td>${(x.currentCents / 100).toFixed(2)}</td>
+                          <td><strong>${(x.suggestedCents / 100).toFixed(2)}</strong></td>
+                          <td>{x.audience}</td>
+                          <td>{x.sellThrough === null ? "–" : `${Math.round(x.sellThrough * 100)}%`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {item.type === "billing_mismatch" && (
+                  <p>
+                    Check the checkout <code>{field(item.payload, "sessionId")}</code> in the Stripe dashboard
+                    {field(item.payload, "orderId") && <> against <a href={`/billing/orders/${field(item.payload, "orderId")}`}>the order</a></>}.
+                    Resolve once they agree.
+                  </p>
                 )}
                 {item.type === "dispute" && (
                   <p>

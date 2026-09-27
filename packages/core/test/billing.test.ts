@@ -11,6 +11,7 @@ import {
   startPromotion,
 } from "../src/ads";
 import { expireOrder } from "../src/ads/paid";
+import { appearancesByClass } from "../src/authors";
 import {
   addCredit,
   checkoutBody,
@@ -21,6 +22,7 @@ import {
   fakeStripe,
   findPromo,
   formEncode,
+  isProAuthor,
   processStripeEvents,
   recordStripeEvent,
   redeemPromo,
@@ -34,18 +36,21 @@ import {
 import { addConfirmation, ingestBook, setVisibility } from "../src/catalog";
 import { createDb, type Db } from "../src/db";
 import {
+  advertisers,
   authorNotices,
   authors,
   bookings,
   bookLinks,
+  books,
   campaigns,
   creditsLedger,
   inboxItems,
   inventoryUnits,
   orders,
+  pageViewsDaily,
   subscriptions,
 } from "../src/db/schema";
-import { getInboxItem } from "../src/inbox";
+import { getInboxItem, openInboxItem } from "../src/inbox";
 import { parseLinkKeys } from "../src/readers";
 import { defaultSettings, type Settings } from "../src/settings";
 import { syncTaxonomy } from "../src/taxonomy";
@@ -427,5 +432,33 @@ describe("Author Pro", () => {
     expect(await creditBalance(db, "adv1")).toBe(2000);
     await deliver(await stripe.cancelSubscription(sub?.stripeSubscriptionId ?? "", false));
     expect((await db.select().from(subscriptions))[0]?.status).toBe("canceled");
+  });
+
+  it("moves a Pro author's items up the inbox and shows who the match engine sends them", async () => {
+    const { authorId, bookId } = await authorBook("T0");
+    const before = await openInboxItem(db, { type: "listing_unverified", title: "A", payload: { authorId } });
+    expect(before?.priority).toBe(50);
+    await db.insert(advertisers).values({ id: "advp", ownerType: "author", ownerId: authorId, name: "Ann" });
+    await db.insert(subscriptions).values({
+      id: "s1",
+      advertiserId: "advp",
+      plan: "author_pro",
+      interval: "month",
+      status: "active",
+      stripeSubscriptionId: "sub_1",
+      stripeCustomerId: "cus_1",
+    });
+    expect(await isProAuthor(db, authorId)).toBe(true);
+    const after = await openInboxItem(db, { type: "listing_unverified", title: "B", payload: { authorId } });
+    expect(after?.priority).toBe(65);
+    const [b] = await db.select({ slug: books.slug }).from(books).where(eq(books.id, bookId));
+    await db.insert(pageViewsDaily).values([
+      { day: "2026-09-30", kind: "match_appearance_class", key: `${b?.slug}:tank`, views: 3 },
+      { day: "2026-09-30", kind: "match_appearance_class", key: `${b?.slug}:mage`, views: 9 },
+    ]);
+    expect(await appearancesByClass(db, b?.slug ?? "", 90, now)).toEqual([
+      { classKey: "mage", n: 9 },
+      { classKey: "tank", n: 3 },
+    ]);
   });
 });

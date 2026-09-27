@@ -4,6 +4,7 @@ export * from "./catalog";
 export * from "./go";
 export * from "./inbox";
 export * from "./inventory";
+export * from "./ops";
 export * from "./paid";
 export * from "./serve";
 export * from "./sponsored";

@@ -6,4 +6,5 @@ export * from "./inbox";
 export * from "./members";
 export * from "./notices";
 export * from "./submit";
+export * from "./trust";
 export * from "./verify";

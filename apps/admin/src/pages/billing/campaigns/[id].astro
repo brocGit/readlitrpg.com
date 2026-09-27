@@ -1,0 +1,101 @@
+---
+import { approveCampaign, campaignDetail, campaignReport, rejectCampaign } from "@rlr/core/ads";
+import { campaigns } from "@rlr/core/schema";
+import { and, eq, inArray } from "drizzle-orm";
+import Console from "../../../layouts/Console.astro";
+import { audit, flash, readForm } from "../../../lib/forms";
+import { getDb, getStripe } from "../../../lib/runtime";
+
+// A paid campaign (DESIGN §11.4): the ad, its payment and delivery, and the owner's decisions:
+// approve, reject (releases its dates and refunds in full: a deterministic rule, §12.5), pause.
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const id = Astro.params.id ?? "";
+const here = `/billing/campaigns/${id}`;
+const money = (c: number) => `$${(c / 100).toFixed(2)}`;
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  const log = (action: string, diff: unknown) =>
+    audit(admin, Astro.locals.requestId, { action, subjectType: "campaign", subjectId: id, diff });
+  if (form.action === "approve") {
+    const ok = await approveCampaign(db, id);
+    if (ok) await log("ads.campaign_approve", {});
+    return Astro.redirect(flash(here, ok ? "Approved and scheduled." : "It wasn't waiting for review."), 303);
+  }
+  if (form.action === "reject") {
+    const reason = (form.note ?? "").trim() || "It didn't meet our ad policy.";
+    const ok = await rejectCampaign(db, getStripe(), id, { reason, initiatedBy: admin.userId });
+    if (ok) await log("ads.campaign_reject", { reason });
+    return Astro.redirect(flash(here, ok ? "Rejected and refunded in full." : "Nothing to reject."), 303);
+  }
+  if (form.action === "pause" || form.action === "resume") {
+    const to = form.action === "pause" ? "paused" : "scheduled";
+    const from = form.action === "pause" ? ["scheduled", "live"] : ["paused"];
+    const rows = await db
+      .update(campaigns)
+      .set({ status: to, updatedAt: new Date().toISOString() })
+      .where(
+        and(eq(campaigns.id, id), inArray(campaigns.status, from as ("scheduled" | "live" | "paused")[])),
+      )
+      .returning({ id: campaigns.id });
+    if (rows.length)
+      await log("ads.campaign_state", {
+        to,
+        undo: { kind: "campaign_state", id, to: to === "paused" ? "scheduled" : "paused" },
+      });
+    return Astro.redirect(
+      flash(here, rows.length ? `Campaign ${to === "paused" ? "paused" : "resumed"}.` : "No change."),
+      303,
+    );
+  }
+}
+
+const d = await campaignDetail(db, id);
+if (!d) return new Response(null, { status: 404 });
+const c = d.campaign;
+const report = await campaignReport(db, id);
+---
+
+<Console title={c.name}>
+  <p>
+    <strong>{c.status}</strong> · {d.product.name} · {c.startAt.slice(0, 10)}{c.endAt ? ` to ${c.endAt.slice(0, 10)}` : ""} ·
+    {d.advertiser.ownerType === "author" && d.advertiser.ownerId ? <a href={`/catalog/authors/${d.advertiser.ownerId}`}>{d.advertiser.name}</a> : d.advertiser.name}
+    {d.book && <> · <a href={`/catalog/books/${c.bookId}`}>{d.book.title}</a></>}
+  </p>
+  {d.creative && (
+    <section>
+      <h2>The ad</h2>
+      <p><strong>{d.creative.headline}</strong></p>
+      {d.creative.body && <p>{d.creative.body}</p>}
+      <p class="muted">Button: {d.creative.ctaLabel} · review: {d.creative.reviewStatus}{d.creative.riskScore !== null ? ` · risk ${d.creative.riskScore}` : ""}{d.creative.reviewNotes ? ` · ${d.creative.reviewNotes}` : ""}</p>
+    </section>
+  )}
+  {c.budgetCents && <p>Budget {money(c.budgetCents)} · spent {money(Math.ceil(c.spentMillicents / 1000))} · {c.qualifiedImpressions} qualified impressions</p>}
+  <section>
+    <h2>Decide</h2>
+    <form method="post" class="inline">
+      {["in_review", "approved"].includes(c.status) && <button class="button small" name="action" value="approve" type="submit">Approve</button>}
+      {["scheduled", "live"].includes(c.status) && <button class="button small secondary" name="action" value="pause" type="submit">Pause</button>}
+      {c.status === "paused" && <button class="button small secondary" name="action" value="resume" type="submit">Resume</button>}
+    </form>
+    {["held", "in_review", "approved", "scheduled", "paused"].includes(c.status) && (
+      <form method="post" class="inline">
+        <input type="hidden" name="action" value="reject" />
+        <input name="note" placeholder="Why (the author reads this)" maxlength="500" aria-label="Reason" />
+        <button class="button small secondary" type="submit">Reject and refund</button>
+      </form>
+    )}
+  </section>
+  <section>
+    <h2>Payments</h2>
+    <ul>{d.orders.map((o) => <li><a href={`/billing/orders/${o.id}`}>{o.createdAt.slice(0, 10)}</a>: {money(o.amountCents)}, {o.status}</li>)}</ul>
+  </section>
+  {report && (
+    <section>
+      <h2>Delivery</h2>
+      <p>{report.totals.impressions} shown · {report.totals.viewable} seen · {report.totals.emailSends} emails · {report.totals.clicks} clicks · {report.followsGained} new followers</p>
+    </section>
+  )}
+</Console>
