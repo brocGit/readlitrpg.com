@@ -1326,18 +1326,19 @@ Other controls:
 
 | Type | Source | Default action (setting) | After |
 |---|---|---|---|
-| `listing_unverified` | T0 author submission | Approve if all checks pass | 72 h |
+| `listing_unverified` | T0 author submission | Approve if all checks pass (M6: only while `flags.auto_publish` is on) | 72 h |
 | `reader_suggestion` | "Suggest a book" | Approve if all checks pass | 7 d |
 | `tag_check` | Low-confidence classification | Accept AI tags | 7 d |
 | `possible_duplicate` | Entity resolution | Wait | — |
-| `protected_change` | Author edits a protected field (§10.4) | Per field: date changes approve in 24 h; title/author changes wait | varies |
-| `verification_manual` | Author chose a profile-code method | Wait (reminder at 3 d) | — |
+| `protected_change` | Author edits a protected field (§10.4) | Per field: date changes approve in 24 h; title/author changes wait (M6: T0 edits approve in `publish.t0_default_action_hours`) | varies |
+| `verification_manual` | Author chose a profile-code method (M6: or their code was found on a site that isn't on the profile yet) | Wait (reminder at 3 d; not built yet) | — |
 | `claim_conflict` | Two accounts claim one profile | Wait, high priority | — |
 | `ad_review` | Paid creative (non-T2, or failed checks) | Approve if automated checks pass. If checks failed and still undecided 24 h before start: **reject and auto-refund** | T–48 h / T–24 h |
 | `guest_post` | Guest submission | Approve if the AI pre-review is clean and the author is T1+. Otherwise wait | 5 d |
 | `ai_draft` | Editorial draft generated | Approve if an independent editor-model review and the validators pass. Otherwise discard | 3 d |
 | `interview` | Author questionnaire formatted into a post | Approve if the moderation screen is clean | 5 d |
 | `report` | Reader or author report | Depends on subject; content is hidden meanwhile if severity is high | — |
+| `author_report` | "Report a problem" on an author's book page (M6): a wrong change, a genre or co-author fix, a removal request | Wait | — |
 | `refund_request` | Advertiser | Wait (money) | — |
 | `feed_source` | A proposed Guild Board source (§14.8) | Approve if it's on-topic, has a working RSS or official feed, and passes the link check. Otherwise wait | 3 d |
 | `rights_request` | An author or rights holder asks us to change or remove a fan quiz or other content | **Unpublish immediately**, then wait for the owner to confirm (restore or keep down) | — |
@@ -1661,6 +1662,24 @@ Publishers get:
 - CSV bulk upload.
 - Pooled billing and credits.
 - Later: invoiced billing (Stripe Invoicing) for bigger spenders.
+
+### 10.7 As built (M6)
+
+Where the build differs from §10.1–10.5 (and §7.7, §8.2), and why:
+
+- **Membership.** `author_members` rows with the role `owner` or `editor`. Claiming a profile nobody manages makes the claimant its owner at once, at T0: everything they submit or edit is reviewed anyway, so the claim needs no check of its own. A profile that already has members opens a `claim_conflict` inbox item instead; approving adds the claimant as an owner. Creating a profile under a name already in the catalog is refused with a pointer to claim it, so one author's books stay on one profile. A profile always keeps at least one owner. Restricted accounts can't manage profiles.
+- **Verification.** Codes look like `rlr-verify-7F3K9Q`, last 14 days and are stored as they are: they are meant to be published. The automated methods (website file, meta tag, DNS TXT through Cloudflare's DNS over HTTPS, email domain, Bluesky's public API) run from the web Worker through `safeFetch`, only when the member presses Check, and are rate limited. A code counts on its own only on an **established** target: a domain or Bluesky handle in the profile's official links, which only the owner sets (console → Authors). Anyone can put a code on their own site, so a code found anywhere else opens a `verification_manual` item for the owner to confirm the site is the author's. Royal Road, Amazon Author Central, Patreon, X and Facebook are always checked by hand and never fetched. The owner can also verify from the console ("I know this author"). Every verification and trust change is audited (`author.verify`, `author.trust`). Publisher vouching waits for publisher accounts.
+- **Submissions.** A read-only duplicate check runs first (identifiers from the links, then the title for this author), so a submission never writes onto someone else's book: a likely match goes to the inbox with the other book linked. Then the publish policy (§7.6): T1 and T2 publish at once, T0 opens a `listing_unverified` item and the book is created only on approval (the heartbeat approves it after `publish.t0_default_action_hours` when `flags.auto_publish` is on), and T-1 always waits. A published submission is ingested with source `author_verified`, credited to the member's profile, and confirmed through `author_claim`, which passes the publication gate. The AI-use answer is required. "Suggest tags" re-renders the plain form with the deterministic suggestions (it works without JavaScript and needs no inline script). Author dials are recorded as author values that nudge the estimate; readers' appraisals decide once there are enough. A verified author who leaves harem or romance as "not sure" gets a tag check item after publishing. The author's blurb shows once they're verified (D4). Covers: verified authors upload through the same checks and pipeline as the owner's uploads (§15.7); unverified profiles get licensed covers only (§16.5).
+- **Edits** follow the §10.4 table as a pure function (`planEdit`). The form is compared with the current book first, so only fields that changed are applied or queued. Series changes and a title change after release wait for the owner; a release date within 72 hours of release (or after it) goes to the inbox and approves itself after 24 hours; everything else applies at once for T1 and T2. T0 edits wait `publish.t0_default_action_hours`, then apply; T-1 edits wait for the owner. Hiding is always immediate. An approved change is applied as the author, at the trust level they have when it's approved. Unticking a tag the book shows records a "no" from the author. Genre, co-authors and a permanent removal go through "Report a problem" (an `author_report` inbox item) rather than the form.
+- **Inbox decisions act.** Author items have handlers (`AUTHOR_INBOX_HANDLERS`) that run both on the owner's Approve or Reject in the console and on the heartbeat's default actions: approving a listing publishes it, approving a change applies it, approving a verification verifies, and each tells the author. `possible_duplicate` and `scope_check` are shared with catalog items, so their handlers only act on submission subjects.
+- **Change notifications.** Every write through `writeBookFields`, `writeBookTags`, `writeAiScores` and `setRelease` records a note for each profile credited on the book when the change came from anyone but an author (the owner, editorial runs, enrichment, imports). The dashboard lists them, and `authors.change_digest` sends each author one email a day from 17:00 UTC. The dispute link is "Report a problem" on the book's dashboard page.
+- **Author notices** (listing published or rejected, verified, claims, changes applied or refused, drafts ready) go into an `author_notices` outbox that any Worker can write to, and `authors.notices` emails them every 5 minutes. The console and the heartbeat decide; only the jobs Worker sends.
+- **Release check-ins** (§7.7). 14 and 3 days before a day-precise release of a published book, the book's owners get "Still on for Oct 12?" with a signed link (21 days, one answer) to confirm, give a new date or say it's delayed. The link names the ask and the member, so it works without signing in; a new date goes through the same edit rules. `release.rollover` marks releases out on their New York date (US-first, D8).
+- **Team.** Owners invite by email. The signed link lasts 7 days and only works for the address it was sent to, once signed in. Every owner is told when someone joins. Editors manage books; only owners manage the team.
+- **Stats** on each book's dashboard page cover 90 days: page views, **match appearances** (the Match results island reports the books it showed to the beacon; they are rolled up by kind and left out of the traffic totals), new follows, and "read" and "loved it" marks. Totals only.
+- **Paste anything.** `/dashboard/paste` keeps the text (`author_pastes`, not backed up, deleted 7 days after it's read) and queues an `import_extract` editorial item. The run proposes books; the server accepts only titles, blurbs and links that appear in the pasted text, so nothing comes from model knowledge, skips books the author already has, saves drafts and emails "drafts ready". The author checks each draft in the normal form and submits it through the normal rules ([skill](../.claude/skills/editorial-import-extract/SKILL.md)).
+- **Privacy.** Dashboard pages are private (no-store, `noindex`, disallowed in robots.txt), and every handler checks membership before reading or writing. Deleting an account removes its memberships, verification requests, pastes and notices; submissions and asks keep their record without the user. The export includes the reader's author profiles and submissions.
+- **Not built yet:** publisher accounts, publisher vouching and CSV bulk upload (§10.6); the preview step before submitting (§10.3 step 4); sample chapters; author photos; `trust.recompute` and promotion to T2; `release.unconfirmed_check` (past-date follow-ups); calendar impressions, outbound clicks, newsletter inclusions and tag-page appearances in the stats (they need `/go/` and the calendar in later milestones); the broken-link and interview to-dos; and the Promote, Write for us and Billing tabs (M7–M8).
 
 ---
 
@@ -2643,7 +2662,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | **M3: Match engine and discovery** ✅ built | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, result pages, share cards, Party up, plus the launch set of fun quizzes (drafted in `data/quizzes/`). *Status:* all built and tested (unit, and in the browser: the console E2E rebuilds the model, matches from a loved book, and publishes, plays, shares and retires a quiz). Decisions are in §7.8 "As built". Each quiz in the code gets a `quiz_ready` inbox item and goes live 48 hours later unless the owner retires it in Admin → Quizzes (audited either way). The quiz factory (§7.16) is a skill plus a brief backlog. Pages rely on cache TTLs for freshness until cross-Worker cache purges are wired up | 4 wks |
 | **M4: Public site** ✅ built | Home (match-first), book/series/author/narrator/tag pages, New & upcoming (curated), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics. *Status:* all built and tested (unit, and in the browser: the console E2E sets a release date through to `/new` and the calendar feed, uploads a cover that the jobs Worker re-encodes with the Images binding, checks the entity pages' structured data, the beacon, robots.txt and the sitemap, and waits for the quiz's PNG share cards drawn inside workerd). Decisions are in the "As built (M4)" notes in §9.5 and §15.7. PNG link previews come from resvg compiled to WebAssembly with the DejaVu fonts bundled into the jobs Worker (a 2.1 MB gzipped bundle) | 1.5–2 wks |
 | **M5: Readers and email** ✅ built | Signup (double opt-in), onboarding with profile levels, quiz email capture and the welcome sequence, book marks and appraisals, saved matches/searches → alerts, follows, account/privacy (export/delete), Goodreads/StoryGraph library import, SES integration, templates, weekly digest Workflow, alerts, unsubscribe/suppression, SNS webhooks. *Status:* all built and tested (unit, and in the browser: the reader E2E goes from a quiz result through email capture, confirmation, onboarding, marks, follows with release-day emails, the private calendar, saved tastes and searches, a mail app's one-click unsubscribe, the jobs Worker's welcome email and export, to account deletion). Decisions are in §13.7. The digest is two chunked jobs instead of a Workflow. Waiting on the SES and SNS setup ([email-setup.md](./runbooks/email-setup.md)) and a postal address before marketing mail can go out | 2 wks |
-| **M6: Authors** | Author onboarding, verification methods, submission flow (including paste-anything import and dial nudges), dashboard (books, to-dos, stats including match appearances, change history), protected fields, change notifications, release confirmation asks, team members | 1.5–2 wks |
+| **M6: Authors** ✅ built | Author onboarding, verification methods, submission flow (including paste-anything import and dial nudges), dashboard (books, to-dos, stats including match appearances, change history), protected fields, change notifications, release confirmation asks, team members. *Status:* all built and tested (unit, and in the browser: the author E2E creates a pen name, sends a code for a check by hand, submits a book that waits, has the owner approve both in the inbox, edits under the protected-field rules, sees the owner's change, hides and shows the listing, invites an editor, has a second claim rejected, turns a pasted book list into a draft through a real editorial run, and confirms a release date from the jobs Worker's check-in link). Decisions are in §10.7. Publisher accounts and CSV bulk upload are not built yet | 1.5–2 wks |
 | **M7: Owner console and blog** | Inbox with default actions, bulk actions, undo; blog (post types, living lists, editor, shortcodes, validator, editorial calendar, guest pitch/submit/review, interviews, auto roundups); owner digests; house ads + ad engine (slots, inventory, serving, beacons, `/go/`) | 2 wks |
 | **Launch (Phase 1)** | ≥ 2,000 verified books, legal pages, trust page, pre-launch security checklist, soft launch to a small community group, then public | 1 wk |
 | **M8: Paid promotions (Phase 1.5)** | Stripe Checkout/Billing/Portal, webhooks + reconciliation, order state machine, refunds/credits/comps, Sponsored Match pacing and server-side impression counting, Books-Like Sponsor, advertiser dashboard and reports, creative checks, Author Pro | 3–4 wks |
@@ -2743,7 +2762,7 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 | `/r/{code}` | Subscriber referral link |
 | `/subscribe`, `/subscribe/confirm` | Patch Notes signup, and the confirmation page the emailed link opens (built in M5; a sample issue comes later) |
 | `/welcome` | Onboarding after sign-up or confirmation: "How should we learn your taste?" (built in M5) |
-| `/for-authors`, `/advertise`, `/write-for-us` | Author-facing marketing |
+| `/for-authors`, `/advertise`, `/write-for-us` | Author-facing marketing (`/for-authors` built in M6) |
 | `/trust`, `/ai`, `/disclosures`, `/legal/{doc}` | Trust and legal |
 | `/feeds/releases.xml`, `/feeds/releases.ics`, `/feeds/tags/{slug}.xml`, `/feeds/blog.xml`, `/feeds/tags/{slug}.ics` | Public feeds (all but the blog feed built in M4) |
 | `/robots.txt`, `/sitemap.xml`, `/sitemaps/{type}-{n}.xml` | Crawler policy and sitemaps (built in M4) |
@@ -2766,10 +2785,14 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 
 | Route | Page |
 |---|---|
-| `/dashboard` | Overview + to-dos |
-| `/dashboard/profile`, `/dashboard/verify`, `/dashboard/team` | Profile |
-| `/dashboard/books`, `/dashboard/books/new`, `/dashboard/books/{id}` | Listings |
-| `/dashboard/stats` | Analytics |
+| `/dashboard` | Overview: profiles, submissions, books with completeness and to-dos, changes by others (built in M6) |
+| `/dashboard/start` | "I'm an author": find and claim a profile, or add a pen name (built in M6) |
+| `/dashboard/profile/{id}`, `/dashboard/verify/{id}`, `/dashboard/team/{id}` | Profile, verification and team (built in M6) |
+| `/dashboard/invite/{token}` | Accept a team invite, signed in with the invited address (built in M6) |
+| `/dashboard/books/new`, `/dashboard/books/{id}` | Add a book; one book's edits, release dates, cover, visibility, 90-day stats and change history (built in M6). The overview lists the books, so there's no `/dashboard/books` |
+| `/dashboard/paste` | Paste anything: a book list becomes drafts after the next editorial run (built in M6) |
+| `/dashboard/release/{token}` | "Still on for …?": confirm, change or delay a release from the email, no sign-in (built in M6) |
+| `/dashboard/stats` | Analytics across books (stats are per book for now) |
 | `/dashboard/promote`, `/dashboard/campaigns/{id}` | Ads (Phase 1.5) |
 | `/dashboard/write`, `/dashboard/interview` | Guest posts, interviews |
 | `/dashboard/billing` | Stripe Portal, credits, Author Pro |
@@ -2780,7 +2803,7 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 
 **Admin (`admin.readlitrpg.com`)**
 
-`/inbox`, `/dashboard`, `/catalog/*`, `/taxonomy`, `/editorial`, `/editorial/runs/{id}`, `/match`, `/quizzes`, `/traffic`, `/people/*`, `/ads/*`, `/billing/*`, `/blog/*`, `/newsletter/*`, `/automation/*`, `/settings`, `/audit`, `/security`
+`/inbox`, `/dashboard`, `/catalog/*` (with `/catalog/authors` and `/catalog/authors/{id}` for trust, official links, verification and members, M6), `/taxonomy`, `/editorial`, `/editorial/runs/{id}`, `/match`, `/quizzes`, `/traffic`, `/people/*`, `/ads/*`, `/billing/*`, `/blog/*`, `/newsletter/*`, `/automation/*`, `/settings`, `/audit`, `/security`
 
 Editorial API (Access service token + editorial token, §7.1): `POST /api/editorial/runs`, `POST /api/editorial/pull`, `POST /api/editorial/push`, `POST /api/editorial/runs/{id}/finish`, `GET /api/editorial/status`
 
@@ -2790,14 +2813,15 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 
 | Job | Cadence | Notes |
 |---|---|---|
-| `heartbeat` | every 5 min | Holds, campaign start/end, scheduled posts, inbox default actions (M2: for items whose change is already live), DLQ → inbox |
+| `heartbeat` | every 5 min | Holds, campaign start/end, scheduled posts, inbox default actions (M2: for items whose change is already live; M6: author items run their handlers, so a T0 listing publishes and a close-to-release date change applies), DLQ → inbox |
 | `audit.verify` | nightly 04:15 | Check the audit hash chain; a break opens a priority-100 inbox item (built in M0) |
 | `editorial.queue` | every 15 min | Queue classification, dedupe and research work (built in M2). Moderation, summaries and drafts join as their subjects arrive |
 | `editorial.watchdog` | hourly :23 | Return expired claims, close dead runs, alert if work waits with no successful run in `editorial.stale_hours` (built in M2) |
 | `editorial.citations` | every 10 min | Fetch the pages research runs cite; a page naming the title and an author confirms the seed (built in M2) |
-| `release.rollover` | hourly | Scheduled → released |
-| `release.confirm_asks` | daily 15:00 | T–14 and T–3 emails |
+| `release.rollover` | hourly :05 | Scheduled → released on the release's New York date (built in M6) |
+| `release.confirm_asks` | daily 15:00, 15:20, 15:40 | T–14 and T–3 "Still on for …?" emails to the book's owners, with a signed one-click link (built in M6) |
 | `release.unconfirmed_check` | daily 16:00 | Past-date follow-ups |
+| `authors.notices` | every 5 min | Email the author decisions waiting in the `author_notices` outbox (built in M6) |
 | `email.release_alerts` | every 10 min, 11:00–13:50 | Bundled release-day emails (follows set to "on release day") plus new books for instant saved searches; one email per reader a day, a KV cursor per day (built in M5) |
 | `email.welcome` | every 5 min | Due welcome-sequence steps: E1 on confirmation, then days 2, 5 and 9 (built in M5) |
 | `email.digest_build` | Thu 09:00 | Freeze the Patch Notes issue: the week's new books and the quiz of the week (built in M5) |
@@ -2808,7 +2832,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `blog.monthly_roundups` | 1st and 15th, 11:00 | Same |
 | `blog.editorial_drafts` | Wed 09:00 | Up to 2 drafts → inbox |
 | `interviews.invite` | daily 14:00 | Authors with releases 21–35 days out |
-| `authors.change_digest` | daily 17:00 | Change notifications to authors |
+| `authors.change_digest` | every 15 min, 17:00–18:45 | One email per author with the last day's changes made by others, 40 authors a run (built in M6) |
 | `vectors.update` | hourly :40 | Embed new and changed books (Workers AI REST, `embed.batch_size` a run) and flag near-duplicates; does nothing without `CF_ACCOUNT_ID`/`CF_API_TOKEN` (built in M2) |
 | `quiz.announce` | hourly :09 | Open a `quiz_ready` inbox item for each quiz in the code without a publish decision. The heartbeat publishes it after `quiz.auto_publish_hours` unless the owner retired it (built in M3) |
 | `match.model_build` | hourly :50 | Rebuild the feature matrix (dials, stats, tags, reduced embeddings, quality prior) and store it in KV under a content-derived version; skipped while a rollback pins the model (built in M3). "Books like X" is computed from it on request, so there is no `similar.update` job, and appraisals recalibrate as they arrive, so there is no `scores.recalibrate` job (§7.8 "As built") |
@@ -2822,7 +2846,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `inventory.generate` | nightly 04:30 | 120 days ahead |
 | `stripe.reconcile` | nightly 05:00 | 48 h lookback |
 | `backup.export` | nightly 03:00 | NDJSON parts plus a checksummed manifest → `BACKUPS` (`d1/daily/`, and `d1/monthly/` on the 1st). Live sessions and sign-in tokens are never exported (built in M0) |
-| `retention.purge` | nightly 05:30 | Expired sessions, sign-in tokens and rate counters; job history over 90 days; anonymous quiz takes over 90 days (M3); the email send log over 90 days, subscriptions never confirmed and expired export files (M5); audit rows over 7 years (built in M0) |
+| `retention.purge` | nightly 05:30 | Expired sessions, sign-in tokens and rate counters; job history over 90 days; anonymous quiz takes over 90 days (M3); the email send log over 90 days, subscriptions never confirmed and expired export files (M5); pasted book lists 7 days after they're read, sent author notices after 30 days and emailed change notes after 90 (M6); audit rows over 7 years (built in M0) |
 | `links.health` | weekly Tue 06:00 | Non-Amazon/Royal Road links only |
 | `research.next_volume` | weekly Wed 06:00 (series expecting a release soon); monthly for the rest | The research agent checks ongoing series for announced next books and feeds New & upcoming |
 | `owner.daily_digest` | daily 13:00 | Only if action is needed |
@@ -2848,7 +2872,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 |---|---|
 | `editorial.stale_hours` | 36 |
 | `editorial.max_claim` | 200 items per pull |
-| `editorial.priorities` | news > moderation > classify (T1+) > classify > summaries > drafts > audits. As built: `{moderate: 80, image_review: 80, classify: 60, dedupe: 55, research: 50}` (higher first) |
+| `editorial.priorities` | news > moderation > classify (T1+) > classify > summaries > drafts > audits. As built: `{moderate: 80, image_review: 80, classify: 60, dedupe: 55, research: 50}` (higher first); `import_extract` items are queued by `/dashboard/paste` at 52 (M6) |
 | `editorial.claim_hours` | 3 |
 | `editorial.queue_batch` | 200 items per kind each time the queue is built |
 | `editorial.circuit_reject_share` / `.circuit_min_proposals` | 0.2 / 10 |
@@ -2895,7 +2919,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 
 | Worker | Secrets / vars |
 |---|---|
-| `web` | Bindings (M4): `MEDIA` (read), `EVENTS`; (M5) `PRIVATE` (export downloads and deletes only). Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (the topic SES publishes bounces and complaints to; M5), `PUBLIC_*` site config |
+| `web` | Bindings (M4): `MEDIA` (read), `EVENTS`; (M5) `PRIVATE` (export downloads and deletes, and from M6 the originals of verified authors' cover uploads). Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key; also signs team invites and release check-ins from M6), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (the topic SES publishes bounces and complaints to; M5), `PUBLIC_*` site config |
 | `admin` | Bindings (M4): `PRIVATE`. Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Secrets: `ADMIN_AUTH_SECRET`, `EDITORIAL_TOKEN_HASH` (SHA-256 of the editorial token; two comma-separated during rotation), `EDITORIAL_ACCESS_CLIENT_IDS` (the Access service token allowed to call the editorial API), `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
 | `jobs` | Bindings (M4): `MEDIA`, `PRIVATE`, `IMAGES`. Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `EMAIL_FROM_NEWS` (M5), `PUBLIC_ORIGIN` (M5, links in emails), `SES_REGION`, `PUBLIC_MEDIA_ORIGIN`, `EVENTS_DATASET`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `LINK_SIGNING_KEYS` (M5, the same value as web), `CF_ACCOUNT_ID` and `CF_API_TOKEN` (Workers AI for embeddings, and *Account Analytics · Read* for `stats.rollup`; cache purges run inside the Worker; optional until embeddings are wanted), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY` (optional: without it, enrichment uses Open Library only), `DISCORD_ALERT_WEBHOOK` (optional) |
 | Cloud environment (editorial runs) | `EDITORIAL_TOKEN`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; network allowlist: readlitrpg.com plus web search |
