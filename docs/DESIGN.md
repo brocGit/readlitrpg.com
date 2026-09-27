@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v1.9: M0 (foundations), M1 (catalog core and seed), M2 (editorial pipeline) and M3 (match engine and discovery) built ([§20](#20-build-plan-and-milestones)) |
+| **Status** | v2.0: M0 (foundations), M1 (catalog core and seed), M2 (editorial pipeline), M3 (match engine and discovery) and M4 (public site) built ([§20](#20-build-plan-and-milestones)) |
 | **Owner** | Site owner (sole admin) |
 | **Last updated** | 2026-09-27 |
 | **Companion docs** | [`STRATEGY.md`](./STRATEGY.md) (the three-layer strategy and flywheel) · [`TAXONOMY.md`](./TAXONOMY.md) (tags, dials, book stats) · [`QUIZZES.md`](./QUIZZES.md) (quiz drafts, lead-gen funnel, onboarding) |
@@ -426,15 +426,16 @@ readlitrpg.com/
 |---|---|---|---|
 | `DB` | D1 | all | Primary database. No virtual tables, so `d1 export` works |
 | `SEARCH_DB` | D1 | web (read), jobs (write) | FTS5 index. Rebuilt from `DB` by a job |
-| `MEDIA` | R2 (public via `media.readlitrpg.com`) | all | Covers, blog images, OG images. Cookie-less domain |
-| `PRIVATE` | R2 (never public) | web, jobs | Upload originals, ARC files, data exports. Accessed only via short-lived signed URLs |
+| `MEDIA` | R2 (public via `media.readlitrpg.com`) | web (read), jobs (write) | Covers, blog images, OG images. Cookie-less domain. Built in M4; the web Worker's `/media` route serves the same objects where the domain isn't in front (local dev) |
+| `PRIVATE` | R2 (never public) | admin (write), jobs | Upload originals, ARC files, data exports. Accessed only via short-lived signed URLs. Built in M4 for cover originals |
+| `IMAGES` | Images binding | jobs | Re-encodes uploads to WebP variants and makes cover thumbnails for share cards (built in M4). Runs locally through sharp |
 | `BACKUPS` | R2 | jobs | Nightly NDJSON exports; lifecycle rule keeps 35 daily + 12 monthly |
 | `CONFIG` | KV | all | Read-through cache of `settings` and feature flags (60 s TTL), the heartbeat's last tick, and the versioned **match feature matrix** (§7.8) |
 | `Q_JOBS`, `Q_INGEST`, `Q_EMAIL`, `Q_MEDIA`, `Q_EVENTS` | Queues | producers: web/admin/jobs; consumer: jobs | Each has a DLQ. DLQ messages become inbox items. `Q_JOBS` carries scheduled job runs from the heartbeat (built in M0) |
 | `BOOK_PIPELINE`, `NEWSLETTER_SEND` | Workflows | jobs | Durable multi-step processes ([§7](#7-automation-and-ai-pipelines)) |
 | `BOOK_VECTORS` | Vectorize (768-d, cosine) | jobs (write), web (query) | **Deferred.** Vectors live in D1 (`book_embeddings`) and neighbors are found by brute force, which is fast enough for tens of thousands of books. Vectorize is the upgrade path |
 | Workers AI | REST API, not a binding | jobs | Embeddings. The `vectors.update` job calls the Workers AI endpoint with `CF_API_TOKEN` (scoped to Workers AI). An `ai` binding makes every local `wrangler dev` and CI run log in to Cloudflare |
-| `EVENTS` | Analytics Engine | web, jobs | Page views, impressions, clicks, follows (no raw IPs) |
+| `EVENTS` | Analytics Engine | web (write); jobs read it through the SQL API | Page views, impressions, clicks, follows (no raw IPs). Built in M4 for page views (dataset `rlr_events`) |
 | `RL_AUTH`, `RL_WRITE`, `RL_READ` | Rate limiting | web, admin | Periods must be 10 s or 60 s |
 
 ### 4.6 Request flow and caching
@@ -1533,6 +1534,17 @@ It's labeled honestly as notable releases, not all releases.
 - **Narrator page:** every LitRPG audiobook they narrated, plus upcoming releases. Narrator following is a LitRPG-specific differentiator.
 - **Tag pages:** `/tags/dungeon-core`. An auto-generated intro, checked by an independent editor-model pass and then locked; top books; new and upcoming releases; related tags; follow tag. These pages are the SEO backbone.
 
+**As built (M4).** Where the build differs from the plan above, and why:
+
+- **Reads:** each page does one lookup by slug, then one batched D1 round trip (`@rlr/core/site`); the book page's batch holds 8 statements. Merged books, series and authors answer with a 301 to the survivor, retired tags with a 301 to their replacement. Only published, unmerged books past any embargo are public.
+- **First sentence and structured data:** the first sentence answers "what is this" from the data (§17.2). Book, BookSeries, Person and BreadcrumbList JSON-LD and a canonical link are on every entity page. JSON-LD is a data block, which the CSP doesn't treat as script.
+- **Tag intros are the taxonomy's own definitions** (from `data/taxonomy.yaml`, written and reviewed with the vocabulary), not a separate AI-drafted text. Longer intros can come through an editorial run later. Tag pages rank books from the match model, as living lists do.
+- **Not yet:** follow buttons, marks and "Report a problem" need accounts (M5); "Claim this profile" arrives with authors (M6). Author bios and links show only once the author has verified the profile.
+- **Store links** carry the Amazon Associates tag from `affiliate.amazon_tag_web` when one is set, and the required disclosure appears next to them and in the footer (§16.4). With no tag they're plain links and there's no disclosure.
+- **Releases:** the owner sets release dates on the admin book page. A later date marks the release delayed and keeps the old one ("Delayed from …"). `/new` shows notable releases 60 days back to a year ahead, labeled as notable, not all.
+- **Feeds:** `/feeds/releases.xml` and `.ics`, and per tag `/feeds/tags/{slug}.xml` and `.ics`. The calendars only hold releases with a known day: a month-precision date never becomes an invented day.
+- **Search** uses the same title/series/author lookup as the match form (`/search`, noindex). The FTS index (`SEARCH_DB`) waits until the catalog outgrows it.
+
 ### 9.6 Follows and alerts
 
 - Follow **authors, series, narrators, tags, publishers** and individual **books** (for pre-release alerts).
@@ -2271,6 +2283,8 @@ Cross-Origin-Opener-Policy: same-origin
    - Marks the row `approved`, or sends it to the inbox.
 5. Readers only ever see re-encoded variants from `media.readlitrpg.com`.
 
+**As built (M4):** the owner uploads covers on the admin book page; author uploads to `web` come with M6. Variants are WebP at 160, 320 and 640 wide under a random prefix (`covers/{random}/w{width}.webp`), so pages build a `srcset` without a lookup. Processing runs as the `media.process` job on `Q_JOBS` rather than a separate `Q_MEDIA`. Covers from licensed sources (the owner's upload, Open Library) show at once and are reviewed after; a `block` verdict takes them down immediately. An upload always outranks a fetched cover. Open Library covers are fetched by the `media.covers` job, checked with looser size rules (they're often about 300 pixels wide), and stored the same way.
+
 ### 15.8 Outbound fetches (SSRF)
 
 The single `safeFetch()` in `jobs`, used for verification files, link checks and API calls:
@@ -2492,7 +2506,7 @@ Export, correction, deletion and objection (unsubscribe) are all **self-serve** 
 | JavaScript shipped on a public page | ≤ 30 KB (islands + beacon); 0 KB on blog posts except the beacon |
 | Largest Contentful Paint (p75, mobile) | ≤ 2.0 s |
 | Cache hit ratio, anonymous HTML | ≥ 85% |
-| D1 queries per uncached page render | ≤ 6, all indexed |
+| D1 queries per uncached page render | ≤ 6, all indexed. As built (M4): at most two round trips, a lookup plus one batch (up to 8 statements on book pages) |
 
 Covers use responsive `srcset` from the media domain, lazy-loaded below the fold. Fonts: system stack, or one self-hosted variable font.
 
@@ -2610,7 +2624,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | **M1: Catalog core and seed** ✅ built | Books, editions, releases, series, authors, narrators, links, tags and **dials** schema. Taxonomy seed. Provenance and precedence. Admin quick-add and CSV import. Entity resolution. Open Library/Google Books enrichment. Open Library dump import and AI seed import into the candidates pool (§7.15). *Status:* all built and tested (unit, and in the browser against workerd). The first AI seed is 101 series / 142 books in `data/seed/`, kept deliberately smaller than the 500–800 target: only authors and titles known with confidence. The rest comes from M2's research runs (which cite sources) and the Open Library dump extract, run once the dumps can be downloaded | 2 wks |
 | **M2: Editorial pipeline** ✅ built | `editorial_queue`, the editorial API (Access service token + scoped token), the `pnpm editorial pull/push` CLI, proposal schemas and server-side validation, publish policy engine, and skills for classify, dedupe, moderation and image review. Deterministic tag suggestions, Workers AI embeddings, eval harness + golden set (tags and dials), watchdog. Seed verification and the publication gate. **Scheduled routines** set up in the cloud environment. *Status:* all built and tested (unit, and in the browser: the console E2E drives a real run through the CLI). Research runs confirm seeds only after the server fetches the cited page. Embeddings use the Workers AI REST API and D1 instead of a binding and Vectorize (§7.2). The golden set's first slice is 74 books. The routines are written down (`docs/runbooks/editorial-runs.md`) and are created once the site is deployed and the tokens are in the environment | 2 wks |
 | **M3: Match engine and discovery** ✅ built | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, result pages, share cards, Party up, plus the launch set of fun quizzes (drafted in `data/quizzes/`). *Status:* all built and tested (unit, and in the browser: the console E2E rebuilds the model, matches from a loved book, and publishes, plays, shares and retires a quiz). Decisions are in §7.8 "As built". Each quiz in the code gets a `quiz_ready` inbox item and goes live 48 hours later unless the owner retires it in Admin → Quizzes (audited either way). The quiz factory (§7.16) is a skill plus a brief backlog. Pages rely on cache TTLs for freshness until cross-Worker cache purges are wired up | 4 wks |
-| **M4: Public site** | Home (match-first), book/series/author/narrator/tag pages, New & upcoming (curated), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics | 1.5–2 wks |
+| **M4: Public site** ✅ built | Home (match-first), book/series/author/narrator/tag pages, New & upcoming (curated), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics. *Status:* all built and tested (unit, and in the browser: the console E2E sets a release date through to `/new` and the calendar feed, uploads a cover that the jobs Worker re-encodes with the Images binding, checks the entity pages' structured data, the beacon, robots.txt and the sitemap, and waits for the quiz's PNG share cards drawn inside workerd). Decisions are in the "As built (M4)" notes in §9.5 and §15.7. PNG link previews come from resvg compiled to WebAssembly with the DejaVu fonts bundled into the jobs Worker (a 2.1 MB gzipped bundle) | 1.5–2 wks |
 | **M5: Readers and email** | Signup (double opt-in), onboarding with profile levels, quiz email capture and the welcome sequence, book marks and appraisals, saved matches/searches → alerts, follows, account/privacy (export/delete), Goodreads/StoryGraph library import, SES integration, templates, weekly digest Workflow, alerts, unsubscribe/suppression, SNS webhooks | 2 wks |
 | **M6: Authors** | Author onboarding, verification methods, submission flow (including paste-anything import and dial nudges), dashboard (books, to-dos, stats including match appearances, change history), protected fields, change notifications, release confirmation asks, team members | 1.5–2 wks |
 | **M7: Owner console and blog** | Inbox with default actions, bulk actions, undo; blog (post types, living lists, editor, shortcodes, validator, editorial calendar, guest pitch/submit/review, interviews, auto roundups); owner digests; house ads + ad engine (slots, inventory, serving, beacons, `/go/`) | 2 wks |
@@ -2713,7 +2727,9 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 | `/newsletter` | Signup + sample issue |
 | `/for-authors`, `/advertise`, `/write-for-us` | Author-facing marketing |
 | `/trust`, `/ai`, `/disclosures`, `/legal/{doc}` | Trust and legal |
-| `/feeds/releases.xml`, `/feeds/tags/{slug}.xml`, `/feeds/blog.xml`, `/feeds/tags/{slug}.ics` | Public feeds |
+| `/feeds/releases.xml`, `/feeds/releases.ics`, `/feeds/tags/{slug}.xml`, `/feeds/blog.xml`, `/feeds/tags/{slug}.ics` | Public feeds (all but the blog feed built in M4) |
+| `/robots.txt`, `/sitemap.xml`, `/sitemaps/{type}-{n}.xml` | Crawler policy and sitemaps (built in M4) |
+| `/media/{key}` | MEDIA objects where `media.readlitrpg.com` isn't in front, e.g. local dev (built in M4) |
 | `/feeds/{token}.ics` | Private per-user calendar |
 | `/go/{token}` | Click redirect |
 | `/e` | Beacon (POST) |
@@ -2744,7 +2760,7 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 
 **Admin (`admin.readlitrpg.com`)**
 
-`/inbox`, `/dashboard`, `/catalog/*`, `/taxonomy`, `/editorial`, `/editorial/runs/{id}`, `/match`, `/quizzes`, `/people/*`, `/ads/*`, `/billing/*`, `/blog/*`, `/newsletter/*`, `/automation/*`, `/settings`, `/audit`, `/security`
+`/inbox`, `/dashboard`, `/catalog/*`, `/taxonomy`, `/editorial`, `/editorial/runs/{id}`, `/match`, `/quizzes`, `/traffic`, `/people/*`, `/ads/*`, `/billing/*`, `/blog/*`, `/newsletter/*`, `/automation/*`, `/settings`, `/audit`, `/security`
 
 Editorial API (Access service token + editorial token, §7.1): `POST /api/editorial/runs`, `POST /api/editorial/pull`, `POST /api/editorial/push`, `POST /api/editorial/runs/{id}/finish`, `GET /api/editorial/status`
 
@@ -2775,7 +2791,10 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `match.model_build` | hourly :50 | Rebuild the feature matrix (dials, stats, tags, reduced embeddings, quality prior) and store it in KV under a content-derived version; skipped while a rollback pins the model (built in M3). "Books like X" is computed from it on request, so there is no `similar.update` job, and appraisals recalibrate as they arrive, so there is no `scores.recalibrate` job (§7.8 "As built") |
 | `saved_queries.alerts` | daily 12:00 (instant) / with the digest | New books matching saved matches and searches |
 | `search.sync` / `search.rebuild` | on change / weekly Sun 03:00 | FTS index |
-| `stats.rollup` | hourly | Analytics Engine → daily tables |
+| `stats.rollup` | hourly :17 | Analytics Engine → `page_views_daily` and `referrers_daily` for the last two days, idempotent; needs `CF_ACCOUNT_ID`/`CF_API_TOKEN` (built in M4) |
+| `media.covers` | every 15 min | Licensed covers from Open Library for up to 10 books without one, by cover id then ISBN; retried after 30 days (built in M4) |
+| `media.process` | every 5 min, plus immediately on upload | Re-encode pending images into WebP variants, attach covers, queue image review (built in M4) |
+| `og.render` | every 15 min, plus immediately on quiz publish | Link-preview PNGs: the site card, reader classes, live quiz results and changed books (built in M4) |
 | `trust.recompute` | nightly 04:00 | Trust levels |
 | `inventory.generate` | nightly 04:30 | 120 days ahead |
 | `stripe.reconcile` | nightly 05:00 | 48 h lookback |
@@ -2822,6 +2841,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `match.bounced_penalty` | 0.3 |
 | `match.classic_slugs` | `[]` (empty: the Match Quiz asks about the most complete published book 1s) |
 | `quiz.fun_effect_importance` | 0.3 (relative to Match Quiz answers = 1.0) |
+| `affiliate.amazon_tag_web` | empty (plain store links, no disclosure) |
 | `quiz.auto_publish_hours` | 48 (0 = new quizzes wait for the owner) |
 | `quiz.balance_max_share` / `.min_share` | 0.25 / 0.03 (8 outcomes; scaled by outcome count) |
 | `match.min_display_score` | 0.60 |
@@ -2849,9 +2869,9 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 
 | Worker | Secrets / vars |
 |---|---|
-| `web` | Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (to validate), `PUBLIC_*` site config |
-| `admin` | Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `RP_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Secrets: `ADMIN_AUTH_SECRET`, `EDITORIAL_TOKEN_HASH` (SHA-256 of the editorial token; two comma-separated during rotation), `EDITORIAL_ACCESS_CLIENT_IDS` (the Access service token allowed to call the editorial API), `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
-| `jobs` | Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `SES_REGION`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `CF_ACCOUNT_ID` and `CF_API_TOKEN` (Workers AI for embeddings, and Analytics Engine read later; cache purges run inside the Worker; optional until embeddings are wanted), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY` (optional: without it, enrichment uses Open Library only), `DISCORD_ALERT_WEBHOOK` (optional) |
+| `web` | Bindings (M4): `MEDIA` (read), `EVENTS`. Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (to validate), `PUBLIC_*` site config |
+| `admin` | Bindings (M4): `PRIVATE`. Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Secrets: `ADMIN_AUTH_SECRET`, `EDITORIAL_TOKEN_HASH` (SHA-256 of the editorial token; two comma-separated during rotation), `EDITORIAL_ACCESS_CLIENT_IDS` (the Access service token allowed to call the editorial API), `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
+| `jobs` | Bindings (M4): `MEDIA`, `PRIVATE`, `IMAGES`. Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `SES_REGION`, `PUBLIC_MEDIA_ORIGIN`, `EVENTS_DATASET`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `CF_ACCOUNT_ID` and `CF_API_TOKEN` (Workers AI for embeddings, and *Account Analytics · Read* for `stats.rollup`; cache purges run inside the Worker; optional until embeddings are wanted), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY` (optional: without it, enrichment uses Open Library only), `DISCORD_ALERT_WEBHOOK` (optional) |
 | Cloud environment (editorial runs) | `EDITORIAL_TOKEN`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; network allowlist: readlitrpg.com plus web search |
 | CI (GitHub environments) | `CLOUDFLARE_API_TOKEN` (Workers + D1 edit, one account), `CLOUDFLARE_ACCOUNT_ID`, off-platform backup credentials |
 

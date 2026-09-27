@@ -33,6 +33,10 @@ Run from the repository root.
 pnpm --filter @rlr/web exec wrangler d1 create rlr-db
 pnpm --filter @rlr/web exec wrangler kv namespace create CONFIG
 pnpm --filter @rlr/jobs exec wrangler r2 bucket create rlr-backups
+# Media (M4): public variants and private originals (DESIGN §15.7)
+pnpm --filter @rlr/jobs exec wrangler r2 bucket create rlr-media
+pnpm --filter @rlr/jobs exec wrangler r2 bucket create rlr-private
+pnpm --filter @rlr/jobs exec wrangler r2 bucket domain add rlr-media --domain media.readlitrpg.com --zone-id <readlitrpg.com zone id>
 for q in rlr-jobs rlr-email rlr-jobs-dlq rlr-email-dlq; do pnpm --filter @rlr/jobs exec wrangler queues create "$q"; done
 
 # 2. Backup lifecycle (DESIGN §15.12): 35 daily copies, 12 monthly
@@ -57,6 +61,12 @@ openssl rand -base64 48 | pnpm exec wrangler secret put ADMIN_AUTH_SECRET
 7. Make the owner an admin: [bootstrap-admin.md](bootstrap-admin.md).
 8. Set `DEPLOY_ENABLED=true` in GitHub. From then on every merge to `main` deploys after your approval.
 9. Editorial runs (M2): the service token, the editorial token and the scheduled routines are in [editorial-runs.md](editorial-runs.md).
+10. Media and analytics (M4):
+    - `rlr-media` is served at `media.readlitrpg.com` (the custom domain in step 1): cookie-less, and every object is immutable. `rlr-private` stays private; nothing links to it.
+    - The jobs Worker's `IMAGES` binding needs Cloudflare Images turned on for the account (Images → Plans). Re-encoding covers uses transformations: the free allowance covers thousands of covers a month.
+    - The Analytics Engine dataset `rlr_events` is created by the first page view; nothing to set up.
+    - `stats.rollup` reads it with the jobs Worker's `CF_ACCOUNT_ID` / `CF_API_TOKEN` (the same pair as embeddings, M2). Give that token *Account · Account Analytics · Read* as well as *Workers AI · Read*.
+    - For store links to carry an Amazon Associates tag, set `affiliate.amazon_tag_web` in Admin → Settings once the Associates account exists. The Amazon disclosure appears on the site as soon as it's set.
 
 ## Staging (before launch)
 
