@@ -11,3 +11,7 @@ IP_HASH_SALT_SEED=local-dev-only-salt
 LINK_SIGNING_KEYS={"k1":"local-dev-only-link-key-not-for-production-000000"}
 # Cloudflare's always-pass Turnstile test site key. Leave TURNSTILE_SECRET unset locally to skip verification.
 TURNSTILE_SITE_KEY=1x00000000000000000000AA
+# Payments run against a local fake Stripe (checkout and portal pages under /dev/stripe). The
+# webhook secret below signs the fake's events; production uses the endpoint's whsec_ secret.
+STRIPE_PROVIDER=fake
+STRIPE_WEBHOOK_SECRET=whsec_local_dev_only_not_for_production

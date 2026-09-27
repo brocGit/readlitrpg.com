@@ -1,0 +1,81 @@
+---
+import Base from "../../layouts/Base.astro";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+
+// The advertising terms (DESIGN §11.10, §12): what buyers of placements and Author Pro agree to.
+// Plain language; the rules here are the ones the code applies.
+const UPDATED = "2026-09-27";
+---
+
+<Base title="Advertising terms" description="The rules for promotions and Author Pro on ReadLitRPG: what we accept, payment, cancellations, refunds and reporting." canonical="/legal/advertising">
+  <div class="prose">
+    <h1>Advertising terms</h1>
+    <p class="muted">Last updated {UPDATED}.</p>
+
+    <h2>Who can advertise</h2>
+    <p>
+      Authors who manage a profile on ReadLitRPG, for books listed on that profile. Only a profile's owners can pay. A restricted
+      profile can't buy promotions.
+    </p>
+
+    <h2>What we accept</h2>
+    <p>Ads for in-scope books in our catalog (LitRPG, progression fantasy, GameLit, cultivation and close relatives). We don't accept:</p>
+    <ul>
+      <li>books outside that scope, or books with plagiarism or rights disputes;</li>
+      <li>misleading claims, including rankings or awards we can't check;</li>
+      <li>explicit imagery, and books flagged explicit in the homepage Spotlight;</li>
+      <li>links anywhere but one of the book's own store or platform pages;</li>
+      <li>sweepstakes that require a purchase.</li>
+    </ul>
+    <p>
+      Every ad is labeled "Sponsored" and links with <code>rel="sponsored"</code>. We review each ad before it runs and may refuse
+      one; a refused ad is refunded in full, automatically.
+    </p>
+
+    <h2>Prices and payment</h2>
+    <p>
+      Prices are in US dollars and shown before you pay. The price of a placement is fixed when its dates are generated, so a later
+      price change never affects a booking. Payment is by card through Stripe, which handles your card details: we never see or
+      store them. Credits and promotion codes are applied first. Your dates are held for about 30 minutes while you pay.
+    </p>
+
+    <h2>Cancellations and refunds</h2>
+    <table>
+      <thead><tr><th>When</th><th>What you get</th></tr></thead>
+      <tbody>
+        <tr><td>We don't approve the ad</td><td>A full refund, automatically</td></tr>
+        <tr><td>You cancel 7 days or more before the start</td><td>A full refund, or credit if you prefer</td></tr>
+        <tr><td>You cancel 2 to 7 days before the start</td><td>Half the price as credit</td></tr>
+        <tr><td>Less than 48 hours before the start</td><td>No refund: it runs as booked</td></tr>
+        <tr><td>We fail to deliver (for example, a newsletter doesn't go out)</td><td>Credit for what you missed, or you can ask to rebook</td></tr>
+      </tbody>
+    </table>
+    <p>
+      Card refunds usually take 5–10 days to appear. Credits have no cash value, can't be transferred, and stay on your profile while
+      it's open. Unspent Sponsored Match budget at the end of its dates becomes credit.
+    </p>
+
+    <h2>Reporting and privacy</h2>
+    <p>
+      You see totals: how often the ad was shown and seen, clicks, and new followers of the book. We filter out bots and email link
+      scanners. We never share who saw or clicked an ad, and advertisers never receive readers' emails.
+    </p>
+
+    <h2>Author Pro</h2>
+    <p>
+      Author Pro renews each month or year until you cancel, which you can do at any time from Billing; it then runs to the end of
+      the period you've paid for. Its promotion credit arrives once a quarter while the subscription is active. Verification and
+      listing stay free whether or not you subscribe.
+    </p>
+
+    <h2>Chargebacks</h2>
+    <p>
+      If a payment is disputed with your bank, the profile can't buy promotions and its upcoming ones pause while we look into it.
+      Please talk to us first: reply to any email from us.
+    </p>
+
+    <h2>Changes</h2>
+    <p>We may update these terms. Changes apply to bookings made after the date above, never to ones already paid for.</p>
+  </div>
+</Base>

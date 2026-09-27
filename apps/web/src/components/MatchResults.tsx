@@ -5,6 +5,7 @@
 import type { MatchInputs } from "@rlr/core/match";
 import { useEffect, useState } from "preact/hooks";
 import type { MatchResponse, ResultCard } from "../lib/match";
+import type { SponsoredCard } from "../lib/sponsored";
 import SaveMatch from "./SaveMatch";
 
 const TUNE_DIALS = [
@@ -115,16 +116,44 @@ function Card({
   );
 }
 
+/** One labeled Sponsored Match (DESIGN §11.3), fetched and counted per reader, never cached. */
+function Sponsored({ card }: { card: SponsoredCard }) {
+  return (
+    <aside class="ad-card sponsored" aria-label={`Sponsored: ${card.headline}`}>
+      <p class="ad-label">Sponsored · {card.percent}% match</p>
+      <div>
+        <h3>
+          <a href={card.href} rel="sponsored noopener">
+            {card.headline}
+          </a>
+        </h3>
+        <p class="muted small">
+          <a href={`/books/${card.book.slug}`}>{card.book.title}</a>
+          {card.book.series ? ` · ${card.book.series}` : ""} · {card.book.authors}
+        </p>
+        {card.body && <p>{card.body}</p>}
+        <a class="button small" href={card.href} rel="sponsored noopener">
+          {card.cta}
+        </a>
+      </div>
+    </aside>
+  );
+}
+
 export default function MatchResults({
   initial,
   inputs: startInputs,
   siteKey,
+  pt,
 }: {
   initial: MatchResponse;
   inputs: MatchInputs;
   siteKey: string | null;
+  /** The results page's token: Sponsored Match impressions count only with it. */
+  pt?: string;
 }) {
   const [data, setData] = useState(initial);
+  const [sponsored, setSponsored] = useState<SponsoredCard | null>(null);
   const [inputs, setInputs] = useState<MatchInputs>(startInputs);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +171,26 @@ export default function MatchResults({
     )
       return;
     nav.sendBeacon("/e", JSON.stringify({ p: location.pathname, m: slugs }));
+  }, [data]);
+
+  // At most one Sponsored Match per results set, for a book this reader matches well.
+  useEffect(() => {
+    if (!pt || !data.ready || data.best.length === 0) return;
+    const shown = [...data.best, ...data.more, ...(data.wildcard ? [data.wildcard] : [])].map((b) => b.slug);
+    let live = true;
+    fetch("/api/sponsored", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-rlr-pt": pt },
+      body: JSON.stringify({ inputs, shown }),
+    })
+      .then(async (r) => (r.ok ? ((await r.json()) as { card: SponsoredCard | null }) : { card: null }))
+      .then((j) => {
+        if (live) setSponsored(j.card);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
   }, [data]);
 
   async function rerun(next: MatchInputs) {
@@ -207,6 +256,7 @@ export default function MatchResults({
           {data.best.map((c) => (
             <Card key={c.slug} card={c} full onRelax={relax} onFeedback={feedback} />
           ))}
+          {sponsored && <Sponsored card={sponsored} />}
           {data.more.length > 0 && <h2>More matches</h2>}
           {data.more.map((c) => (
             <Card key={c.slug} card={c} full={false} onRelax={relax} onFeedback={feedback} />

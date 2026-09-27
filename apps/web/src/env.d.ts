@@ -6,6 +6,8 @@ declare namespace Cloudflare {
     TURNSTILE_SECRET?: string;
     /** The SNS topic SES publishes bounces and complaints to (docs/runbooks/email-setup.md). */
     SNS_TOPIC_ARN?: string;
+    /** A restricted Stripe key: Checkout Sessions, Customers, Coupons, Portal sessions (M8). */
+    STRIPE_SECRET_KEY?: string;
   }
 }
 

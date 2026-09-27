@@ -2,6 +2,7 @@ export * from "./credits";
 export * from "./events";
 export * from "./fake";
 export * from "./orders";
+export * from "./pro";
 export * from "./promo";
 export * from "./provider";
 export * from "./refunds";

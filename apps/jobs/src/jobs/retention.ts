@@ -2,7 +2,8 @@
 // past seven years (oldest first, so the chain still verifies from its new first row), anonymous quiz
 // takes after 90 days (their counts stay in quiz_daily; QUIZZES §4.3), the email send log after 90
 // days, subscriptions never confirmed, and data exports past their link's life. Authors' pasted text
-// goes a week after it's read, sent notices after 30 days and emailed change notes after 90.
+// goes a week after it's read, sent notices after 30 days and emailed change notes after 90. Stripe
+// events processed or ignored go after 90 days (M8): Stripe keeps them, and orders hold the outcome.
 
 import { AUDIT_RETENTION_DAYS } from "@rlr/core/audit";
 import { purgeSentNotices } from "@rlr/core/authors";
@@ -18,6 +19,7 @@ import {
   newsTips,
   rateCounters,
   sessions,
+  stripeEvents,
   verifications,
 } from "@rlr/core/schema";
 import { and, eq, inArray, lt, ne } from "drizzle-orm";
@@ -45,6 +47,11 @@ export async function purgeExpired(ctx: JobContext): Promise<number> {
     db
       .delete(newsTips)
       .where(and(inArray(newsTips.status, ["used", "rejected"]), lt(newsTips.updatedAt, daysAgo(90)))),
+    db
+      .delete(stripeEvents)
+      .where(
+        and(inArray(stripeEvents.status, ["processed", "ignored"]), lt(stripeEvents.receivedAt, daysAgo(90))),
+      ),
   ]);
   const notices = await purgeSentNotices(db, now);
   const takes = await purgeAnonymousTakes(db, now);

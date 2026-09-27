@@ -15,6 +15,8 @@ interface Env {
   /** Optional: post it to Mastodon (the instance's https URL and an access token with write:statuses). */
   MASTODON_URL?: string;
   MASTODON_TOKEN?: string;
+  /** A restricted Stripe key: read Checkout Sessions, subscriptions, invoices, charges, disputes; refunds (M8). */
+  STRIPE_SECRET_KEY?: string;
   /** Optional: a private Discord channel's webhook for the owner's instant alerts (DESIGN §8.4). */
   DISCORD_ALERT_WEBHOOK?: string;
 }

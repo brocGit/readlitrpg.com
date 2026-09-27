@@ -29,7 +29,7 @@ export function parseLinkKeys(json: string | undefined): LinkKeys {
   return { current, keys };
 }
 
-export type LinkPurpose = "unsub" | "mark" | "export" | "invite" | "release" | "go";
+export type LinkPurpose = "unsub" | "mark" | "export" | "invite" | "release" | "go" | "pt";
 
 const b64 = (s: string) => toBase64Url(new TextEncoder().encode(s));
 const unb64 = (s: string) => {

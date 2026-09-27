@@ -197,6 +197,12 @@ export const JOBS = [
     description: "Keep ad inventory 120 days ahead: one unit per slot and day (or week) with its price",
   },
   {
+    key: "stripe.events",
+    cron: "*/5 * * * *",
+    description:
+      "Process recorded Stripe webhook events (a verified webhook also queues this at once), then expire lost checkouts",
+  },
+  {
     key: "owner.alerts",
     cron: "*/5 * * * *",
     description: "Tell the owner at once about security events, disputes, circuit breakers and urgent items",

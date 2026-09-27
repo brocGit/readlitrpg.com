@@ -73,7 +73,13 @@ export type AuthorNotice =
   | "guest_declined"
   | "interview_invite"
   | "interview_ready"
-  | "interview_scheduled";
+  | "interview_scheduled"
+  | "ad_scheduled"
+  | "ad_rejected"
+  | "ad_cancelled"
+  | "ad_report"
+  | "makegood"
+  | "pro_welcome";
 
 /** One short email per decision. `payload` fields are optional and escaped. */
 export function renderAuthorNotice(
@@ -279,6 +285,99 @@ export function renderAuthorNotice(
           ),
         ],
       );
+    case "ad_scheduled": {
+      const url = `${o.origin}/dashboard/promote/${s("campaignId")}`;
+      return compose("Your promotion is approved", "It runs on the dates you booked.", [
+        part(system("[Quest accepted]"), "[Quest accepted]"),
+        part(
+          p(
+            `<strong>${escapeHtml(s("title"))}</strong> is approved and starts on ${escapeHtml(s("startAt").slice(0, 10))}. You'll see what it delivered on its page, updated hourly.`,
+          ),
+          `${s("title")} is approved and starts on ${s("startAt").slice(0, 10)}.`,
+        ),
+        part(button(url, "See the promotion"), `See it: ${url}`),
+      ]);
+    }
+    case "ad_rejected":
+      return compose("We couldn't run your promotion", "You've been refunded in full.", [
+        part(
+          p(`We couldn't run <strong>${escapeHtml(s("title"))}</strong>, and you've been refunded in full.`),
+          `We couldn't run ${s("title")}, and you've been refunded in full.`,
+        ),
+        ...(note ? [part(p(escapeHtml(note)), note)] : []),
+        part(
+          muted("Card refunds take 5–10 days to show. Credits are back in your balance now."),
+          "Card refunds take 5–10 days to show. Credits are back in your balance now.",
+        ),
+        dash,
+      ]);
+    case "ad_cancelled": {
+      const cents = (k: string) => (typeof o.payload[k] === "number" ? (o.payload[k] as number) : 0);
+      const back = [
+        cents("cardCents") ? `$${(cents("cardCents") / 100).toFixed(2)} to your card` : "",
+        cents("creditCents") ? `$${(cents("creditCents") / 100).toFixed(2)} as credit` : "",
+      ].filter(Boolean);
+      const line = back.length
+        ? `You get ${back.join(" and ")}.`
+        : "Within 48 hours of the start there's no refund.";
+      return compose("Promotion cancelled", line, [
+        part(
+          p(`<strong>${escapeHtml(s("title"))}</strong> is cancelled. ${escapeHtml(line)}`),
+          `${s("title")} is cancelled. ${line}`,
+        ),
+        dash,
+      ]);
+    }
+    case "ad_report": {
+      const url = `${o.origin}/dashboard/promote/${s("campaignId")}`;
+      const n = (k: string) => (typeof o.payload[k] === "number" ? (o.payload[k] as number) : 0);
+      const lines = [
+        `${n("impressions").toLocaleString("en-US")} times shown`,
+        `${n("viewable").toLocaleString("en-US")} seen for a second or more`,
+        ...(n("emailSends") ? [`${n("emailSends").toLocaleString("en-US")} in emails`] : []),
+        `${n("clicks").toLocaleString("en-US")} clicks`,
+        `${n("followsGained")} new followers of the book`,
+      ];
+      return compose(`How ${s("title")} did`, lines.join(", "), [
+        part(system("[Quest complete] Your promotion's report"), "[Quest complete] Your promotion's report"),
+        part(
+          `<ul style="margin:0 0 12px;padding-left:20px;">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>`,
+          lines.map((l) => `- ${l}`).join("\n"),
+        ),
+        part(
+          muted("Numbers leave out bots and email link scanners. We never share who saw it."),
+          "Numbers leave out bots and email link scanners.",
+        ),
+        part(button(url, "See the full report"), `Full report: ${url}`),
+      ]);
+    }
+    case "makegood":
+      return compose("We owe you a placement", "A credit is in your balance.", [
+        part(
+          p(
+            `${escapeHtml(s("reason") || "Something on our side went wrong")}, so <strong>${escapeHtml(s("title"))}</strong> didn't get everything you paid for. We've added ${escapeHtml(s("amount"))} of credit to your balance. Sorry about that.`,
+          ),
+          `${s("reason") || "Something on our side went wrong"}, so ${s("title")} didn't get everything you paid for. We've added ${s("amount")} of credit to your balance.`,
+        ),
+        part(
+          muted("Reply to this email if you'd rather rebook the same placement."),
+          "Reply to this email if you'd rather rebook the same placement.",
+        ),
+        dash,
+      ]);
+    case "pro_welcome": {
+      const url = `${o.origin}/dashboard/billing`;
+      return compose("Welcome to Author Pro", "Thanks for supporting ReadLitRPG.", [
+        part(system("[Class unlocked] Author Pro"), "[Class unlocked] Author Pro"),
+        part(
+          p(
+            "Your submissions and edits go to the front of our review queue, promo credit arrives each quarter, and your book pages show which kinds of readers the match engine sends you.",
+          ),
+          "Priority review, promo credit each quarter, and which kinds of readers the match engine sends you.",
+        ),
+        part(button(url, "Billing and credits"), `Billing and credits: ${url}`),
+      ]);
+    }
     case "interview_ready":
       return compose("Your interview is ready to approve", "Check it, then approve or change your answers.", [
         part(

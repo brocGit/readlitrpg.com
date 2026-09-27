@@ -1,0 +1,52 @@
+---
+import { type FakeStripe, StripeError } from "@rlr/core/billing";
+import Base from "../../../../layouts/Base.astro";
+import { deliverFakeEvents, fakeStripeOn, getStripe } from "../../../../lib/billing";
+import { money } from "../../../../lib/promote";
+
+// The local fake's checkout page (development and browser tests only). "Pay" completes the
+// session and delivers the events Stripe would send, signed, through the real webhook handler.
+if (!fakeStripeOn()) return new Response(null, { status: 404 });
+const fake = getStripe() as FakeStripe;
+const id = Astro.params.id ?? "";
+let session: Awaited<ReturnType<FakeStripe["retrieveCheckoutSession"]>> & {
+  success_url?: string;
+  cancel_url?: string;
+};
+try {
+  session = await fake.retrieveCheckoutSession(id);
+} catch (e) {
+  if (e instanceof StripeError) return new Response(null, { status: 404 });
+  throw e;
+}
+let error: string | null = null;
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  if (form.get("action") === "cancel") return Astro.redirect(session.cancel_url ?? "/", 303);
+  try {
+    await deliverFakeEvents(await fake.completeCheckout(id));
+    return Astro.redirect(session.success_url ?? "/", 303);
+  } catch (e) {
+    if (!(e instanceof StripeError)) throw e;
+    error = e.message;
+  }
+}
+---
+
+<Base title="Test checkout" noIndex>
+  <h1>Test checkout</h1>
+  <p class="notice" role="status">A stand-in for Stripe Checkout in local development. No card, no charge.</p>
+  {error && <p class="notice error" role="alert">{error}</p>}
+  <p>
+    {session.mode === "subscription" ? "Subscription" : "Payment"}: <strong>{money(session.amount_total ?? 0)}</strong> ·
+    status {session.status}
+  </p>
+  {
+    session.status === "open" && (
+      <form method="post" class="inline">
+        <button class="button" name="action" value="pay" type="submit">Pay (test)</button>
+        <button class="button secondary" name="action" value="cancel" type="submit">Back</button>
+      </form>
+    )
+  }
+</Base>

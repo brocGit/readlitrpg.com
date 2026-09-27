@@ -137,6 +137,8 @@ export const campaigns = sqliteTable(
     cpmCents: integer("cpm_cents"),
     spentMillicents: integer("spent_millicents").notNull().default(0),
     qualifiedImpressions: integer("qualified_impressions").notNull().default(0),
+    // When a finished paid campaign was settled: unspent budget credited, report emailed (M8).
+    settledAt: text("settled_at"),
     createdBy: text("created_by"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

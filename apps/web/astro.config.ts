@@ -78,6 +78,9 @@ export default defineConfig({
     "/news/[slug]": { maxAge: 900, swr: 3600 },
     "/news/[yyyy]/[mm]/[dd]": { maxAge: 900, swr: 3600 },
     "/feeds/blog.xml": { maxAge: 900, swr: 3600 },
+    // Advertising (M8): prices and terms change rarely.
+    "/advertise": { maxAge: 3600, swr: 86400 },
+    "/legal/advertising": { maxAge: 86400, swr: 86400 },
     "/feeds/news.xml": { maxAge: 300, swr: 900 },
   },
 });

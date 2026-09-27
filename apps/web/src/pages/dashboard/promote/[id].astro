@@ -1,0 +1,221 @@
+---
+import {
+  campaignDetail,
+  campaignReport,
+  cancellationTerms,
+  cancelPromotion,
+  expireOrder,
+  leftoverCents,
+  PromotionError,
+  SPONSORED_MATCH,
+  stopSponsoredMatch,
+} from "@rlr/core/ads";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { profileAccess } from "../../../lib/authors";
+import { getStripe } from "../../../lib/billing";
+import { log } from "../../../lib/log";
+import { CAMPAIGN_STATUS, day, money, ORDER_STATUS } from "../../../lib/promote";
+import { getDb } from "../../../lib/runtime";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+import "../../../styles/site.css";
+
+// One promotion (DESIGN §10.5, §11.6): its status, the ad as readers see it, what was paid, what
+// it delivered against the product's typical click rate, and cancelling by the §11.10 rules.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect(`/signin?next=${encodeURIComponent(Astro.url.pathname)}`, 303);
+const db = getDb();
+const id = Astro.params.id ?? "";
+const detail = await campaignDetail(db, id);
+const authorId = detail?.advertiser.ownerType === "author" ? (detail.advertiser.ownerId ?? "") : "";
+const access = detail ? await profileAccess(Astro.locals, authorId) : null;
+if (!detail || !access) return new Response(null, { status: 404 });
+const here = `/dashboard/promote/${id}`;
+let message: { ok: boolean; text: string } | null = Astro.url.searchParams.get("paid")
+  ? { ok: true, text: "Payment received. We check the ad, then email you when it's scheduled." }
+  : Astro.url.searchParams.get("cancelled")
+    ? { ok: false, text: "Checkout cancelled. Nothing was charged; the dates stay held for a few minutes." }
+    : Astro.url.searchParams.get("done")
+      ? { ok: true, text: String(Astro.url.searchParams.get("done")).slice(0, 200) }
+      : null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  // Money decisions are the owners'.
+  if (!(await profileAccess(Astro.locals, authorId, "owner"))) {
+    message = { ok: false, text: "Only the profile's owners can change a paid promotion." };
+  } else if (form.get("action") === "release") {
+    // Give the dates back now instead of waiting for the checkout to expire.
+    const open = detail.orders.find((o) => o.status === "open");
+    const stripe = getStripe();
+    if (open?.stripeCheckoutSessionId && stripe)
+      await stripe.expireCheckoutSession(open.stripeCheckoutSessionId).catch(() => undefined);
+    if (open) await expireOrder(db, open.id);
+    return Astro.redirect(`${here}?done=${encodeURIComponent("Released. Nothing was charged.")}`, 303);
+  } else if (form.get("action") === "stop") {
+    // Stop a running Sponsored Match: what's left becomes credit when it's settled (within the hour).
+    await stopSponsoredMatch(db, id);
+    return Astro.redirect(
+      `${here}?done=${encodeURIComponent("Stopped. The unspent budget becomes credit within the hour.")}`,
+      303,
+    );
+  } else if (form.get("action") === "cancel") {
+    try {
+      const r = await cancelPromotion(db, getStripe(), id, {
+        choice: form.get("choice") === "credit" ? "credit" : "refund",
+        byUserId: session.userId,
+      });
+      const parts = [
+        r.cardCents ? `${money(r.cardCents)} back to your card` : "",
+        r.creditCents ? `${money(r.creditCents)} as credit` : "",
+      ].filter(Boolean);
+      return Astro.redirect(
+        `${here}?done=${encodeURIComponent(`Cancelled${parts.length ? `: ${parts.join(" and ")}` : ""}.`)}`,
+        303,
+      );
+    } catch (e) {
+      if (!(e instanceof PromotionError)) {
+        log.error("promote.cancel_failed", { error: e });
+        message = { ok: false, text: "That didn't work. Nothing changed; please try again." };
+      } else message = { ok: false, text: e.message };
+    }
+  }
+}
+
+const c = detail.campaign;
+const report = await campaignReport(db, id);
+const terms = cancellationTerms(c.startAt);
+const cancellable = ["in_review", "approved", "scheduled", "paused"].includes(c.status) && terms.allowed;
+const open = detail.orders.find((o) => o.status === "open");
+const isSponsored = detail.product.key === SPONSORED_MATCH;
+const pct = (n: number | null) => (n === null ? "–" : `${(n * 100).toFixed(1)}%`);
+---
+
+<Base title={detail.product.name} noIndex>
+  <h1>{detail.product.name}</h1>
+  <DashNav authorId={authorId} />
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  <p>
+    <span class="badge">{CAMPAIGN_STATUS[c.status] ?? c.status}</span>
+    {day(c.startAt)}{c.endAt && day(c.endAt) !== day(c.startAt) ? ` to ${day(c.endAt)}` : ""}
+    {detail.book && <> · <a href={`/books/${detail.book.slug}`}>{detail.book.title}</a></>}
+  </p>
+  {
+    isSponsored && c.budgetCents && (
+      <p>
+        Budget {money(c.budgetCents)} · spent {money(Math.ceil(c.spentMillicents / 1000))} on{" "}
+        {c.qualifiedImpressions.toLocaleString("en-US")} readers who matched ·{" "}
+        {c.status === "completed" ? `${money(leftoverCents(c))} left over, returned as credit` : `${money(leftoverCents(c))} left`}
+      </p>
+    )
+  }
+  {
+    isSponsored && ["scheduled", "live", "paused"].includes(c.status) && Date.parse(c.startAt) <= Date.now() && (
+      <form method="post" class="inline">
+        <input type="hidden" name="action" value="stop" />
+        <button class="button small secondary" type="submit">Stop now (the rest becomes credit)</button>
+      </form>
+    )
+  }
+  {c.status === "rejected" && detail.creative?.reviewNotes && <p class="notice error">{detail.creative.reviewNotes}</p>}
+
+  {
+    detail.creative && (
+      <section>
+        <h2>The ad</h2>
+        <aside class="ad-card sponsored" aria-label={`Sponsored: ${detail.creative.headline}`}>
+          <p class="ad-label">Sponsored</p>
+          <div>
+            <h3>{detail.creative.headline}</h3>
+            {detail.creative.body && <p>{detail.creative.body}</p>}
+            <span class="button small">{detail.creative.ctaLabel}</span>
+          </div>
+        </aside>
+      </section>
+    )
+  }
+
+  {
+    open && (
+      <form method="post" class="inline">
+        <input type="hidden" name="action" value="release" />
+        <button class="button small secondary" type="submit">Not paying after all? Release the dates</button>
+      </form>
+    )
+  }
+
+  <section>
+    <h2>Payment</h2>
+    {
+      detail.orders.length === 0 ? (
+        <p class="muted">None.</p>
+      ) : (
+        <table class="dash-books">
+          <thead><tr><th>Date</th><th>Price</th><th>Code</th><th>Credits</th><th>Card</th><th>Refunded</th><th>Status</th></tr></thead>
+          <tbody>
+            {detail.orders.map((o) => (
+              <tr>
+                <td>{day(o.createdAt)}</td>
+                <td>{money(o.amountCents)}</td>
+                <td>{o.discountCents ? `−${money(o.discountCents)}` : "–"}</td>
+                <td>{o.creditsCents ? money(o.creditsCents) : "–"}</td>
+                <td>{o.chargedCents ? money(o.chargedCents) : "–"}</td>
+                <td>{o.refundedCents ? money(o.refundedCents) : "–"}</td>
+                <td>{ORDER_STATUS[o.status] ?? o.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+    <p class="muted">Receipts and invoices: <a href="/dashboard/billing">Billing</a>.</p>
+  </section>
+
+  {
+    report && (
+      <section>
+        <h2>What it delivered</h2>
+        <div class="stats">
+          <div class="stat"><strong>{report.totals.impressions.toLocaleString("en-US")}</strong> shown on the site</div>
+          <div class="stat"><strong>{report.totals.viewable.toLocaleString("en-US")}</strong> seen for a second or more</div>
+          {report.totals.emailSends > 0 && <div class="stat"><strong>{report.totals.emailSends.toLocaleString("en-US")}</strong> in emails</div>}
+          <div class="stat"><strong>{report.totals.clicks.toLocaleString("en-US")}</strong> clicks ({pct(report.totals.ctr)})</div>
+          <div class="stat"><strong>{report.followsGained}</strong> new followers of the book</div>
+        </div>
+        <p class="muted">
+          {report.benchmarkCtr === null
+            ? "A typical click rate for this placement shows once enough promotions have finished."
+            : `Typical click rate for this placement: ${pct(report.benchmarkCtr)}.`}{" "}
+          Numbers update hourly and leave out bots and link scanners. We never share who saw it.
+        </p>
+        {report.days.length > 0 && (
+          <table class="dash-books">
+            <thead><tr><th>Day</th><th>Shown</th><th>Seen</th><th>Emails</th><th>Clicks</th></tr></thead>
+            <tbody>{report.days.map((d) => <tr><td>{d.date}</td><td>{d.impressions}</td><td>{d.viewable}</td><td>{d.emailSends}</td><td>{d.clicks}</td></tr>)}</tbody>
+          </table>
+        )}
+      </section>
+    )
+  }
+
+  {
+    cancellable && (
+      <section>
+        <h2>Cancel</h2>
+        <p>Cancelling now gets {terms.label}. The dates go back on sale.</p>
+        <form method="post" class="stack">
+          <input type="hidden" name="action" value="cancel" />
+          {!terms.creditOnly && (
+            <fieldset>
+              <label class="check"><input type="radio" name="choice" value="refund" checked /> Refund to my card</label>
+              <label class="check"><input type="radio" name="choice" value="credit" /> Keep it as credit for another promotion</label>
+            </fieldset>
+          )}
+          <button class="button secondary" type="submit">Cancel this promotion</button>
+        </form>
+      </section>
+    )
+  }
+</Base>

@@ -25,7 +25,7 @@ import InboxKeys from "../components/InboxKeys.tsx";
 import Console from "../layouts/Console.astro";
 import { adminActor } from "../lib/admin-session";
 import { audit, flash, readForm } from "../lib/forms";
-import { getDb, renderEnv } from "../lib/runtime";
+import { getDb, getStripe, renderEnv } from "../lib/runtime";
 
 const admin = await Astro.locals.admin();
 if (!admin) return Astro.redirect("/signin", 303);
@@ -61,6 +61,7 @@ async function decide(
         now: new Date(),
         settings,
         renderEnv: renderEnv(),
+        stripe: getStripe(),
       },
     );
     changed = outcome.changed;
@@ -326,6 +327,23 @@ const recommendation: Record<string, string> = {
                   <p>
                     <a href={`/blog/${field(item.payload, "postId") ?? item.subjectId}`}>Read it in the editor</a>. Approve
                     publishes it (guest posts and interviews take their calendar slot); reject keeps it off the site.
+                  </p>
+                )}
+                {item.type === "ad_review" && (
+                  <div>
+                    <p><strong>{field(item.payload, "headline")}</strong></p>
+                    {field(item.payload, "body") && <p>{field(item.payload, "body")}</p>}
+                    <p class="muted">
+                      {field(item.payload, "bookId") && <><a href={`/catalog/books/${field(item.payload, "bookId")}`}>The book</a> · </>}
+                      <a href={`/billing/campaigns/${field(item.payload, "campaignId") ?? item.subjectId}`}>The campaign and its payment</a>.
+                      Approve schedules it; reject releases its dates and refunds in full (the note goes to the author).
+                    </p>
+                  </div>
+                )}
+                {item.type === "dispute" && (
+                  <p>
+                    <a href={`/billing/orders/${field(item.payload, "orderId") ?? item.subjectId}`}>The order</a>. Respond to the
+                    dispute in the Stripe dashboard with the booking record; the order updates itself when it closes.
                   </p>
                 )}
                 {item.type === "author_report" && (

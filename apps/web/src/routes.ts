@@ -112,6 +112,20 @@ export const ROUTES = {
   "/dashboard/news": SIGNED_IN,
   "/dashboard/books/[id]": SIGNED_IN,
   "/dashboard/release/[token]": PUBLIC,
+  // Money (M8). Stripe's webhook checks its signature itself. The dashboard pages check the
+  // member's access to each profile and campaign. The /dev/stripe pages are the local fake's
+  // checkout and portal: they 404 unless the fake Stripe is on, which only local development allows.
+  "/api/webhooks/stripe": PUBLIC,
+  // Sponsored Match: same-origin only (the POST origin check), with the results page's token.
+  "/api/sponsored": PUBLIC,
+  "/dashboard/promote": SIGNED_IN,
+  "/dashboard/promote/new": SIGNED_IN,
+  "/dashboard/promote/[id]": SIGNED_IN,
+  "/dashboard/billing": SIGNED_IN,
+  "/advertise": PUBLIC,
+  "/legal/advertising": PUBLIC,
+  "/dev/stripe/checkout/[id]": PUBLIC,
+  "/dev/stripe/portal/[customer]": PUBLIC,
 } satisfies RouteRegistry;
 
 /**
@@ -119,11 +133,16 @@ export const ROUTES = {
  * proof (an SNS signature, or a signed link for RFC 8058 one-click unsubscribes from mail apps).
  * Every other POST must come from our own origin (see middleware.ts).
  */
-export const CROSS_SITE_POSTS: ReadonlySet<string> = new Set(["/api/webhooks/ses", "/u/[token]"]);
+export const CROSS_SITE_POSTS: ReadonlySet<string> = new Set([
+  "/api/webhooks/ses",
+  "/api/webhooks/stripe",
+  "/u/[token]",
+]);
 
 /** Routes whose responses are personal and must never be cached anywhere. */
 export const PRIVATE_PREFIXES = [
   "/account",
+  "/dev/",
   "/api/",
   "/welcome",
   "/subscribe/confirm",

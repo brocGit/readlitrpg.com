@@ -61,6 +61,18 @@ export const AD_PRODUCTS: ProductDef[] = [
     slots: ["newsletter_top"],
   },
   {
+    // Budget-paced (§11.3): no slots or inventory; one labeled place in match results, chosen per
+    // reader and counted on our server. The price is per 1,000 qualified impressions.
+    key: "sponsored_match",
+    name: "Sponsored Match",
+    description: "One labeled place in match results, shown only to readers the book matches well.",
+    surface: "match",
+    basePriceCents: 800,
+    period: "day",
+    targeting: "none",
+    slots: [],
+  },
+  {
     key: "newsletter_standard",
     name: "Newsletter Featured Book",
     description: "A standard featured slot in one Patch Notes issue.",

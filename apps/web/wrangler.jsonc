@@ -19,7 +19,9 @@
     "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com",
     "RP_ID": "readlitrpg.com",
     "EMAIL_DELIVERY": "queue",
-    "TURNSTILE_SITE_KEY": "set-at-launch"
+    "TURNSTILE_SITE_KEY": "set-at-launch",
+    // Payments (M8): "stripe" with the STRIPE_SECRET_KEY secret; "fake" only in local development.
+    "STRIPE_PROVIDER": "stripe"
   },
   "d1_databases": [
     {
@@ -39,7 +41,13 @@
   ],
   // Page views from the beacon (DESIGN §4.5): counts only, no IPs or cookies.
   "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "rlr_events" }],
-  "queues": { "producers": [{ "binding": "Q_EMAIL", "queue": "rlr-email" }] },
+  // Q_JOBS (M8): a verified Stripe webhook queues its processing straight away.
+  "queues": {
+    "producers": [
+      { "binding": "Q_EMAIL", "queue": "rlr-email" },
+      { "binding": "Q_JOBS", "queue": "rlr-jobs" }
+    ]
+  },
   "ratelimits": [
     { "name": "RL_AUTH", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
     { "name": "RL_WRITE", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },

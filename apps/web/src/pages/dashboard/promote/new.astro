@@ -1,0 +1,251 @@
+---
+import {
+  AD_PRODUCTS,
+  PAID_CTAS,
+  PAID_PRODUCTS,
+  PromotionError,
+  type PromotionInput,
+  promotableBooks,
+  type Quote,
+  quotePromotion,
+  SPONSORED_MATCH,
+  startPromotion,
+  startSponsoredMatch,
+} from "@rlr/core/ads";
+import { bookAuthorIds } from "@rlr/core/authors";
+import { indexOfBook, similarTo } from "@rlr/core/match";
+import { can } from "@rlr/core/policy";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { profileAccess } from "../../../lib/authors";
+import { getStripe } from "../../../lib/billing";
+import { log } from "../../../lib/log";
+import { getMatrix } from "../../../lib/match";
+import { money } from "../../../lib/promote";
+import { env, getDb } from "../../../lib/runtime";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// Book a promotion (DESIGN §11.4): product, book and dates, then the price and what's free, then
+// the creative and payment. Prices come from our inventory; the form never sends one.
+const session = await Astro.locals.session();
+if (!session)
+  return Astro.redirect(`/signin?next=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`, 303);
+const db = getDb();
+const settings = await Astro.locals.settings();
+const method = Astro.request.method;
+const form = method === "POST" ? await Astro.request.formData() : null;
+const param = (k: string) => String((form ? form.get(k) : Astro.url.searchParams.get(k)) ?? "").trim();
+
+const authorId = param("author");
+// Money goes through a profile's owners only.
+const access = await profileAccess(Astro.locals, authorId, "owner");
+if (!access) return Astro.redirect("/dashboard/promote", 303);
+const books = await promotableBooks(db, authorId);
+
+const lead = new Date(Date.now() + settings["ads.min_lead_days"] * 86_400_000).toISOString().slice(0, 10);
+const productKey = param("product") || "home_spotlight";
+const sponsored = productKey === SPONSORED_MATCH;
+const product = AD_PRODUCTS.find(
+  (p) => p.key === productKey && (sponsored || (PAID_PRODUCTS as readonly string[]).includes(p.key)),
+);
+const bookId = param("book") || books[0]?.id || "";
+const book = books.find((b) => b.id === bookId) ?? null;
+const startDate = param("start") || lead;
+const periods = Math.max(1, Math.min(settings["ads.max_periods"], Number(param("periods") || 1)));
+const target = param("target");
+// Sponsored Match: a budget in dollars over a number of days (§11.3).
+const budgetDollars = Math.max(
+  0,
+  Math.round(Number(param("budget") || settings["ads.sponsored_match_min_budget_cents"] / 100)),
+);
+const days = Math.max(1, Math.min(settings["ads.sponsored_match_max_days"], Number(param("days") || 14)));
+const cpm = settings["ads.sponsored_match_cpm_cents"];
+
+/** A Books-Like Sponsor's book must be among the page book's top 50 matches (§11.2). */
+async function guardFor(): Promise<((id: string) => boolean) | undefined> {
+  if (product?.targeting !== "book" || !target) return undefined;
+  const m = await getMatrix();
+  const i = m ? indexOfBook(m).get(target) : undefined;
+  if (!m || i === undefined) return () => false;
+  const top = new Set(similarTo(m, i, 50).map((s) => m.ids[s.i] ?? ""));
+  return (id) => top.has(id);
+}
+
+let error: string | null = null;
+let quote: Quote | null = null;
+const input = (): PromotionInput => ({
+  productKey,
+  bookId,
+  startDate,
+  periods,
+  target: target || null,
+  headline: param("headline"),
+  body: param("body") || null,
+  cta: param("cta"),
+  destinationLinkId: param("link"),
+  promoCode: param("code") || null,
+});
+
+if (!settings["flags.ads_paid"]) error = "Promotions aren't on sale yet.";
+else if (!product || !book) error = books.length ? null : "Publish a book on this profile first.";
+else if (param("step") || form) {
+  const authorIds = await bookAuthorIds(db, bookId);
+  if (!can(access.actor, "promotion.buy", { type: "book", authorIds }).ok)
+    error = "This profile can't buy promotions.";
+  else if (form) {
+    if (form.get("terms") !== "on") error = "Please agree to the advertising terms.";
+    else {
+      try {
+        const common = {
+          authorId,
+          userId: session.userId,
+          email: session.email,
+          settings,
+          siteOrigin: env.PUBLIC_ORIGIN.replace(/\/$/, ""),
+        };
+        const r = sponsored
+          ? await startSponsoredMatch(db, getStripe(), {
+              ...common,
+              input: { ...input(), budgetCents: budgetDollars * 100, days },
+            })
+          : await startPromotion(db, getStripe(), { ...common, input: input(), guard: await guardFor() });
+        return Astro.redirect(r.redirect, 303);
+      } catch (e) {
+        if (!(e instanceof PromotionError)) {
+          log.error("promote.start_failed", { error: e });
+          error = "Payment couldn't start. Nothing was charged; please try again.";
+        } else error = e.message;
+      }
+    }
+  }
+  if (sponsored) {
+    // Nothing to reserve: the budget buys qualified impressions over the flight.
+  } else if (!error || form) {
+    try {
+      quote = await quotePromotion(db, input(), settings, { guard: await guardFor() });
+    } catch (e) {
+      if (!(e instanceof PromotionError)) throw e;
+      error ??= e.message;
+    }
+  }
+}
+const prices = settings["ads.prices"];
+const per = (p: (typeof AD_PRODUCTS)[number]) =>
+  p.period === "day" ? "a day" : p.period === "week" ? "a week" : "an issue";
+const hook = book ? `${book.title}` : "";
+---
+
+<Base title="Book a promotion" noIndex>
+  <h1>Book a promotion</h1>
+  <DashNav authorId={authorId} />
+  {error && <p class="notice error" role="alert">{error}</p>}
+  <form method="get" class="stack">
+    <input type="hidden" name="author" value={authorId} />
+    <input type="hidden" name="step" value="quote" />
+    <fieldset>
+      <legend>What</legend>
+      {
+        AD_PRODUCTS.filter((p) => (PAID_PRODUCTS as readonly string[]).includes(p.key) || p.key === SPONSORED_MATCH).map((p) => (
+          <label class="check">
+            <input type="radio" name="product" value={p.key} checked={p.key === productKey} />
+            <span>
+              <strong>{p.name}</strong>, {p.key === SPONSORED_MATCH ? `${money(cpm)} per 1,000 readers shown` : `${money(prices[p.key] ?? p.basePriceCents)} ${per(p)}`}. <span class="muted">{p.description}</span>
+            </span>
+          </label>
+        ))
+      }
+    </fieldset>
+    <div class="field">
+      <label for="book">Book</label>
+      <select id="book" name="book">{books.map((b) => <option value={b.id} selected={b.id === bookId}>{b.title}</option>)}</select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="start">Starting</label><input id="start" name="start" type="date" min={lead} value={startDate} required /></div>
+      <div class="field">
+        <label for="periods">For how many days or weeks</label>
+        <input id="periods" name="periods" type="number" min="1" max={settings["ads.max_periods"]} value={periods} />
+      </div>
+    </div>
+    <div class="field">
+      <label for="target">Tag (Tag Page Sponsor) or book page (Books-Like Sponsor)</label>
+      <input id="target" name="target" value={target} maxlength="200" placeholder="e.g. dungeon-core, or a book's slug" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="budget">Sponsored Match budget ($)</label>
+        <input id="budget" name="budget" type="number" min={settings["ads.sponsored_match_min_budget_cents"] / 100} max="5000" value={budgetDollars} />
+      </div>
+      <div class="field">
+        <label for="days">Sponsored Match days</label>
+        <input id="days" name="days" type="number" min="1" max={settings["ads.sponsored_match_max_days"]} value={days} />
+      </div>
+    </div>
+    <button class="button secondary" type="submit">Check availability and price</button>
+  </form>
+
+  {
+    quote && (
+      <section>
+        <h2>Price and dates</h2>
+        <table class="dash-books">
+          <thead><tr><th>Period</th><th>Place</th><th>Price</th></tr></thead>
+          <tbody>
+            {quote.units.map((u) => (
+              <tr><td>{u.periodStart === u.periodEnd ? u.periodStart : `${u.periodStart} to ${u.periodEnd}`}</td><td>{u.slot.replaceAll("_", " ")}</td><td>{money(u.priceCents)}</td></tr>
+            ))}
+            {quote.unavailable.map((d) => <tr><td>{d}</td><td colspan="2" class="muted">Already booked</td></tr>)}
+          </tbody>
+        </table>
+        <p>Total: <strong>{money(quote.amountCents)}</strong>. Credits and a promotion code apply at the next step.</p>
+      </section>
+    )
+  }
+
+  {
+    sponsored && param("step") && book && (
+      <section>
+        <h2>Budget</h2>
+        <p>
+          <strong>{money(budgetDollars * 100)}</strong> over {days} day{days === 1 ? "" : "s"} from {startDate}: about{" "}
+          {Math.floor((budgetDollars * 100 * 1000) / cpm).toLocaleString("en-US")} readers who match the book at{" "}
+          {Math.round(settings["ads.sponsored_match_min_score"] * 100)}% or better. Spend is spread evenly over the days; whatever
+          isn't spent becomes credit.
+        </p>
+      </section>
+    )
+  }
+
+  {
+    ((sponsored && param("step")) || (quote && quote.unavailable.length === 0)) && book && (
+      <section>
+        <h2>Your ad</h2>
+        <p class="muted">It's labeled "Sponsored" and links to the book's own page on the store you pick. We check it before it runs.</p>
+        <form method="post" class="stack">
+          <input type="hidden" name="author" value={authorId} />
+          <input type="hidden" name="product" value={productKey} />
+          <input type="hidden" name="book" value={bookId} />
+          <input type="hidden" name="start" value={startDate} />
+          <input type="hidden" name="periods" value={String(periods)} />
+          <input type="hidden" name="target" value={target} />
+          <input type="hidden" name="budget" value={String(budgetDollars)} />
+          <input type="hidden" name="days" value={String(days)} />
+          <div class="field"><label for="headline">Headline (up to 60 characters)</label><input id="headline" name="headline" maxlength="60" required value={param("headline") || hook} /></div>
+          <div class="field"><label for="body">A line about the book (up to 200)</label><textarea id="body" name="body" maxlength="200" rows="2">{param("body")}</textarea></div>
+          <div class="field-row">
+            <div class="field"><label for="cta">Button</label><select id="cta" name="cta">{PAID_CTAS.map((c) => <option value={c} selected={c === param("cta")}>{c}</option>)}</select></div>
+            <div class="field">
+              <label for="link">Goes to</label>
+              <select id="link" name="link">{book.links.map((l) => <option value={l.id} selected={l.id === param("link")}>{l.kind.replaceAll("_", " ")}: {new URL(l.url).hostname}</option>)}</select>
+            </div>
+          </div>
+          {book.links.length === 0 && <p class="notice error">Add a store link to the book first: the ad's button goes there.</p>}
+          <div class="field"><label for="code">Promotion code (optional)</label><input id="code" name="code" maxlength="32" value={param("code")} autocomplete="off" /></div>
+          <label class="check"><input type="checkbox" name="terms" required /> I agree to the <a href="/legal/advertising">advertising terms</a>, including the refund rules.</label>
+          <button class="button" type="submit" disabled={book.links.length === 0}>Continue to payment ({money(sponsored ? budgetDollars * 100 : (quote?.amountCents ?? 0))})</button>
+        </form>
+      </section>
+    )
+  }
+</Base>

@@ -119,7 +119,7 @@ const pct = (a: number, b: number) => (b ? `${((100 * a) / b).toFixed(1)}%` : "â
       <input type="hidden" name="action" value="create" />
       <label>Name <input name="name" maxlength="120" required /></label>
       <label>Product
-        <select name="product">{AD_PRODUCTS.map((p) => <option value={p.key}>{p.name}</option>)}</select>
+        <select name="product">{AD_PRODUCTS.filter((p) => p.slots.length > 0).map((p) => <option value={p.key}>{p.name}</option>)}</select>
       </label>
       <label>Mode
         <select name="mode"><option value="backfill">Backfill (fills unsold positions)</option><option value="reserved">Reserved (books the slot)</option></select>

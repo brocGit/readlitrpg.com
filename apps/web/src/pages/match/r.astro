@@ -8,20 +8,23 @@ import Base from "../../layouts/Base.astro";
 import { runMatch } from "../../lib/match";
 import { turnstileSiteKey } from "../../lib/runtime";
 import { mediaUrl } from "../../lib/site";
+import { sponsoredPageToken } from "../../lib/sponsored";
 import "../../styles/discover.css";
 import "../../styles/reader.css";
+import "../../styles/site.css";
 
 const p = Astro.url.searchParams.get("p") ?? "";
 const inputs = decodeInputs(p);
 if (!inputs) return Astro.redirect("/match", 303);
 const data = await runMatch(inputs, await Astro.locals.settings());
 Astro.cache.set({ tags: ["match"] });
+const pt = await sponsoredPageToken();
 const title = data.readerClass ? `Matches for ${data.readerClass.name}` : "Your matches";
 ---
 
 <Base title={title} description="LitRPG and progression fantasy matches, with reasons and honest heads-ups." noIndex ogImage={data.readerClass ? mediaUrl(classOgKey(data.readerClass.key)) : null}>
   <h1>{title}</h1>
   {data.loved.length > 0 && <p class="muted">Because you loved {data.loved.map((l) => l.title).join(", ")}.</p>}
-  <MatchResults client:load initial={data} inputs={inputs} siteKey={turnstileSiteKey()} />
+  <MatchResults client:load initial={data} inputs={inputs} siteKey={turnstileSiteKey()} pt={pt} />
   <p><a href="/match">Start over</a> · <a href="/match/quiz">Take the Match Quiz</a></p>
 </Base>

@@ -1,0 +1,66 @@
+---
+import { AD_PRODUCTS, PAID_PRODUCTS } from "@rlr/core/ads";
+import Base from "../layouts/Base.astro";
+import { money } from "../lib/promote";
+import "../styles/discover.css";
+import "../styles/reader.css";
+
+// Advertise (DESIGN §11): what an author can buy, what it costs, and the rules, in plain words.
+// Prices and on-sale state are site settings, the same for every visitor, so the page caches.
+const settings = await Astro.locals.settings();
+const prices = settings["ads.prices"];
+const onSale = settings["flags.ads_paid"];
+const pro = settings["flags.author_pro"];
+const per = (p: (typeof AD_PRODUCTS)[number]) =>
+  p.period === "day" ? "a day" : p.period === "week" ? "a week" : "an issue";
+const products = AD_PRODUCTS.filter((p) => (PAID_PRODUCTS as readonly string[]).includes(p.key));
+---
+
+<Base title="Advertise your book" description="Put your LitRPG or progression fantasy book in front of readers who want it: labeled placements, paid up front, with honest numbers." canonical="/advertise">
+  <div class="prose">
+    <h1>Advertise your book</h1>
+    <p class="lead">
+      Fixed places on the site and in Patch Notes, bought for a set period. Every reader in that place sees your book, clearly
+      labeled "Sponsored". No auctions, no tracking scripts.
+    </p>
+    {!onSale && <p class="notice" role="status">Paid placements open soon. Meanwhile, listing your books is free.</p>}
+    <h2>Placements</h2>
+    <ul>
+      {products.map((p) => (
+        <li><strong>{p.name}</strong>, {money(prices[p.key] ?? p.basePriceCents)} {per(p)}. {p.description}</li>
+      ))}
+      <li>
+        <strong>Sponsored Match</strong>, {money(settings["ads.sponsored_match_cpm_cents"])} per 1,000 readers it's shown to: one labeled
+        place in match results, shown only to readers your book matches at {Math.round(settings["ads.sponsored_match_min_score"] * 100)}% or
+        better, and never against their stated no's. Prepaid budget, from {money(settings["ads.sponsored_match_min_budget_cents"])}.
+      </li>
+    </ul>
+    <h2>How it works</h2>
+    <ol>
+      <li>Pick a placement, your book and the dates in your <a href="/dashboard/promote">author dashboard</a>.</li>
+      <li>Write a headline and a line about the book. The button goes to one of your book's own store links.</li>
+      <li>Pay by card through Stripe, or with credits. We never see your card.</li>
+      <li>We check the ad. If we can't run it, you're refunded in full, automatically.</li>
+      <li>It runs on your dates. You see what it delivered, hourly: shown, seen, clicks and new followers. Never who.</li>
+    </ol>
+    <h2>If plans change</h2>
+    <ul>
+      <li>Cancel 7 days or more before the start: a full refund, or credit if you'd rather.</li>
+      <li>2 to 7 days before: half the price back as credit.</li>
+      <li>Within 48 hours: it runs as booked.</li>
+      <li>If we fail to deliver (say, a newsletter doesn't go out), you get credit for what you missed.</li>
+    </ul>
+    {pro && (
+      <>
+        <h2>Author Pro</h2>
+        <p>
+          {money(settings["billing.author_pro_month_cents"])} a month or {money(settings["billing.author_pro_year_cents"])} a year: your
+          submissions reviewed first, {money(settings["billing.author_pro_quarterly_credit_cents"])} of promotion credit each quarter, and
+          which kinds of readers the match engine sends to your books. Verification stays free for everyone.
+        </p>
+      </>
+    )}
+    <p><a class="button" href="/dashboard/promote">Go to Promote</a></p>
+    <p class="muted small">By booking you agree to the <a href="/legal/advertising">advertising terms</a>.</p>
+  </div>
+</Base>

@@ -11,3 +11,5 @@ ACCESS_DEV_EMAIL=owner@example.com
 # Local only: the SHA-256 of the well-known local editorial token "local-editorial-token-not-a-secret",
 # which `pnpm editorial --env local` sends. Production uses a real hash set with wrangler secret put.
 EDITORIAL_TOKEN_HASH=f8d6c23c82bdd709f88b0268936efe5d1ee7041222ab3ac2509750dabe20dad5
+# Refunds go through the local fake Stripe, shared with the other Workers through the CONFIG KV.
+STRIPE_PROVIDER=fake

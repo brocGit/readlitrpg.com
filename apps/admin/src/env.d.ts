@@ -17,5 +17,7 @@ declare namespace Cloudflare {
   interface Env {
     /** Access service-token client IDs allowed to call the editorial API, comma-separated. */
     EDITORIAL_ACCESS_CLIENT_IDS?: string;
+    /** A restricted Stripe key: refunds, and reading payments for reconciliation (M8). */
+    STRIPE_SECRET_KEY?: string;
   }
 }

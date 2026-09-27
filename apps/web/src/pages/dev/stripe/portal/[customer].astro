@@ -1,0 +1,44 @@
+---
+import type { FakeStripe } from "@rlr/core/billing";
+import Base from "../../../../layouts/Base.astro";
+import { deliverFakeEvents, fakeStripeOn, getStripe } from "../../../../lib/billing";
+
+// The local fake's Customer Portal (development and browser tests only): cancel a subscription.
+if (!fakeStripeOn()) return new Response(null, { status: 404 });
+const fake = getStripe() as FakeStripe;
+const customer = Astro.params.customer ?? "";
+// Only back to our own pages.
+const back = Astro.url.searchParams.get("return") ?? "/";
+const returnTo = back.startsWith("/") || back.startsWith(Astro.url.origin) ? back : "/";
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const sub = String(form.get("sub") ?? "");
+  const mine = (await fake.subscriptionsFor(customer)).some((s) => s.id === sub);
+  if (mine) await deliverFakeEvents(await fake.cancelSubscription(sub, form.get("when") === "end"));
+  return Astro.redirect(returnTo, 303);
+}
+const subs = await fake.subscriptionsFor(customer);
+---
+
+<Base title="Test billing portal" noIndex>
+  <h1>Test billing portal</h1>
+  <p class="notice" role="status">A stand-in for Stripe's Customer Portal in local development.</p>
+  {subs.length === 0 && <p class="muted">No subscriptions.</p>}
+  <ul class="rows">
+    {
+      subs.map((s) => (
+        <li>
+          <span>{s.id} · {s.status}{s.cancel_at_period_end ? " (ends at period end)" : ""}</span>
+          {s.status !== "canceled" && (
+            <form method="post" class="inline">
+              <input type="hidden" name="sub" value={s.id} />
+              <button class="button small secondary" name="when" value="end" type="submit">Cancel at period end</button>
+              <button class="button small secondary" name="when" value="now" type="submit">Cancel now</button>
+            </form>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+  <p><a href={returnTo}>Back</a></p>
+</Base>

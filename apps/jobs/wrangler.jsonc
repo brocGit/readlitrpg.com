@@ -24,6 +24,8 @@
     "PUBLIC_ORIGIN": "https://readlitrpg.com",
     // Links in the owner's emails (digests, alerts) point here.
     "ADMIN_ORIGIN": "https://admin.readlitrpg.com",
+    // Payments (M8): "stripe" with the STRIPE_SECRET_KEY secret; "fake" only in local development.
+    "STRIPE_PROVIDER": "stripe",
     "SES_REGION": "us-east-1",
     // Where readers see the MEDIA bucket; image review runs open covers from here.
     "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com",

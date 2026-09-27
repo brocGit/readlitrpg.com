@@ -37,6 +37,7 @@ import { sendReleaseAlerts } from "./jobs/alerts";
 import { verifyAudit } from "./jobs/audit-verify";
 import { rollover, sendAuthorNotices, sendChangeDigests, sendReleaseAsks } from "./jobs/authors";
 import { exportBackup } from "./jobs/backup";
+import { processStripe, stripeClient } from "./jobs/billing";
 import { buildDigestIssue, sendDigestChunk } from "./jobs/digest";
 import { buildQueue, checkCitations, watchdog } from "./jobs/editorial";
 import { enrichCatalog } from "./jobs/enrich";
@@ -98,6 +99,7 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "blog.weekly_roundup": weeklyRoundup,
   "blog.monthly_roundups": monthlyRoundups,
   "inventory.generate": generateAdInventory,
+  "stripe.events": processStripe,
   "owner.alerts": ownerAlerts,
   "owner.daily_digest": ownerDailyDigest,
   "owner.weekly_summary": ownerWeeklySummary,
@@ -138,6 +140,8 @@ export default {
           origin: (env.PUBLIC_ORIGIN ?? "").replace(/\/$/, ""),
           mediaOrigin: (env.PUBLIC_MEDIA_ORIGIN ?? "").replace(/\/$/, ""),
         },
+        // A default rejection of a paid ad refunds it (M8).
+        stripe: stripeClient({ env }),
       });
       defaults += await wakeSnoozed(db, now);
       const published = await publishDueQuizzes(db, now);

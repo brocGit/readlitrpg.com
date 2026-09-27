@@ -1,0 +1,82 @@
+---
+import { advertiserOf, campaignsOf } from "@rlr/core/ads";
+import { profilesFor } from "@rlr/core/authors";
+import { creditBalance } from "@rlr/core/billing";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { CAMPAIGN_STATUS, day, money } from "../../../lib/promote";
+import { getDb } from "../../../lib/runtime";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// Promote (DESIGN §10.5): the author's campaigns, credits, and a way to book a placement.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/dashboard/promote", 303);
+const db = getDb();
+const profiles = await profilesFor(db, session.userId);
+if (profiles.length === 0) return Astro.redirect("/dashboard/start", 303);
+const settings = await Astro.locals.settings();
+const onSale = settings["flags.ads_paid"];
+const sections = await Promise.all(
+  profiles.map(async (p) => {
+    const adv = await advertiserOf(db, p.id);
+    return {
+      profile: p,
+      credits: adv ? await creditBalance(db, adv.id) : 0,
+      campaigns: adv ? await campaignsOf(db, [adv.id]) : [],
+    };
+  }),
+);
+const prices = settings["ads.prices"];
+---
+
+<Base title="Promote" noIndex>
+  <h1>Promote</h1>
+  <DashNav authorId={profiles[0]?.id} />
+  <p class="lead">
+    Put a book in front of readers who want it: labeled placements on the homepage, tag pages, "books like" pages and in
+    Patch Notes. You pay up front and see what it delivered.
+  </p>
+  {
+    !onSale && (
+      <p class="notice" role="status">Promotions open soon. Everything below will be ready when they do.</p>
+    )
+  }
+  <p class="muted">
+    From {money(Math.min(...Object.values(prices)))} a placement. <a href="/advertise">What each one is and costs</a> ·
+    <a href="/legal/advertising">Advertising terms</a> · <a href="/dashboard/billing">Billing and receipts</a>
+  </p>
+  {
+    sections.map((s) => (
+      <section>
+        <h2>{s.profile.name}</h2>
+        <p>
+          Credits: <strong>{money(s.credits)}</strong>
+          {onSale && s.profile.trust !== "T-1" && (
+            <>
+              {" "}· <a class="button small" href={`/dashboard/promote/new?author=${s.profile.id}`}>Book a promotion</a>
+            </>
+          )}
+        </p>
+        {s.profile.trust === "T-1" && <p class="notice error">This profile can't buy promotions. Contact us if that's a mistake.</p>}
+        {s.campaigns.length === 0 ? (
+          <p class="muted">No promotions yet.</p>
+        ) : (
+          <table class="dash-books">
+            <thead><tr><th>Promotion</th><th>Dates</th><th>Status</th></tr></thead>
+            <tbody>
+              {s.campaigns.map((c) => (
+                <tr>
+                  <td><a href={`/dashboard/promote/${c.id}`}>{c.name}</a></td>
+                  <td>{day(c.startAt)}{c.endAt && day(c.endAt) !== day(c.startAt) ? ` to ${day(c.endAt)}` : ""}</td>
+                  <td>{CAMPAIGN_STATUS[c.status] ?? c.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    ))
+  }
+</Base>

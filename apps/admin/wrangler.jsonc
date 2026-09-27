@@ -19,7 +19,9 @@
     "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com",
     "RP_ID": "readlitrpg.com",
     "ACCESS_TEAM_DOMAIN": "https://readlitrpg.cloudflareaccess.com",
-    "ACCESS_AUD": "set-at-setup"
+    "ACCESS_AUD": "set-at-setup",
+    // Payments (M8): "stripe" with the STRIPE_SECRET_KEY secret; "fake" only in local development.
+    "STRIPE_PROVIDER": "stripe"
   },
   "d1_databases": [
     {

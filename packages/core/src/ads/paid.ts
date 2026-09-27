@@ -83,6 +83,22 @@ export async function advertiserForAuthor(
   return made;
 }
 
+/** The advertiser's Stripe customer, created once (idempotent per advertiser) and stored (§12.2). */
+export async function ensureStripeCustomer(
+  db: Db,
+  stripe: StripeApi,
+  advertiser: typeof advertisers.$inferSelect,
+  email: string,
+): Promise<string> {
+  if (advertiser.stripeCustomerId) return advertiser.stripeCustomerId;
+  const { id } = await stripe.createCustomer(
+    { email, name: advertiser.name, metadata: { advertiser_id: advertiser.id } },
+    `customer:${advertiser.id}`,
+  );
+  await db.update(advertisers).set({ stripeCustomerId: id }).where(eq(advertisers.id, advertiser.id));
+  return id;
+}
+
 async function trustOf(db: Db, authorId: string): Promise<TrustLevel> {
   const [a] = await db.select({ trust: authors.trustLevel }).from(authors).where(eq(authors.id, authorId));
   return (a?.trust ?? "T0") as TrustLevel;
@@ -221,8 +237,18 @@ export function creativeRisk(text: string, trust: TrustLevel): { score: number; 
   return { score: Math.min(100, score), reasons };
 }
 
+/** The creative fields a paid ad carries (§11.7). */
+export interface CreativeInput {
+  bookId: string;
+  headline: string;
+  body?: string | null;
+  cta: string;
+  /** One of the book's own links. */
+  destinationLinkId: string;
+}
+
 /** Hard checks: refused at once, with the reason (§11.7). */
-async function checkPaidCreative(db: Db, input: PromotionInput): Promise<void> {
+export async function checkCreativeForSale(db: Db, input: CreativeInput): Promise<void> {
   const headline = input.headline.trim();
   if (!headline || headline.length > 60) throw new PromotionError("the headline is 1–60 characters");
   if ((input.body ?? "").length > 200) throw new PromotionError("the body is at most 200 characters");
@@ -239,6 +265,53 @@ async function checkPaidCreative(db: Db, input: PromotionInput): Promise<void> {
     .where(and(eq(bookLinks.id, input.destinationLinkId), eq(bookLinks.bookId, input.bookId)));
   if (!link?.url.startsWith("https://"))
     throw new PromotionError("the destination must be one of the book's links");
+}
+
+/** Who may buy, and the first limits (§12.6): on sale, not restricted, not hammering checkout. */
+export async function prepareBuyer(
+  db: Db,
+  authorId: string,
+  settings: Settings,
+  now: Date,
+): Promise<{ trust: TrustLevel; advertiser: typeof advertisers.$inferSelect }> {
+  if (!settings["flags.ads_paid"]) throw new PromotionError("promotions aren't on sale yet");
+  const trust = await trustOf(db, authorId);
+  if (trust === "T-1") throw new PromotionError("this profile can't buy promotions");
+  const advertiser = await advertiserForAuthor(db, authorId);
+  const attempts = await hitWindow(
+    db,
+    { rule: "checkout", limit: settings["ads.checkout_attempts_per_hour"], windowSeconds: 3600 },
+    advertiser.id,
+    now,
+  );
+  if (!attempts.ok) throw new PromotionError("too many checkouts in the last hour: try again later");
+  return { trust, advertiser };
+}
+
+/** New (T0) advertisers can book a limited amount a day (§12.6). */
+export async function checkDailyCap(
+  db: Db,
+  advertiserId: string,
+  trust: TrustLevel,
+  amountCents: number,
+  settings: Settings,
+  now: Date,
+): Promise<void> {
+  if (trust !== "T0") return;
+  const [today] = await db
+    .select({ n: sum(orders.amountCents) })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.advertiserId, advertiserId),
+        inArray(orders.status, ["open", "paid"]),
+        gte(orders.createdAt, `${day(now)}T00:00:00.000Z`),
+      ),
+    );
+  if (Number(today?.n ?? 0) + amountCents > settings["ads.t0_daily_spend_cap_cents"])
+    throw new PromotionError(
+      "new advertisers can book a limited amount a day: verify your profile to lift it",
+    );
 }
 
 export interface StartResult {
@@ -268,19 +341,7 @@ export async function startPromotion(
 ): Promise<StartResult> {
   const now = req.now ?? new Date();
   const { settings, input } = req;
-  if (!settings["flags.ads_paid"]) throw new PromotionError("promotions aren't on sale yet");
-  const trust = await trustOf(db, req.authorId);
-  if (trust === "T-1") throw new PromotionError("this profile can't buy promotions");
-  const advertiser = await advertiserForAuthor(db, req.authorId);
-
-  // Limits for new advertisers and runaway scripts (§12.6).
-  const attempts = await hitWindow(
-    db,
-    { rule: "checkout", limit: settings["ads.checkout_attempts_per_hour"], windowSeconds: 3600 },
-    advertiser.id,
-    now,
-  );
-  if (!attempts.ok) throw new PromotionError("too many checkouts in the last hour: try again later");
+  const { trust, advertiser } = await prepareBuyer(db, req.authorId, settings, now);
   const quote = await quotePromotion(db, input, settings, { now, guard: req.guard });
   if (quote.unavailable.length) throw new PromotionError(`already booked: ${quote.unavailable.join(", ")}`);
   const [holds] = await db
@@ -290,23 +351,8 @@ export async function startPromotion(
     .where(and(eq(campaigns.advertiserId, advertiser.id), eq(bookings.status, "held")));
   if ((holds?.n ?? 0) + quote.units.length > settings["ads.max_open_holds"])
     throw new PromotionError("finish or cancel your open checkouts first");
-  if (trust === "T0") {
-    const [today] = await db
-      .select({ n: sum(orders.amountCents) })
-      .from(orders)
-      .where(
-        and(
-          eq(orders.advertiserId, advertiser.id),
-          inArray(orders.status, ["open", "paid"]),
-          gte(orders.createdAt, `${day(now)}T00:00:00.000Z`),
-        ),
-      );
-    if (Number(today?.n ?? 0) + quote.amountCents > settings["ads.t0_daily_spend_cap_cents"])
-      throw new PromotionError(
-        "new advertisers can book a limited amount a day: verify your profile to lift it",
-      );
-  }
-  await checkPaidCreative(db, input);
+  await checkDailyCap(db, advertiser.id, trust, quote.amountCents, settings, now);
+  await checkCreativeForSale(db, input);
   const risk = creativeRisk(`${input.headline} ${input.body ?? ""}`, trust);
 
   const campaignId = ulid();
@@ -345,10 +391,7 @@ export async function startPromotion(
   });
 
   const holdUntil = new Date(now.getTime() + (settings["ads.hold_minutes"] + 5) * 60_000).toISOString();
-  const bookingIds: string[] = [];
-  let promoId: string | null = null;
-  let creditsUsed = 0;
-  let order: Order | null = null;
+  const state: PayState = { bookingIds: [], promoId: null, creditsUsed: 0, order: null };
   try {
     for (const u of quote.units) {
       if (!(await holdUnit(db, u.unitId)))
@@ -361,135 +404,188 @@ export async function startPromotion(
         status: "held",
         holdExpiresAt: holdUntil,
       });
-      bookingIds.push(id);
+      state.bookingIds.push(id);
     }
-    let discount = 0;
-    if (input.promoCode?.trim()) {
-      const found = await findPromo(db, input.promoCode, quote.product.key, now);
-      if (!found.ok) throw new PromotionError(found.reason);
-      if (!(await redeemPromo(db, found.promo.id))) throw new PromotionError("That code has been used up.");
-      promoId = found.promo.id;
-      discount = discountFor(found.promo, quote.amountCents);
-    }
-    let split = settle(quote.amountCents, discount, await creditBalance(db, advertiser.id));
-    if (split.creditsCents > 0) {
-      const ok = await spendCredits(
-        db,
-        {
-          advertiserId: advertiser.id,
-          amountCents: split.creditsCents,
-          reason: "checkout",
-          ref: campaignId,
-          createdBy: req.userId,
-        },
+    return await payForCampaign(
+      db,
+      stripe,
+      {
+        advertiser,
+        campaignId,
+        productKey: quote.product.key,
+        amountCents: quote.amountCents,
+        lines: quote.units.map((u, i) => ({
+          name: `${quote.product.name}, ${u.periodStart === u.periodEnd ? u.periodStart : `week of ${u.periodStart}`}`,
+          description: `${quote.product.name} · ${u.periodStart}${target ? ` · ${target}` : ""}`,
+          amountCents: u.priceCents,
+          bookingId: state.bookingIds[i] ?? null,
+        })),
+        promoCode: input.promoCode ?? null,
+        userId: req.userId,
+        email: req.email,
+        settings,
+        siteOrigin: req.siteOrigin,
         now,
-      );
-      if (!ok) split = settle(quote.amountCents, discount, 0);
-      else creditsUsed = split.creditsCents;
-    }
-    order = await createOrder(
+      },
+      state,
+    );
+  } catch (error) {
+    await rollbackCampaign(db, advertiser.id, campaignId, state, now);
+    throw error;
+  }
+}
+
+/** What a checkout has taken so far, so a failure can give it all back. */
+export interface PayState {
+  bookingIds: string[];
+  promoId: string | null;
+  creditsUsed: number;
+  order: Order | null;
+}
+
+/**
+ * Take payment for a campaign that exists (status held): a promotion code, then credits, then the
+ * card through Stripe Checkout, or nothing more when those cover it (§12.5). Records what it takes
+ * in `state` for `rollbackCampaign`.
+ */
+export async function payForCampaign(
+  db: Db,
+  stripe: StripeApi | null,
+  p: {
+    advertiser: typeof advertisers.$inferSelect;
+    campaignId: string;
+    productKey: string;
+    amountCents: number;
+    lines: { name: string; description: string; amountCents: number; bookingId: string | null }[];
+    promoCode: string | null;
+    userId: string;
+    email: string;
+    settings: Settings;
+    siteOrigin: string;
+    now: Date;
+  },
+  state: PayState,
+): Promise<StartResult> {
+  const { advertiser, campaignId, settings, now } = p;
+  let discount = 0;
+  if (p.promoCode?.trim()) {
+    const found = await findPromo(db, p.promoCode, p.productKey, now);
+    if (!found.ok) throw new PromotionError(found.reason);
+    if (!(await redeemPromo(db, found.promo.id))) throw new PromotionError("That code has been used up.");
+    state.promoId = found.promo.id;
+    discount = discountFor(found.promo, p.amountCents);
+  }
+  let split = settle(p.amountCents, discount, await creditBalance(db, advertiser.id));
+  if (split.creditsCents > 0) {
+    const ok = await spendCredits(
       db,
       {
         advertiserId: advertiser.id,
-        userId: req.userId,
-        kind: split.chargeCents === 0 && split.creditsCents === 0 ? "comp" : "promo",
-        amountCents: quote.amountCents,
-        discountCents: split.discountCents,
-        creditsCents: split.creditsCents,
-        chargedCents: split.chargeCents,
-        promoCodeId: promoId,
-        createdBy: req.userId,
-        items: quote.units.map((u, i) => ({
-          campaignId,
-          bookingId: bookingIds[i] ?? null,
-          description: `${quote.product.name} · ${u.periodStart}${target ? ` · ${target}` : ""}`,
-          amountCents: u.priceCents,
-        })),
+        amountCents: split.creditsCents,
+        reason: "checkout",
+        ref: campaignId,
+        createdBy: p.userId,
       },
       now,
     );
-    const done = `${req.siteOrigin}/dashboard/promote/${campaignId}`;
-    if (split.chargeCents === 0) {
-      await confirmPaidOrder(db, order.id, { paymentIntent: null, settings, now });
-      return { campaignId, orderId: order.id, redirect: `${done}?paid=1` };
-    }
-    if (!stripe) throw new PromotionError("card payments aren't set up yet");
-    let customer = advertiser.stripeCustomerId;
-    if (!customer) {
-      customer = (
-        await stripe.createCustomer(
-          { email: req.email, name: advertiser.name, metadata: { advertiser_id: advertiser.id } },
-          `customer:${advertiser.id}`,
-        )
-      ).id;
-      await db
-        .update(advertisers)
-        .set({ stripeCustomerId: customer })
-        .where(eq(advertisers.id, advertiser.id));
-    }
-    const off = split.discountCents + split.creditsCents;
-    const coupon = off
-      ? await stripe.createCoupon(
-          { amountOffCents: off, name: split.creditsCents ? "Credits and discount" : "Discount" },
-          `coupon:${order.id}`,
-        )
-      : null;
-    // Stripe needs at least 30 minutes; the holds last a little longer than the session.
-    const expiresAt = Math.floor(now.getTime() / 1000) + settings["ads.hold_minutes"] * 60 + 60;
-    const session = await stripe.createCheckoutSession(
-      {
-        mode: "payment",
-        customer,
-        lineItems: quote.units.map((u) => ({
-          name: `${quote.product.name}, ${u.periodStart === u.periodEnd ? u.periodStart : `week of ${u.periodStart}`}`,
-          amountCents: u.priceCents,
-        })),
-        couponId: coupon?.id,
-        successUrl: `${done}?paid=1`,
-        cancelUrl: `${done}?cancelled=1`,
-        expiresAt,
-        clientReferenceId: order.id,
-        metadata: { order_id: order.id, campaign_id: campaignId, kind: "promo" },
-        automaticTax: settings["billing.automatic_tax"],
-      },
-      `checkout:${order.id}`,
-    );
-    await db
-      .update(orders)
-      .set({ stripeCheckoutSessionId: session.id, expiresAt: new Date(expiresAt * 1000).toISOString() })
-      .where(eq(orders.id, order.id));
-    if (!session.url) throw new PromotionError("Stripe didn't return a checkout page");
-    return { campaignId, orderId: order.id, redirect: session.url };
-  } catch (error) {
-    // Give back everything taken so far.
-    for (const id of bookingIds) {
-      const [b] = await db
-        .update(bookings)
-        .set({ status: "released", updatedAt: nowIso(now) })
-        .where(and(eq(bookings.id, id), eq(bookings.status, "held")))
-        .returning({ unit: bookings.inventoryUnitId });
-      if (b) await giveBack(db, b.unit, "held");
-    }
-    if (promoId) await releasePromo(db, promoId);
-    if (creditsUsed)
-      await addCredit(
-        db,
-        {
-          advertiserId: advertiser.id,
-          amountCents: creditsUsed,
-          reason: "checkout_expired",
-          ref: campaignId,
-          createdBy: "system",
-        },
-        now,
-      );
-    if (order) await transitionOrder(db, order.id, "cancelled", {}, now);
-    await db
-      .update(campaigns)
-      .set({ status: "cancelled", updatedAt: nowIso(now) })
-      .where(eq(campaigns.id, campaignId));
-    throw error;
+    if (!ok) split = settle(p.amountCents, discount, 0);
+    else state.creditsUsed = split.creditsCents;
   }
+  const order = await createOrder(
+    db,
+    {
+      advertiserId: advertiser.id,
+      userId: p.userId,
+      kind: split.chargeCents === 0 && split.creditsCents === 0 ? "comp" : "promo",
+      amountCents: p.amountCents,
+      discountCents: split.discountCents,
+      creditsCents: split.creditsCents,
+      chargedCents: split.chargeCents,
+      promoCodeId: state.promoId,
+      createdBy: p.userId,
+      items: p.lines.map((l) => ({
+        campaignId,
+        bookingId: l.bookingId,
+        description: l.description,
+        amountCents: l.amountCents,
+      })),
+    },
+    now,
+  );
+  state.order = order;
+  const done = `${p.siteOrigin}/dashboard/promote/${campaignId}`;
+  if (split.chargeCents === 0) {
+    await confirmPaidOrder(db, order.id, { paymentIntent: null, settings, now });
+    return { campaignId, orderId: order.id, redirect: `${done}?paid=1` };
+  }
+  if (!stripe) throw new PromotionError("card payments aren't set up yet");
+  const customer = await ensureStripeCustomer(db, stripe, advertiser, p.email);
+  const off = split.discountCents + split.creditsCents;
+  const coupon = off
+    ? await stripe.createCoupon(
+        { amountOffCents: off, name: split.creditsCents ? "Credits and discount" : "Discount" },
+        `coupon:${order.id}`,
+      )
+    : null;
+  // Stripe needs at least 30 minutes; the holds last a little longer than the session.
+  const expiresAt = Math.floor(now.getTime() / 1000) + settings["ads.hold_minutes"] * 60 + 60;
+  const session = await stripe.createCheckoutSession(
+    {
+      mode: "payment",
+      customer,
+      lineItems: p.lines.map((l) => ({ name: l.name, amountCents: l.amountCents })),
+      couponId: coupon?.id,
+      successUrl: `${done}?paid=1`,
+      cancelUrl: `${done}?cancelled=1`,
+      expiresAt,
+      clientReferenceId: order.id,
+      metadata: { order_id: order.id, campaign_id: campaignId, kind: "promo" },
+      automaticTax: settings["billing.automatic_tax"],
+    },
+    `checkout:${order.id}`,
+  );
+  await db
+    .update(orders)
+    .set({ stripeCheckoutSessionId: session.id, expiresAt: new Date(expiresAt * 1000).toISOString() })
+    .where(eq(orders.id, order.id));
+  if (!session.url) throw new PromotionError("Stripe didn't return a checkout page");
+  return { campaignId, orderId: order.id, redirect: session.url };
+}
+
+/** Give back everything a failed checkout took: held places, the code's use, credits, the order. */
+export async function rollbackCampaign(
+  db: Db,
+  advertiserId: string,
+  campaignId: string,
+  state: PayState,
+  now: Date,
+): Promise<void> {
+  for (const id of state.bookingIds) {
+    const [b] = await db
+      .update(bookings)
+      .set({ status: "released", updatedAt: nowIso(now) })
+      .where(and(eq(bookings.id, id), eq(bookings.status, "held")))
+      .returning({ unit: bookings.inventoryUnitId });
+    if (b) await giveBack(db, b.unit, "held");
+  }
+  if (state.promoId) await releasePromo(db, state.promoId);
+  if (state.creditsUsed)
+    await addCredit(
+      db,
+      {
+        advertiserId,
+        amountCents: state.creditsUsed,
+        reason: "checkout_expired",
+        ref: campaignId,
+        createdBy: "system",
+      },
+      now,
+    );
+  if (state.order) await transitionOrder(db, state.order.id, "cancelled", {}, now);
+  await db
+    .update(campaigns)
+    .set({ status: "cancelled", updatedAt: nowIso(now) })
+    .where(eq(campaigns.id, campaignId));
 }
 
 /**

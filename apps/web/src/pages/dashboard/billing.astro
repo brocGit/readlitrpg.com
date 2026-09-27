@@ -1,0 +1,189 @@
+---
+import { advertiserOf } from "@rlr/core/ads";
+import { profilesFor } from "@rlr/core/authors";
+import { activePro, creditBalance, creditHistory, ProError, startProCheckout } from "@rlr/core/billing";
+import { orders } from "@rlr/core/schema";
+import { desc, eq } from "drizzle-orm";
+import DashNav from "../../components/dashboard/DashNav.astro";
+import Base from "../../layouts/Base.astro";
+import { profileAccess } from "../../lib/authors";
+import { getStripe } from "../../lib/billing";
+import { log } from "../../lib/log";
+import { day, money, ORDER_STATUS } from "../../lib/promote";
+import { env, getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+import "../../styles/dashboard.css";
+
+// Billing (DESIGN §10.5): credits and their history, Author Pro, payments, and Stripe's Customer
+// Portal for receipts, invoices, cards and cancelling. Money actions are the profile owners'.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/dashboard/billing", 303);
+const db = getDb();
+const profiles = await profilesFor(db, session.userId);
+if (profiles.length === 0) return Astro.redirect("/dashboard/start", 303);
+const settings = await Astro.locals.settings();
+const authorId = Astro.url.searchParams.get("author") ?? profiles[0]?.id ?? "";
+const profile = profiles.find((p) => p.id === authorId);
+if (!profile) return Astro.redirect("/dashboard/billing", 303);
+const origin = env.PUBLIC_ORIGIN.replace(/\/$/, "");
+const here = `/dashboard/billing?author=${authorId}`;
+let message: { ok: boolean; text: string } | null = Astro.url.searchParams.get("pro")
+  ? { ok: true, text: "Welcome to Author Pro. It may take a minute to show here." }
+  : null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const owner = await profileAccess(Astro.locals, authorId, "owner");
+  if (!owner) message = { ok: false, text: "Only the profile's owners can manage billing." };
+  else if (form.get("action") === "pro") {
+    try {
+      const url = await startProCheckout(db, getStripe(), {
+        authorId,
+        userId: session.userId,
+        email: session.email,
+        interval: form.get("interval") === "year" ? "year" : "month",
+        settings,
+        siteOrigin: origin,
+      });
+      return Astro.redirect(url, 303);
+    } catch (e) {
+      if (!(e instanceof ProError)) {
+        log.error("billing.pro_failed", { error: e });
+        message = { ok: false, text: "Checkout couldn't start. Nothing was charged; please try again." };
+      } else message = { ok: false, text: e.message };
+    }
+  } else if (form.get("action") === "portal") {
+    const adv = await advertiserOf(db, authorId);
+    const stripe = getStripe();
+    if (!adv?.stripeCustomerId || !stripe)
+      message = { ok: false, text: "Nothing to show yet: no payments on this profile." };
+    else {
+      const portal = await stripe.createPortalSession({
+        customer: adv.stripeCustomerId,
+        returnUrl: `${origin}${here}`,
+      });
+      return Astro.redirect(portal.url, 303);
+    }
+  }
+}
+
+const advertiser = await advertiserOf(db, authorId);
+const credits = advertiser ? await creditBalance(db, advertiser.id) : 0;
+const history = advertiser ? await creditHistory(db, advertiser.id, 20) : [];
+const pro = advertiser ? await activePro(db, advertiser.id) : null;
+const payments = advertiser
+  ? await db
+      .select()
+      .from(orders)
+      .where(eq(orders.advertiserId, advertiser.id))
+      .orderBy(desc(orders.createdAt))
+      .limit(30)
+  : [];
+const proOnSale =
+  settings["flags.author_pro"] &&
+  Boolean(settings["billing.author_pro_price_month"] || settings["billing.author_pro_price_year"]);
+const REASON: Record<string, string> = {
+  comp: "From ReadLitRPG",
+  makegood: "Make-good",
+  cancellation: "Cancellation",
+  rejection: "Refund (not approved)",
+  author_pro: "Author Pro quarterly credit",
+  leftover_budget: "Unspent budget",
+  checkout: "Used for a promotion",
+  checkout_expired: "Returned (checkout not finished)",
+  refund: "Refund",
+  admin: "Adjustment",
+};
+---
+
+<Base title="Billing" noIndex>
+  <h1>Billing</h1>
+  <DashNav authorId={authorId} />
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  {
+    profiles.length > 1 && (
+      <p>{profiles.map((p) => (p.id === authorId ? <strong>{p.name}</strong> : <a href={`/dashboard/billing?author=${p.id}`}>{p.name}</a>)).reduce((a: unknown[], b) => (a.length ? [...a, " · ", b] : [b]), [])}</p>
+    )
+  }
+
+  <section>
+    <h2>Credits</h2>
+    <p>Balance: <strong>{money(credits)}</strong>. Credits pay for promotions before your card does.</p>
+    {
+      history.length > 0 && (
+        <table class="dash-books">
+          <thead><tr><th>Date</th><th>What</th><th>Amount</th></tr></thead>
+          <tbody>
+            {history.map((h) => (
+              <tr><td>{day(h.createdAt)}</td><td>{REASON[h.reason] ?? h.reason}</td><td>{h.deltaCents > 0 ? "+" : "−"}{money(Math.abs(h.deltaCents))}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+  </section>
+
+  <section>
+    <h2>Author Pro</h2>
+    {
+      pro ? (
+        <p>
+          <span class="badge ok">Active</span> {pro.interval === "year" ? "Yearly" : "Monthly"}
+          {pro.currentPeriodEnd && (pro.cancelAtPeriodEnd ? `, ends on ${day(pro.currentPeriodEnd)}` : `, renews on ${day(pro.currentPeriodEnd)}`)}.
+          {pro.status === "past_due" && " Your last payment didn't go through: update your card below."}
+        </p>
+      ) : proOnSale ? (
+        <>
+          <p>
+            Your submissions and edits reviewed first, {money(settings["billing.author_pro_quarterly_credit_cents"])} of promotion credit each
+            quarter, and which kinds of readers the match engine sends to your books.
+          </p>
+          <form method="post" class="inline">
+            <input type="hidden" name="action" value="pro" />
+            {settings["billing.author_pro_price_month"] && (
+              <button class="button" name="interval" value="month" type="submit">{money(settings["billing.author_pro_month_cents"])} a month</button>
+            )}
+            {settings["billing.author_pro_price_year"] && (
+              <button class="button secondary" name="interval" value="year" type="submit">{money(settings["billing.author_pro_year_cents"])} a year</button>
+            )}
+          </form>
+        </>
+      ) : (
+        <p class="muted">Coming soon.</p>
+      )
+    }
+  </section>
+
+  <section>
+    <h2>Payments</h2>
+    {
+      payments.length === 0 ? (
+        <p class="muted">None yet.</p>
+      ) : (
+        <table class="dash-books">
+          <thead><tr><th>Date</th><th>For</th><th>Paid by card</th><th>Status</th></tr></thead>
+          <tbody>
+            {payments.map((o) => (
+              <tr>
+                <td>{day(o.createdAt)}</td>
+                <td>{o.kind === "subscription" ? "Author Pro" : "Promotion"}</td>
+                <td>{money(o.chargedCents)}</td>
+                <td>{ORDER_STATUS[o.status] ?? o.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+    {
+      advertiser?.stripeCustomerId && (
+        <form method="post">
+          <input type="hidden" name="action" value="portal" />
+          <button class="button secondary" type="submit">Receipts, invoices, card and cancelling</button>
+          <p class="muted small">Opens Stripe's secure billing page.</p>
+        </form>
+      )
+    }
+  </section>
+</Base>
