@@ -195,7 +195,10 @@ try {
     check(Boolean(daily), "the jobs Worker publishes today's Today in LitRPG");
     const todayPage = await fetch(`${WEB}/news/today`, { redirect: "follow" });
     check(todayPage.status === 200, "/news/today shows it");
-    check((await (await fetch(`${WEB}/feeds/news.xml`)).text()).includes("Today in LitRPG"), "the news feed has it");
+    check(
+      (await (await fetch(`${WEB}/feeds/news.xml`)).text()).includes("Today in LitRPG"),
+      "the news feed has it",
+    );
   }
   check((await fetch(`${WEB}/news`)).status === 200, "the news page is up");
 
@@ -230,7 +233,10 @@ try {
   await page.waitForSelector("text=Snoozed for tomorrow.");
   check(!(await page.isVisible(`text=Report ${tag}`)), "a snoozed item leaves the inbox");
   await page.goto(`${ADMIN}/inbox?snoozed=1`);
-  await page.locator("tr", { hasText: `Report ${tag}` }).locator('button:has-text("Wake now")').click();
+  await page
+    .locator("tr", { hasText: `Report ${tag}` })
+    .locator('button:has-text("Wake now")')
+    .click();
   await page.waitForSelector("text=Back in the inbox.");
   check(await page.isVisible(`text=Report ${tag}`), "and comes back when woken");
 
@@ -303,7 +309,10 @@ try {
     go.status === 302 && go.headers.get("location") === `https://example.com/e2e-${tag}`,
     "/go/ redirects to the destination stored for the campaign",
   );
-  check((await fetch(`${WEB}/go/not-a-token`, { redirect: "manual" })).status === 404, "a forged /go/ is refused");
+  check(
+    (await fetch(`${WEB}/go/not-a-token`, { redirect: "manual" })).status === 404,
+    "a forged /go/ is refused",
+  );
   // The viewable-impression beacon fires after a second in view.
   await visitor.page.waitForTimeout(1500);
 
