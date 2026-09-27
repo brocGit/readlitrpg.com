@@ -21,6 +21,8 @@ export const ROUTES = {
   "/catalog/books/[id]": ADMIN,
   "/catalog/import": ADMIN,
   "/catalog/import/[id]": ADMIN,
+  "/catalog/authors": ADMIN,
+  "/catalog/authors/[id]": ADMIN,
   "/taxonomy": ADMIN,
   "/editorial": ADMIN,
   "/editorial/runs/[id]": ADMIN,

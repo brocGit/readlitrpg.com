@@ -1,0 +1,136 @@
+---
+import {
+  membersOf,
+  ownerOverride,
+  removeMemberAsAdmin,
+  requestsFor,
+  setOfficialLinks,
+  setTrustLevel,
+} from "@rlr/core/authors";
+import { can, type TrustLevel } from "@rlr/core/policy";
+import { authors, bookAuthors, books, TRUST_LEVELS } from "@rlr/core/schema";
+import { eq } from "drizzle-orm";
+import Console from "../../../layouts/Console.astro";
+import { adminActor } from "../../../lib/admin-session";
+import { flash, readForm } from "../../../lib/forms";
+import { getDb } from "../../../lib/runtime";
+
+// One author profile (DESIGN §2.2, §10.2): members, verification history, and the owner's levers
+// (trust level, official links, verify because you know them, remove a member). All audited.
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const id = Astro.params.id ?? "";
+const db = getDb();
+const here = `/catalog/authors/${id}`;
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash(here, "Not allowed", "error"), 303);
+  if (form.action === "trust" && (TRUST_LEVELS as readonly string[]).includes(form.trust ?? "")) {
+    const changed = await setTrustLevel(db, id, form.trust as TrustLevel, admin.userId);
+    return Astro.redirect(flash(here, changed ? `Trust level is now ${form.trust}.` : "No change."), 303);
+  }
+  if (form.action === "links") {
+    const links = await setOfficialLinks(db, id, (form.links ?? "").split(/\r?\n/), admin.userId);
+    return Astro.redirect(flash(here, `Saved ${links.length} link(s).`), 303);
+  }
+  if (form.action === "verify") {
+    await ownerOverride(db, id, admin.userId);
+    return Astro.redirect(flash(here, "Verified by you."), 303);
+  }
+  if (form.action === "remove_member" && form.user) {
+    await removeMemberAsAdmin(db, id, form.user, admin.userId);
+    return Astro.redirect(flash(here, "Member removed."), 303);
+  }
+  return Astro.redirect(here, 303);
+}
+const [a] = await db.select().from(authors).where(eq(authors.id, id));
+if (!a) return new Response("Not found", { status: 404 });
+const [members, requests, list] = await Promise.all([
+  membersOf(db, id),
+  requestsFor(db, id),
+  db
+    .select({ id: books.id, title: books.title, visibility: books.visibility })
+    .from(bookAuthors)
+    .innerJoin(books, eq(books.id, bookAuthors.bookId))
+    .where(eq(bookAuthors.authorId, id))
+    .limit(200),
+]);
+---
+
+<Console title={a.name}>
+  <p>
+    <a href={`https://readlitrpg.com/authors/${a.slug}`} rel="noopener">Public page</a> · {a.trustLevel}{a.verifiedAt ? ` · verified ${a.verifiedAt.slice(0, 10)}` : " · unverified"} · origin {a.origin}
+  </p>
+
+  <section>
+    <h2>Trust level</h2>
+    <form method="post" class="inline">
+      <input type="hidden" name="action" value="trust" />
+      <select name="trust" aria-label="Trust level">
+        {TRUST_LEVELS.map((t) => <option value={t} selected={t === a.trustLevel}>{t}</option>)}
+      </select>
+      <button class="button small" type="submit">Set</button>
+    </form>
+    <p class="muted">T0 unverified (everything reviewed) · T1 verified (publishes at once) · T2 trusted · T-1 restricted (everything waits, can't buy ads).</p>
+    {!a.verifiedAt && (
+      <form method="post" class="inline">
+        <input type="hidden" name="action" value="verify" />
+        <button class="button small secondary" type="submit">Verify: I know this author</button>
+      </form>
+    )}
+  </section>
+
+  <section>
+    <h2>Official links</h2>
+    <p class="muted">Automated verification trusts a code only on these sites and Bluesky handles (bsky.app/profile/…). Members can't edit them.</p>
+    <form method="post">
+      <input type="hidden" name="action" value="links" />
+      <textarea name="links" rows="4" aria-label="Official links, one per line">{a.links.join("\n")}</textarea>
+      <button class="button small" type="submit">Save links</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Members</h2>
+    {members.length === 0 ? <p class="muted">Unclaimed.</p> : (
+      <table>
+        <thead><tr><th>Email</th><th>Role</th><th>Since</th><th></th></tr></thead>
+        <tbody>
+          {members.map((m) => (
+            <tr>
+              <td>{m.email}</td><td>{m.role}</td><td>{m.since.slice(0, 10)}</td>
+              <td><form method="post" class="inline"><input type="hidden" name="action" value="remove_member" /><input type="hidden" name="user" value={m.userId} /><button class="button small secondary" type="submit">Remove</button></form></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </section>
+
+  <section>
+    <h2>Verification requests</h2>
+    {requests.length === 0 ? <p class="muted">None.</p> : (
+      <table>
+        <thead><tr><th>When</th><th>Method</th><th>Target</th><th>Status</th><th>Last check</th></tr></thead>
+        <tbody>
+          {requests.map((r) => (
+            <tr>
+              <td>{r.createdAt.slice(0, 10)}</td><td>{r.method}</td><td>{r.target}</td><td>{r.status}</td>
+              <td class="muted">{r.evidence ? JSON.stringify(r.evidence) : ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </section>
+
+  <section>
+    <h2>Books</h2>
+    <ul>{list.map((b) => <li><a href={`/catalog/books/${b.id}`}>{b.title}</a> <span class="muted">{b.visibility}</span></li>)}</ul>
+  </section>
+</Console>
+
+<style>
+  textarea { width: 100%; font: inherit; }
+</style>

@@ -4,6 +4,7 @@
 //   queue      rlr-jobs: run one job; rlr-email: send email; *-dlq: open an Owner Inbox item
 
 import { createLogger, type Logger, maskEmail, ulid } from "@rlr/core";
+import { AUTHOR_INBOX_HANDLERS } from "@rlr/core/authors";
 import { createDb, type Db } from "@rlr/core/db";
 import { openInboxItem, runInboxDefaults } from "@rlr/core/inbox";
 import { publishDueQuizzes } from "@rlr/core/quiz";
@@ -19,6 +20,7 @@ import {
   startJobRun,
 } from "@rlr/core/scheduler";
 import { emailSends } from "@rlr/core/schema";
+import { loadSettings } from "@rlr/core/settings";
 import {
   buildEmail,
   ConsoleProvider,
@@ -97,7 +99,9 @@ export default {
     // the scheduler, so it is logged and retried on the next tick.
     let defaults = 0;
     try {
-      defaults = await runInboxDefaults(db, now);
+      // Author items (M6) have side effects: publish a listing, apply a date change.
+      const settings = await loadSettings({ db, kv: env.CONFIG, log });
+      defaults = await runInboxDefaults(db, now, { handlers: AUTHOR_INBOX_HANDLERS, settings });
       const published = await publishDueQuizzes(db, now);
       defaults += published.length;
       if (published.length) log.info("quiz.auto_published", { quizzes: published });

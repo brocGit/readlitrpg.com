@@ -1,5 +1,6 @@
 ---
-import { decideInboxItem, listOpenInbox } from "@rlr/core/inbox";
+import { AUTHOR_INBOX_HANDLERS } from "@rlr/core/authors";
+import { decideInboxItem, decideWithHandler, getInboxItem, listOpenInbox } from "@rlr/core/inbox";
 import { can } from "@rlr/core/policy";
 import Console from "../layouts/Console.astro";
 import { adminActor } from "../lib/admin-session";
@@ -16,17 +17,31 @@ if (Astro.request.method === "POST") {
     return Astro.redirect(flash("/inbox", "Not allowed", "error"), 303);
   const status =
     form.decision === "rejected" ? "rejected" : form.decision === "approved" ? "approved" : "resolved";
-  const changed = await decideInboxItem(db, form.id ?? "", {
-    status,
-    decidedBy: admin.userId,
-    note: form.note || undefined,
-  });
+  const item = await getInboxItem(db, form.id ?? "");
+  // Author items do something when decided: publish the listing, apply the change, verify (M6).
+  const handled = item && status !== "resolved" && AUTHOR_INBOX_HANDLERS[item.type];
+  const changed = !item
+    ? false
+    : handled
+      ? await decideWithHandler(
+          db,
+          item,
+          status === "approved" ? "approve" : "reject",
+          AUTHOR_INBOX_HANDLERS,
+          {
+            decidedBy: admin.userId,
+            note: form.note || undefined,
+            now: new Date(),
+            settings: await Astro.locals.settings(),
+          },
+        )
+      : await decideInboxItem(db, item.id, { status, decidedBy: admin.userId, note: form.note || undefined });
   if (changed) {
     await audit(admin, Astro.locals.requestId, {
       action: "inbox.decide",
       subjectType: "inbox_item",
       subjectId: form.id,
-      diff: { status, note: form.note || null },
+      diff: { status, type: item?.type ?? null, note: form.note || null },
     });
   }
   return Astro.redirect(
@@ -100,6 +115,32 @@ const recommendation: Record<string, string> = {
                     book page if they're the same; resolve here if not.
                   </p>
                 )}
+                {item.subjectType === "submission" && (
+                  <p>
+                    <strong>{field(item.payload, "title")}</strong> by {field(item.payload, "authorName")} ({field(item.payload, "genre")}). Approve publishes it; reject tells the author why (use the note).
+                    {field(item.payload, "duplicateOf") && <> It may be <a href={`/catalog/books/${field(item.payload, "duplicateOf")}`}>this existing book</a>.</>}
+                    {field(item.payload, "authorId") && <> <a href={`/catalog/authors/${field(item.payload, "authorId")}`}>The author's profile</a>.</>}
+                  </p>
+                )}
+                {item.type === "protected_change" && (
+                  <p>
+                    {field(item.payload, "reason")}. <a href={`/catalog/books/${field(item.payload, "bookId")}`}>The book</a> · the change is under Details. Approve applies it as the author.
+                  </p>
+                )}
+                {item.type === "verification_manual" && (
+                  <p>
+                    Look for <code>{field(item.payload, "code")}</code> at <strong>{field(item.payload, "target")}</strong> ({field(item.payload, "method")}). {field(item.payload, "check")}{" "}
+                    <a href={`/catalog/authors/${field(item.payload, "authorId")}`}>The profile</a>.
+                  </p>
+                )}
+                {item.type === "claim_conflict" && (
+                  <p>
+                    Someone else claims <a href={`/catalog/authors/${field(item.payload, "authorId")}`}>{field(item.payload, "name")}</a>, which already has members. Approve adds them as an owner (you can remove members on the profile page).
+                  </p>
+                )}
+                {item.type === "author_report" && (
+                  <p>{field(item.payload, "text")} · <a href={`/catalog/books/${field(item.payload, "bookId")}`}>The book</a></p>
+                )}
                 {item.payload != null && (
                   <details>
                     <summary>Details</summary>
@@ -112,7 +153,14 @@ const recommendation: Record<string, string> = {
                 <form method="post" class="inline">
                   <input type="hidden" name="id" value={item.id} />
                   <input type="text" name="note" placeholder="Note (optional)" maxlength="500" />
-                  <button class="button small" name="decision" value="resolved" type="submit">Resolve</button>
+                  {AUTHOR_INBOX_HANDLERS[item.type] && (item.subjectType === "submission" || !["possible_duplicate", "scope_check"].includes(item.type)) ? (
+                    <>
+                      <button class="button small" name="decision" value="approved" type="submit">Approve</button>
+                      <button class="button small secondary" name="decision" value="rejected" type="submit">Reject</button>
+                    </>
+                  ) : (
+                    <button class="button small" name="decision" value="resolved" type="submit">Resolve</button>
+                  )}
                 </form>
               </td>
             </tr>

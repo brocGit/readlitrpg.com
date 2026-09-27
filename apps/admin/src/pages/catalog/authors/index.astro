@@ -1,0 +1,58 @@
+---
+import { listAuthors } from "@rlr/core/authors";
+import Console from "../../../layouts/Console.astro";
+import { getDb } from "../../../lib/runtime";
+
+// Author profiles (DESIGN §8.5, §10): who is claimed, verified and at what trust level.
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const params = Astro.url.searchParams;
+const q = params.get("q")?.slice(0, 100) ?? "";
+const claimed = params.get("claimed") === "yes" ? true : params.get("claimed") === "no" ? false : undefined;
+const verified =
+  params.get("verified") === "yes" ? true : params.get("verified") === "no" ? false : undefined;
+const page = Math.max(1, Number(params.get("page")) || 1);
+const { rows, total } = await listAuthors(getDb(), { q, claimed, verified }, 50, (page - 1) * 50);
+const pages = Math.ceil(total / 50);
+const link = (n: number) => {
+  const u = new URL(Astro.url);
+  u.searchParams.set("page", String(n));
+  return `${u.pathname}${u.search}`;
+};
+---
+
+<Console title="Authors">
+  <form method="get" class="filters">
+    <input type="search" name="q" value={q} placeholder="Name" aria-label="Search" />
+    <select name="claimed" aria-label="Claimed">
+      <option value="">Claimed or not</option>
+      <option value="yes" selected={claimed === true}>Claimed</option>
+      <option value="no" selected={claimed === false}>Unclaimed</option>
+    </select>
+    <select name="verified" aria-label="Verified">
+      <option value="">Verified or not</option>
+      <option value="yes" selected={verified === true}>Verified</option>
+      <option value="no" selected={verified === false}>Unverified</option>
+    </select>
+    <button class="button small secondary" type="submit">Filter</button>
+  </form>
+  <p class="muted">{total} author{total === 1 ? "" : "s"}{pages > 1 ? ` · page ${page} of ${pages}` : ""}</p>
+  <table>
+    <thead><tr><th>Name</th><th>Trust</th><th>Members</th><th>Books</th></tr></thead>
+    <tbody>
+      {rows.map((a) => (
+        <tr>
+          <td><a href={`/catalog/authors/${a.id}`}>{a.name}</a></td>
+          <td>{a.trust}{a.verifiedAt ? " · verified" : ""}</td>
+          <td>{a.members}</td>
+          <td>{a.books}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  {pages > 1 && <p class="pager">{page > 1 && <a href={link(page - 1)}>← Previous</a>} {page < pages && <a href={link(page + 1)}>Next →</a>}</p>}
+</Console>
+
+<style>
+  .filters, .pager { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-bottom: var(--space-4); }
+</style>

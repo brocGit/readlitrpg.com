@@ -14,6 +14,7 @@ const nav = [
   ["/", "Dashboard"],
   ["/inbox", "Inbox"],
   ["/catalog", "Catalog"],
+  ["/catalog/authors", "Authors"],
   ["/taxonomy", "Taxonomy"],
   ["/editorial", "Editorial"],
   ["/match", "Match"],
@@ -24,8 +25,14 @@ const nav = [
   ["/audit", "Audit log"],
 ] as const;
 const here = Astro.url.pathname;
-const current = (href: string) =>
+const matches = (href: string) =>
   href === "/" ? here === "/" : here === href || here.startsWith(`${href}/`);
+// The most specific entry wins, so /catalog/authors isn't also "Catalog".
+const best = nav
+  .map(([href]) => href as string)
+  .filter(matches)
+  .sort((a, b) => b.length - a.length)[0];
+const current = (href: string) => href === best;
 ---
 
 <!doctype html>
