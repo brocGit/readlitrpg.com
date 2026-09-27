@@ -68,7 +68,9 @@ export function titleKey(title: string): string {
   let t = cleanText(title);
   // Parenthetical or bracketed series and marketing tags.
   t = t.replace(/[([]([^)\]]*)[)\]]/g, (whole, inner: string) =>
-    MARKETING_RE.test(inner) || new RegExp(`\\b(${VOLUME_WORDS})\\b\\.?\\s*[\\divxlc]+`, "i").test(inner)
+    MARKETING_RE.test(inner) ||
+    new RegExp(`\\b(${VOLUME_WORDS})\\b\\.?\\s*[\\divxlc]+`, "i").test(inner) ||
+    /#\s*\d/.test(inner)
       ? " "
       : whole,
   );

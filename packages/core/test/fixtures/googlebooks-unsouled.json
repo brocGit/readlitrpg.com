@@ -1,0 +1,20 @@
+{
+  "kind": "books#volumes",
+  "totalItems": 1,
+  "items": [
+    {
+      "id": "abcDEF123",
+      "volumeInfo": {
+        "title": "Unsouled",
+        "authors": ["Will Wight"],
+        "publisher": "Hidden Gnome Publishing",
+        "publishedDate": "2016-04-01",
+        "industryIdentifiers": [
+          { "type": "ISBN_13", "identifier": "9780989671767" },
+          { "type": "ISBN_10", "identifier": "0989671763" }
+        ],
+        "pageCount": 286
+      }
+    }
+  ]
+}

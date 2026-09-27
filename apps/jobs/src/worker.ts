@@ -26,13 +26,19 @@ import {
 } from "@rlr/email";
 import { verifyAudit } from "./jobs/audit-verify";
 import { exportBackup } from "./jobs/backup";
+import { enrichCatalog } from "./jobs/enrich";
+import { importCatalog } from "./jobs/import";
 import { purgeExpired } from "./jobs/retention";
+import { syncTaxonomyJob } from "./jobs/taxonomy-sync";
 import type { JobHandler } from "./jobs/types";
 
 export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "backup.export": exportBackup,
   "audit.verify": verifyAudit,
   "retention.purge": purgeExpired,
+  "taxonomy.sync": syncTaxonomyJob,
+  "catalog.enrich": enrichCatalog,
+  "catalog.import": importCatalog,
 };
 
 type QueueKind = "jobs" | "email" | "dlq";

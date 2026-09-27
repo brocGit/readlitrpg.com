@@ -3,4 +3,6 @@
 interface Env {
   SES_ACCESS_KEY_ID?: string;
   SES_SECRET_ACCESS_KEY?: string;
+  /** Optional. Without it, enrichment uses Open Library only (Google Books throttles anonymous calls). */
+  GOOGLE_BOOKS_API_KEY?: string;
 }

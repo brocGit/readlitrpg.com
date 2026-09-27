@@ -56,6 +56,7 @@ describe("title keys", () => {
     expect(titleKey("Azarinth Healer: A LitRPG Fantasy")).toBe("azarinth healer");
     expect(titleKey("Beware of Chicken - A Xianxia Cultivation Novel")).toBe("beware of chicken");
     expect(titleKey("Dungeon Crawler Carl [A LitRPG Adventure]")).toBe("dungeon crawler carl");
+    expect(titleKey("Unsouled (Cradle, #1)")).toBe("unsouled");
   });
 
   it("keeps volume numbers that tell siblings apart", () => {

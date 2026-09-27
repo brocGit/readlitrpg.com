@@ -37,6 +37,21 @@ export const JOBS = [
     cron: "30 5 * * *",
     description: "Delete expired sessions and sign-in tokens, and job history older than 90 days",
   },
+  {
+    key: "taxonomy.sync",
+    cron: "7 * * * *",
+    description: "Load data/taxonomy.yaml into the tags table when it has changed",
+  },
+  {
+    key: "catalog.enrich",
+    cron: "*/15 * * * *",
+    description: "Look up books in Open Library and Google Books; a match confirms a seed",
+  },
+  {
+    key: "catalog.import",
+    cron: "*/5 * * * *",
+    description: "Ingest the next chunk of any queued CSV, seed or dump import",
+  },
 ] as const satisfies readonly JobDef[];
 
 export type JobKey = (typeof JOBS)[number]["key"];
@@ -192,6 +207,21 @@ export async function runHeartbeat(opts: {
     }
   }
   return result;
+}
+
+/**
+ * Queue a job run right away, outside its schedule. Long jobs use this to continue in a fresh
+ * invocation (each invocation may run at most 1,000 D1 queries).
+ */
+export async function enqueueJob(
+  db: Db,
+  queue: { send(message: JobMessage): Promise<unknown> },
+  job: JobKey,
+): Promise<string> {
+  const runId = ulid();
+  await db.insert(jobRuns).values({ id: runId, job, trigger: "manual" });
+  await queue.send({ job, runId });
+  return runId;
 }
 
 /** "Run now" from admin: make the job due on the next heartbeat. */

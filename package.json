@@ -17,7 +17,7 @@
     "format": "biome check --write .",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && node scripts/quiz-tool.mjs check && node scripts/taxonomy-build.mjs --check",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && node --test scripts/*.test.mjs && node scripts/quiz-tool.mjs check && node scripts/taxonomy-build.mjs --check",
     "quiz": "node scripts/quiz-tool.mjs",
     "taxonomy": "node scripts/taxonomy-build.mjs"
   },

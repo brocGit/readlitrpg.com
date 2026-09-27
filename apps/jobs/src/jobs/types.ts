@@ -6,6 +6,8 @@ export interface JobContext {
   db: Db;
   log: Logger;
   now: Date;
+  /** Waits between polite API calls; tests pass a no-op. */
+  pause?: (ms: number) => Promise<void>;
 }
 
 /** Returns the number of items processed, for job_runs. */
