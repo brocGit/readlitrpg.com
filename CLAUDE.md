@@ -11,7 +11,7 @@ ReadLitRPG.com: a free discovery engine, book database and news brand for LitRPG
 - `docs/TAXONOMY.md`, `docs/QUIZZES.md`: the vocabulary, dials, stats and quizzes.
 - `docs/runbooks/`: operations (account setup, admin bootstrap, author decisions, secrets, jobs).
 
-Status: **M0 (foundations) through M6 (authors) are built.** M7 (owner console and blog) is next (DESIGN §20).
+Status: **M0 (foundations) through M7 (owner console, blog and daily news, house ads) are built.** M8 (money: paid ads, Stripe, Author Pro) is next (DESIGN §20).
 
 ## Layout
 
@@ -20,7 +20,7 @@ Status: **M0 (foundations) through M6 (authors) are built.** M7 (owner console a
 | `apps/web` | Astro 7 on Workers: readlitrpg.com (public site, accounts, public APIs) |
 | `apps/admin` | Astro 7 on Workers: admin.readlitrpg.com (owner console and the editorial API) |
 | `apps/jobs` | Plain Worker: cron heartbeat, queue consumers (jobs, email, dead letters) |
-| `packages/core` | Shared: Drizzle schema, policy (incl. the publish policy engine), settings, audit, scheduler, security, auth, rate limits, catalog (normalize, provenance, ingest, enrichment, imports, merges, scores, tag suggestions, embeddings), editorial (queue, runs, proposal schemas, apply, citations, watchdog), match (feature matrix, profiles, scoring, explanations, classes, find, lists, similar, eval), quiz (engine, takes, go-live), appraisals, site (public page read models, feeds, sitemaps, JSON-LD), media (image checks, covers, variants, share-image keys), analytics (beacon filters, rollups), readers (consent and suppression, signed links, profiles and levels, follows, marks, saved queries, library import, export and deletion, sequences, email picks, SNS verification), authors (members and invites, verification, submissions, protected edits, inbox handlers, notices, dashboard, release check-ins), taxonomy, test helpers |
+| `packages/core` | Shared: Drizzle schema, policy (incl. the publish policy engine), settings, audit, scheduler, security, auth, rate limits, catalog (normalize, provenance, ingest, enrichment, imports, merges, scores, tag suggestions, embeddings), editorial (queue, runs, proposal schemas, apply, citations, watchdog), match (feature matrix, profiles, scoring, explanations, classes, find, lists, similar, eval), quiz (engine, takes, go-live), appraisals, site (public page read models, feeds, sitemaps, JSON-LD), media (image checks, covers, variants, share-image keys), analytics (beacon filters, rollups), readers (consent and suppression, signed links, profiles and levels, follows, marks, saved queries, library import, export and deletion, sequences, email picks, SNS verification), authors (members and invites, verification, submissions, protected edits, inbox handlers, notices, dashboard, release check-ins), content (posts, Markdown and shortcodes, the auto-post validator, calendar, roundups, the daily news desk and briefs, guest posts, interviews), inbox (default actions, snooze, low-risk, trust; `inbox/handlers` combines every type's handler), undo (specs stored in audit rows, applying them), owner (digests and alerts), ads (catalog, inventory, house campaigns, serving, `/go/`, delivery), taxonomy, test helpers |
 | `packages/editorial` | The `pnpm editorial` CLI for runs, the eval harness and the golden-set merge |
 | `packages/email` | Email providers (SES, console), the queue message schema, and the sign-in, reader and author templates |
 | `packages/ui` | Brand tokens, base CSS and the share-card SVGs |
@@ -59,7 +59,7 @@ pnpm dev:admin    # http://localhost:4322 (see docs/runbooks/bootstrap-admin.md)
 pnpm dev:jobs     # then: curl "http://localhost:8787/__scheduled?cron=*/5+*+*+*+*"
 ```
 
-Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on 4322 (and the jobs Worker with `wrangler dev --test-scheduled` on 8788), then `pnpm --filter @rlr/web run e2e`, `pnpm --filter @rlr/admin run e2e`, `pnpm --filter @rlr/web run e2e:reader` and `pnpm --filter @rlr/admin run e2e:author` (the last three with `E2E_JOBS=1`). `astro preview` runs as a daemon: read its output with `pnpm exec astro preview logs` and stop it with `astro preview stop`.
+Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on 4322 (and the jobs Worker with `wrangler dev --test-scheduled` on 8788), then `pnpm --filter @rlr/web run e2e`, `pnpm --filter @rlr/admin run e2e`, `pnpm --filter @rlr/web run e2e:reader`, `pnpm --filter @rlr/admin run e2e:author` and `pnpm --filter @rlr/admin run e2e:content` (the last four with `E2E_JOBS=1`). `astro preview` runs as a daemon: read its output with `pnpm exec astro preview logs` and stop it with `astro preview stop`.
 
 ## Rules that matter
 
@@ -151,3 +151,16 @@ Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on
 - `possible_duplicate` and `scope_check` inbox items come from both the catalog and author submissions. Author handlers act only when `subjectType` is `submission`.
 - Author notices go through the `author_notices` outbox (`notifyAuthor`), emailed by the jobs Worker. Don't send author mail from the admin Worker or the heartbeat directly.
 - Browser tests that submit books use store ids unique to the run: the duplicate check rightly matches a book left by an earlier local run and sends the new one to review.
+
+## Gotchas learned in M7
+
+- **Drizzle binds column defaults too.** A multi-row insert sends every column, so a 10-column table with only 6 set still costs 10 parameters a row (the inventory insert hit 120). Count the table's columns, not the ones you set, when chunking under 100.
+- **Anything in public HTML is shared for the cache TTL.** Ad rotation is seeded by slot and period (`stableHash`), never picked at random per request, so every reader of a cached page sees the same placement and the beacon reports what was really shown.
+- **Undo lives in the audit row.** An undoable action puts `undo: {kind, …}` (`packages/core/src/undo`) in its audit diff, and inbox handlers return theirs. Audit rows can't change, so an undo appends `audit.undo` naming the row; check `withUndo` for state instead of looking for flags. A new reversible action needs a spec kind, a case in `applyUndoSpec` and `describeUndo`, and a test.
+- `openInboxItem` and `appendAudit` stamp rows with the real clock, not a test's `now`. Tests that filter those rows by time windows (alerts, the weekly summary, undo's 30 days) use the real clock.
+- micromark escapes raw HTML rather than passing it through. Don't write tests expecting an HTML block to survive, and don't add `allowDangerousHtml`.
+- A form without `action` posts to the current URL, query string included (`/inbox?snoozed=1`), so a redirect built from the query goes back there. Pick the redirect explicitly when the result belongs elsewhere.
+- Local `astro preview` doesn't cache pages by `routeRules`, so browser tests see a console change at once. Production waits for the TTL (a post, an ad or a paused campaign changes within its route's `maxAge`).
+- A release dated today counts as out, not announced: news tips for announcements use dates strictly after today.
+- Email has no beacon. Newsletter placements count an email send when they're queued (`countEmailSends`), and the rollup only overwrites served, viewable and clicks.
+- `pnpm lint | tail` hides a failing exit code. Check lint on its own before committing.

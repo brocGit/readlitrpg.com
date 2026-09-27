@@ -1397,6 +1397,20 @@ Every automated or one-click action writes the audit log **with a reversible dif
 | Monthly | Approve price suggestions and taxonomy proposals; skim the cost report | 15 min |
 | Whenever | Write a post, or book a house campaign for your own stuff | optional |
 
+### 8.7 As built (M7)
+
+Where the build differs from §8.1–8.4, and why:
+
+- **Cards.** Sorted by priority, then by whatever is due soonest (a deadline or a default action), then newest. Each shows the risk score when a review set one, a countdown to its default action ("Auto-approves in 2 d 4 h", "Closes itself in 3 h") or "Waits for you", the review's summary and recommendation, and links to the evidence (the post in the editor, the book, the profile, the run). **Edit & approve** is "Open it" (the thing to fix, in its own editor) and then Approve: every editable subject already has a full editor, so the card doesn't duplicate one.
+- **Reject** takes a reason from a picker (out of scope, duplicate, can't verify, not ready, against policy, other). Its canned text is what the author hears unless the owner types a note. Items whose change is already live, or that only ask for a look, have **Resolve** instead.
+- **Snooze** for 4 hours, a day, 3 days or a week. Snoozed items leave the list (a "Snoozed (N)" link shows them, with **Wake now**) and come back on the first heartbeat after their time. A snoozed item's default action still runs on time: snoozing hides it from the owner, it doesn't hold up the author waiting on it.
+- **Trust this author** is "Approve & trust author" on cards about an author: it approves and raises their trust one step, to T1 at most. T1 already makes their listings and edits publish at once and their clean guest posts approve themselves. T2 (ads without review) is only ever set on the author's page. Trust is one level per author, not per kind of item.
+- **Approve all low-risk (N)** lists exactly the items it would approve before the owner confirms, and re-checks each one on confirm. Low-risk means: the item would approve itself anyway or the review says approve, its risk score is at most `inbox.low_risk_max`, it isn't at priority 80 or above, the review doesn't say reject or escalate, and its type isn't one that always needs the owner's eyes (duplicates, claim conflicts, protected changes, manual verification, security, disputes, refunds, rights requests).
+- **Keyboard:** `j`/`k` move between cards, `a` approves (or resolves), `r` rejects, `e` opens the thing to edit, `s` snoozes for a day. A small island; the page works without it.
+- **Undo** (§8.3). An action that can be reversed stores how, as `undo` in its audit row's diff: a small typed spec (`post_status`, `campaign_state`, `visibility`, `field_source`, `merge`, `setting`, `author_trust`, `quiz_status`, `member_remove`). Inbox handlers return theirs (approving a listing: hide it again; approving or rejecting a post: back to review; approving a claim: remove the member), and every default action is audited as `inbox.default_action` with its undo, so what decided itself can be reversed too. The owner's own actions carry them as well: publish, hide and draft on a book; a field override (undo drops that provenance row and lets precedence pick the value again); merges; settings (back to the earlier override or the default); trust changes; quiz publish and retire; post publish, unpublish and scheduling a draft; pausing and resuming a campaign. The audit log can't be edited, so an undo is a new `audit.undo` row naming the one it reverses; a row with one is shown as undone. Undo works for 30 days. The audit page filters by action (or a prefix like `inbox.`), actor and "can be undone". Sent email, notices already sent to authors, and ending a campaign (its places go back on sale) can't be undone.
+- **Owner notifications** go to every admin with a verified address, on the transactional stream. `owner.alerts` (every 5 minutes) emails each new open item at `owner.alert_min_priority` (90) or above, and any security event, dispute, held editorial run or stale editorial queue whatever its priority, once (`alerted_at`); items older than two days never alert, so a deploy doesn't page the owner about an old backlog. It posts the same line to a private Discord channel when `DISCORD_ALERT_WEBHOOK` is set (mentions disabled, so an item title can't ping anyone). `owner.daily_digest` (13:00 UTC) sends only when an item is due or decides itself within 48 hours, or something at priority 80+ is open. `owner.weekly_summary` (Sunday 14:00) has one line per strategy layer (search: page views; onboarding: quiz takes; Patch Notes: subscribers; the catalog: books, claimed profiles, posts; money: none until paid products), inbox numbers with the automation rate, everything that decided itself with an undo link each, next week's newsletters, scheduled posts and booked ads. Both can be switched off in settings.
+- **Not built yet:** a site-down alert (it needs an outside uptime check), revenue and spend in the summary (M8), "preview as any reader" for the newsletter, and the dashboard's revenue panel.
+
 ---
 
 ## 9. Reader features
@@ -1889,6 +1903,19 @@ The owner advertises anything, for free, through the same engine:
 | Advertiser cancels < 48 h before start | No refund |
 | Our delivery failure | Makegood credit or rebook (§11.6) |
 
+### 11.11 As built (M7)
+
+Phase 1 runs **house campaigns only** through the real engine (§3), so inventory, serving and measurement meet real traffic before any money does. Where the build differs from §11.2–11.9, and why:
+
+- **Products and slots live in code** (`AD_PRODUCTS`) and are synced into `ad_products` and `ad_slots` by `inventory.generate`: Homepage Spotlight (three daily slots), Tag Page Sponsor (weekly, per tag), Books-Like Sponsor (weekly, per book), and the newsletter's top and two standard slots (per weekly issue). Untargeted slots get one inventory unit per period 120 days ahead, with the product's base price as the snapshot. Per-tag and per-book slots would need a unit for every tag or book, so their units are made on demand when something books them. Selling or holding a unit is one conditional UPDATE, so two bookings can never take the last place; expired holds are released by the heartbeat. Blackouts (§11.3) are a toggle on the 14-day calendar in Admin → Ads.
+- **House campaigns** (§11.9): **reserved** books one place in each period of its dates, all or nothing (a failure gives back what it took), and needs an end date within a year; **backfill** takes no inventory and fills whatever went unsold, rotating by weight. Creatives are checked deterministically: a headline of 1–60 characters, a body of at most 200, no markup or control characters, a call to action from the fixed list, and an https destination (a house campaign may point anywhere; a paid one only at the book's own links). A promoted book must be published and in scope; a Tag Page Sponsor's book must carry the tag (score ≥ 0.6); books flagged explicit can't use the Homepage Spotlight.
+- **Serving.** Placements render into the page's cached HTML, so the choice must be the same for everyone who sees that page in that period: for each slot, the confirmed booking; otherwise backfill campaigns in a weighted order seeded by a hash of the slot, period and target (it changes per period, not per request); otherwise a built-in house ad from templates (Patch Notes, the quizzes, Today in LitRPG, For authors, the match engine), so a slot is never empty on the site. One campaign and one book appear once per page. Guards keep context honest: a Books-Like Sponsor shows only when its book is among the page book's top 50 matches, and a Tag Page Sponsor only on a tag page whose books include it.
+- **Labels.** House ads say "From ReadLitRPG". The owner promoting their own book as an author ticks "It's my own book" and it is labeled **Sponsored** like any paid placement, with `rel="sponsored"` (FTC, §11.9).
+- **`/go/{token}`.** The token is signed (purpose `go`) and names only the campaign and slot; the destination is read from the database at click time (the creative's stored URL, the book's own link, or the book page), so a token can't be edited into an open redirect. Automated clients are redirected but not counted.
+- **Measurement.** The page beacon reports the ads a page rendered (served) with its page view, and a second, batched beacon reports those at least 50% in view for a second (viewable); `/go/` records clicks. All three go to Analytics Engine and `stats.rollup` copies the last two days into `campaign_stats_daily`. Admin → Ads shows 30 days per campaign.
+- **Email.** The weekly Patch Notes carries up to `ads.max_sponsored_per_email` newsletter placements, chosen once per issue and then filtered per reader: a promoted book must pass the reader's hard no's (the match engine's exclusion rules) and not be one they've read. No built-in house ads in email: an unsold slot is left out. Email has no beacon, so each placement queued counts as an email send. Patch Notes Daily carries no ads.
+- **Not built yet (M8):** paid products and Stripe checkout, holds on real bookings, advertiser accounts and the author Promote tab, the `ad_review` creative queue, Sponsored Match, pricing automation, makegoods and advertiser reports.
+
 ---
 
 ## 12. Payments and billing
@@ -2190,6 +2217,20 @@ A live, curated stream at `/board` of what the rest of the LitRPG world is publi
   - Indexable pages are the ones where we add value: "Today in LitRPG" and directory pages such as "Best LitRPG podcasts", "LitRPG YouTube channels" and "LitRPG publishers", with descriptions in our own words.
   - Allowlisted sources get normal links; unvetted items `rel="ugc nofollow"`; anything paid `rel="sponsored"`.
   - Outbound links carry `?ref=readlitrpg` so sources see us in their analytics. That's a nudge toward partnerships and links back.
+
+### 14.9 As built (M7)
+
+Where the build differs from §14.1–14.7, and why:
+
+- **Posts** (`posts`) carry a type, a status that follows §14.2, Markdown and its rendered HTML, a byline (the owner, an author profile, or a name), how AI was involved and the label shown (§14.1), sources, SEO fields, `noindex`, and a generation key that makes automated posts idempotent (one roundup per week, one daily post per day). Every save writes a revision; the editor shows a line diff and restores any revision as a new one. Daily posts live at `/news/{yyyy}/{mm}/{dd}` (and `/news/today`), news briefs, data stories and roundups under `/news/{slug}`, and everything else under `/blog/{slug}`. Living lists stayed as the `/lists` pages (M3): they are saved searches with an intro, not posts.
+- **Rendering.** Markdown goes through micromark (raw HTML is escaped, not passed through), then links get `rel` by policy (`ugc nofollow` in guest posts, `sponsored` in sponsored ones, `noopener` everywhere), only images from our own media are kept, and an `h1` becomes an `h2`. Shortcodes are resolved when the page renders, so cards stay live: a shortcode alone in a paragraph becomes a block card (a book, series or author card, a releases table, the newsletter signup), and one inside a sentence becomes a plain link. The validator (§14.4) is `validateAutoPost`: every book id was in the input, no catalog title appears as bare text, every number in the prose appears in the input, no links, and length limits.
+- **Editorial calendar.** `blog.calendar` maps weekdays to slot kinds (roundup, news, editorial, guest, owner; guest covers interviews), and posts go live at `blog.publish_hour_utc`. A slot is a row with a unique (date, kind), so two approvals can't take the same one. Admin → Blog → Calendar moves a post to another day's slot with a form rather than drag and drop, which works on a phone and without JavaScript.
+- **Automated posts.** The weekly roundup (Monday) and monthly roundups (audiobooks and new series on the 1st, the most-followed upcoming releases on the 15th) need `blog.min_books_per_roundup` books. With `blog.auto_publish_roundups` off (the default for now) they wait a day in the inbox for a veto, then publish themselves. Editorial drafts (guides) come from the `post_draft` editorial kind: the run writes sections around book ids from a brief built from our catalog, the validator checks it, and the draft waits `blog.ai_draft_veto_hours` (72) in the inbox, then takes the next editorial slot.
+- **Daily news.** `news.from_catalog` turns catalog changes into data tips every hour (announcements only for dates still ahead, date moves, cancellations, completed series). The morning `news_scan` editorial run researches publisher announcements, adaptations, awards and sales and proposes briefs with the pages they cite; `news.briefs` fetches each cited page through `safeFetch`, and a brief whose page mentions its subject publishes (with `news.auto_publish_briefs` on), otherwise it goes to the inbox as `news_brief`. **Today in LitRPG** is built from data at 10:30 UTC every day, quiet days included (a day with fewer than `news.daily_min_items` items is `noindex`): books out today (ebooks and print, audio, Kindle Unlimited), new announcements, date moves, cancellations, completions, the week ahead and the day's briefs. It posts to Bluesky and Mastodon when their secrets are set, and `news.daily_send` emails it to Patch Notes Daily readers (`daily_digest`, opt-in on the subscribe form and in email preferences) with the same kill switch, cap and circuit breaker as the weekly issue. Authors can also send news from `/dashboard/news` (a tip the next scan checks).
+- **Guest posts.** T1+ authors pitch from `/dashboard/write`; the pitch opens a `guest_pitch` item and a `guest_review` editorial item, and T2 authors with a clean, on-topic pitch are accepted at once. Accepted pitches are written in the dashboard with a preview exactly as readers will see it, then submitted with the guidelines and contributor license acknowledged. The pre-review (`guest_review` again, on the full post) writes its checklist, verdict and a risk score onto the `post_review` item; a clean post from a verified author approves itself after `blog.guest_review_days` (5). The owner can approve (the next guest slot), request changes with a note, or decline, and the author is emailed each time.
+- **Interviews.** `interviews.invite` invites verified authors with a dated release 21–35 days out. They answer at least 6 of 15 questions in the dashboard; the `interview_format` editorial kind orders the answers, writes a headline and a two-sentence intro and fixes typos only, and the server refuses output whose answers differ from the author's beyond small fixes. The author sees the formatted text and approves it; it then goes to the inbox and approves itself after `blog.guest_review_days` if clean, taking the next guest slot.
+- **Distribution.** RSS for the blog and for news, PNG share cards drawn at publish (`og.render`), the latest post in the weekly Patch Notes, and posts listed on the books they feature and on the author's profile.
+- **Not built yet:** the monthly *State of LitRPG* data story and its charts (the type exists), sponsored posts (M8), reader polls and awards, image upload in the writing tools (images come from our own media only), reserving newsletter or house-ad slots from the post editor (book a house campaign in Admin → Ads instead), and the Guild Board (§14.8).
 
 ---
 
@@ -2663,7 +2704,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | **M4: Public site** ✅ built | Home (match-first), book/series/author/narrator/tag pages, New & upcoming (curated), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics. *Status:* all built and tested (unit, and in the browser: the console E2E sets a release date through to `/new` and the calendar feed, uploads a cover that the jobs Worker re-encodes with the Images binding, checks the entity pages' structured data, the beacon, robots.txt and the sitemap, and waits for the quiz's PNG share cards drawn inside workerd). Decisions are in the "As built (M4)" notes in §9.5 and §15.7. PNG link previews come from resvg compiled to WebAssembly with the DejaVu fonts bundled into the jobs Worker (a 2.1 MB gzipped bundle) | 1.5–2 wks |
 | **M5: Readers and email** ✅ built | Signup (double opt-in), onboarding with profile levels, quiz email capture and the welcome sequence, book marks and appraisals, saved matches/searches → alerts, follows, account/privacy (export/delete), Goodreads/StoryGraph library import, SES integration, templates, weekly digest Workflow, alerts, unsubscribe/suppression, SNS webhooks. *Status:* all built and tested (unit, and in the browser: the reader E2E goes from a quiz result through email capture, confirmation, onboarding, marks, follows with release-day emails, the private calendar, saved tastes and searches, a mail app's one-click unsubscribe, the jobs Worker's welcome email and export, to account deletion). Decisions are in §13.7. The digest is two chunked jobs instead of a Workflow. Waiting on the SES and SNS setup ([email-setup.md](./runbooks/email-setup.md)) and a postal address before marketing mail can go out | 2 wks |
 | **M6: Authors** ✅ built | Author onboarding, verification methods, submission flow (including paste-anything import and dial nudges), dashboard (books, to-dos, stats including match appearances, change history), protected fields, change notifications, release confirmation asks, team members. *Status:* all built and tested (unit, and in the browser: the author E2E creates a pen name, sends a code for a check by hand, submits a book that waits, has the owner approve both in the inbox, edits under the protected-field rules, sees the owner's change, hides and shows the listing, invites an editor, has a second claim rejected, turns a pasted book list into a draft through a real editorial run, and confirms a release date from the jobs Worker's check-in link). Decisions are in §10.7. Publisher accounts and CSV bulk upload are not built yet | 1.5–2 wks |
-| **M7: Owner console and blog** | Inbox with default actions, bulk actions, undo; blog (post types, living lists, editor, shortcodes, validator, editorial calendar, guest pitch/submit/review, interviews, auto roundups); owner digests; house ads + ad engine (slots, inventory, serving, beacons, `/go/`) | 2 wks |
+| **M7: Owner console and blog** ✅ built | Inbox with default actions, bulk actions, undo; blog (post types, living lists, editor, shortcodes, validator, editorial calendar, guest pitch/submit/review, interviews, auto roundups); owner digests; house ads + ad engine (slots, inventory, serving, beacons, `/go/`). Added: the daily news desk (Today in LitRPG, cited briefs, Patch Notes Daily, Bluesky and Mastodon), because news is daily. *Status:* all built and tested (unit, and in the browser: the content E2E publishes a post with a book shortcode and undoes it from the audit log, has the jobs Worker build Today in LitRPG, drives the inbox with countdowns, snooze, the keyboard, an undone approval and "Approve all low-risk", and runs a house ad on the homepage through `/go/`, pause and an undone pause). Decisions are in §8.7, §11.11 and §14.9. The Guild Board, data stories, sponsored posts, polls and awards are not built yet | 2 wks |
 | **Launch (Phase 1)** | ≥ 2,000 verified books, legal pages, trust page, pre-launch security checklist, soft launch to a small community group, then public | 1 wk |
 | **M8: Paid promotions (Phase 1.5)** | Stripe Checkout/Billing/Portal, webhooks + reconciliation, order state machine, refunds/credits/comps, Sponsored Match pacing and server-side impression counting, Books-Like Sponsor, advertiser dashboard and reports, creative checks, Author Pro | 3–4 wks |
 
@@ -2753,9 +2794,9 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 | `/series/{slug}`, `/authors/{slug}`, `/narrators/{slug}`, `/publishers/{slug}` | Entity pages |
 | `/tags`, `/tags/{slug}` | Tag index / landing |
 | `/search` | Title / author / series lookup (typeahead) |
-| `/blog`, `/blog/{slug}`, `/blog/type/{type}` | Blog (evergreen posts, interviews, guest posts) |
-| `/news`, `/news/{slug}` | *Patch Notes* news section |
-| `/news/today`, `/news/{yyyy}/{mm}/{dd}` | Daily "Today in LitRPG" roundup and archive |
+| `/blog`, `/blog/{slug}`, `/blog/type/{type}` | Blog (evergreen posts, interviews, guest posts) (built in M7) |
+| `/news`, `/news/{slug}` | *Patch Notes* news section: briefs, roundups (built in M7) |
+| `/news/today`, `/news/{yyyy}/{mm}/{dd}` | Daily "Today in LitRPG" roundup and archive (built in M7) |
 | `/board`, `/board/{kind}` | Guild Board genre feed (`noindex, follow`) |
 | `/directory/{kind}` | Indexable directories: LitRPG podcasts, YouTube channels, publishers, review sites |
 | `/awards`, `/awards/{year}` | Annual ReadLitRPG Reader Awards |
@@ -2764,12 +2805,12 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 | `/welcome` | Onboarding after sign-up or confirmation: "How should we learn your taste?" (built in M5) |
 | `/for-authors`, `/advertise`, `/write-for-us` | Author-facing marketing (`/for-authors` built in M6) |
 | `/trust`, `/ai`, `/disclosures`, `/legal/{doc}` | Trust and legal |
-| `/feeds/releases.xml`, `/feeds/releases.ics`, `/feeds/tags/{slug}.xml`, `/feeds/blog.xml`, `/feeds/tags/{slug}.ics` | Public feeds (all but the blog feed built in M4) |
+| `/feeds/releases.xml`, `/feeds/releases.ics`, `/feeds/tags/{slug}.xml`, `/feeds/tags/{slug}.ics`, `/feeds/blog.xml`, `/feeds/news.xml` | Public feeds (built in M4; the blog and news feeds in M7) |
 | `/robots.txt`, `/sitemap.xml`, `/sitemaps/{type}-{n}.xml` | Crawler policy and sitemaps (built in M4) |
 | `/media/{key}` | MEDIA objects where `media.readlitrpg.com` isn't in front, e.g. local dev (built in M4) |
 | `/feeds/{token}.ics` | Private per-user calendar (built in M5) |
-| `/go/{token}` | Click redirect |
-| `/e` | Beacon (POST) |
+| `/go/{token}` | Ad click redirect: a signed campaign and slot, destination from the database (built in M7) |
+| `/e` | Beacon (POST): page views (M4), match appearances (M6), served and viewable ad impressions (M7) |
 | `/u/{token}` | Unsubscribe (GET confirm page, POST action; RFC 8058 one-click) (built in M5) |
 | `/m/{token}` | One-click book choice from an email, recorded on a confirm tap (built in M5) |
 | `/goodbye` | After account deletion (built in M5) |
@@ -2794,7 +2835,9 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 | `/dashboard/release/{token}` | "Still on for …?": confirm, change or delay a release from the email, no sign-in (built in M6) |
 | `/dashboard/stats` | Analytics across books (stats are per book for now) |
 | `/dashboard/promote`, `/dashboard/campaigns/{id}` | Ads (Phase 1.5) |
-| `/dashboard/write`, `/dashboard/interview` | Guest posts, interviews |
+| `/dashboard/write`, `/dashboard/write/{id}` | Guest posts: pitch, write with a preview, submit, see review notes (built in M7) |
+| `/dashboard/interview/{id}` | Answer interview questions, then approve the formatted text (built in M7) |
+| `/dashboard/news` | Send us news: a tip the next news scan checks (built in M7) |
 | `/dashboard/billing` | Stripe Portal, credits, Author Pro |
 
 **APIs and webhooks (`web`)**
@@ -2803,7 +2846,7 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 
 **Admin (`admin.readlitrpg.com`)**
 
-`/inbox`, `/dashboard`, `/catalog/*` (with `/catalog/authors` and `/catalog/authors/{id}` for trust, official links, verification and members, M6), `/taxonomy`, `/editorial`, `/editorial/runs/{id}`, `/match`, `/quizzes`, `/traffic`, `/people/*`, `/ads/*`, `/billing/*`, `/blog/*`, `/newsletter/*`, `/automation/*`, `/settings`, `/audit`, `/security`
+`/inbox` (and `?snoozed=1`; M7: countdowns, reasons, snooze, trust, bulk low-risk, keyboard), `/dashboard`, `/catalog/*` (with `/catalog/authors` and `/catalog/authors/{id}` for trust, official links, verification and members, M6), `/taxonomy`, `/editorial`, `/editorial/runs/{id}`, `/match`, `/quizzes`, `/traffic`, `/people/*`, `/ads` (house campaigns, inventory calendar, delivery; M7), `/billing/*`, `/blog`, `/blog/{id}`, `/blog/calendar` (M7), `/newsletter/*`, `/automation/*`, `/settings`, `/audit` (filters and Undo; M7), `/security`
 
 Editorial API (Access service token + editorial token, §7.1): `POST /api/editorial/runs`, `POST /api/editorial/pull`, `POST /api/editorial/push`, `POST /api/editorial/runs/{id}/finish`, `GET /api/editorial/status`
 
@@ -2813,7 +2856,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 
 | Job | Cadence | Notes |
 |---|---|---|
-| `heartbeat` | every 5 min | Holds, campaign start/end, scheduled posts, inbox default actions (M2: for items whose change is already live; M6: author items run their handlers, so a T0 listing publishes and a close-to-release date change applies), DLQ → inbox |
+| `heartbeat` | every 5 min | Holds, campaign start/end (M7), scheduled posts (M7), snoozed items back (M7), inbox default actions (M2: for items whose change is already live; M6: author items run their handlers, so a T0 listing publishes and a close-to-release date change applies; M7: posts publish or take their slot, each audited with its undo), DLQ → inbox |
 | `audit.verify` | nightly 04:15 | Check the audit hash chain; a break opens a priority-100 inbox item (built in M0) |
 | `editorial.queue` | every 15 min | Queue classification, dedupe and research work (built in M2). Moderation, summaries and drafts join as their subjects arrive |
 | `editorial.watchdog` | hourly :23 | Return expired claims, close dead runs, alert if work waits with no successful run in `editorial.stale_hours` (built in M2) |
@@ -2828,34 +2871,36 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `email.digest_send` | every 5 min, Fri–Sat 13:00–23:55 | Build and queue `email.digest_chunk` readers a run with a cursor; circuit breaker, daily cap and kill switch (built in M5) |
 | `exports.build` | every 10 min | "Export my data" files into `PRIVATE`, then a link by email (built in M5) |
 | `library.import` | every 5 min | Match imported Goodreads / StoryGraph rows to books, a few chunks a run (built in M5) |
-| `blog.weekly_roundup` | Mon 11:00 | Generate → validate → publish |
-| `blog.monthly_roundups` | 1st and 15th, 11:00 | Same |
-| `blog.editorial_drafts` | Wed 09:00 | Up to 2 drafts → inbox |
-| `interviews.invite` | daily 14:00 | Authors with releases 21–35 days out |
+| `blog.weekly_roundup` | Mon 11:04 | Build → validate → publish, or a day in the inbox for a veto while `blog.auto_publish_roundups` is off (built in M7) |
+| `blog.monthly_roundups` | 1st and 15th, 11:08 | Same (built in M7) |
+| `blog.editorial_drafts` | with the editorial queue | Guide drafts are `post_draft` editorial items; the draft waits `blog.ai_draft_veto_hours` in the inbox (built in M7 as an editorial kind, not a job) |
+| `interviews.invite` | daily 13:53 | Verified authors with a dated release 21–35 days out (built in M7) |
 | `authors.change_digest` | every 15 min, 17:00–18:45 | One email per author with the last day's changes made by others, 40 authors a run (built in M6) |
 | `vectors.update` | hourly :40 | Embed new and changed books (Workers AI REST, `embed.batch_size` a run) and flag near-duplicates; does nothing without `CF_ACCOUNT_ID`/`CF_API_TOKEN` (built in M2) |
 | `quiz.announce` | hourly :09 | Open a `quiz_ready` inbox item for each quiz in the code without a publish decision. The heartbeat publishes it after `quiz.auto_publish_hours` unless the owner retired it (built in M3) |
 | `match.model_build` | hourly :50 | Rebuild the feature matrix (dials, stats, tags, reduced embeddings, quality prior) and store it in KV under a content-derived version; skipped while a rollback pins the model (built in M3). "Books like X" is computed from it on request, so there is no `similar.update` job, and appraisals recalibrate as they arrive, so there is no `scores.recalibrate` job (§7.8 "As built") |
 | `saved_queries.alerts` | with the release alerts (instant) / with the digest | New books matching saved matches and searches: built in M5 inside `email.release_alerts` and `email.digest_send` rather than as a job of its own |
 | `search.sync` / `search.rebuild` | on change / weekly Sun 03:00 | FTS index |
-| `stats.rollup` | hourly :17 | Analytics Engine → `page_views_daily` and `referrers_daily` for the last two days, idempotent; needs `CF_ACCOUNT_ID`/`CF_API_TOKEN` (built in M4) |
+| `stats.rollup` | hourly :17 | Analytics Engine → `page_views_daily` and `referrers_daily` (M4) and `campaign_stats_daily` (served, viewable, clicks; M7) for the last two days, idempotent; needs `CF_ACCOUNT_ID`/`CF_API_TOKEN` |
 | `media.covers` | every 15 min | Licensed covers from Open Library for up to 10 books without one, by cover id then ISBN; retried after 30 days (built in M4) |
 | `media.process` | every 5 min, plus immediately on upload | Re-encode pending images into WebP variants, attach covers, queue image review (built in M4) |
 | `og.render` | every 15 min, plus immediately on quiz publish | Link-preview PNGs: the site card, reader classes, live quiz results and changed books (built in M4) |
 | `trust.recompute` | nightly 04:00 | Trust levels |
-| `inventory.generate` | nightly 04:30 | 120 days ahead |
+| `inventory.generate` | nightly 04:30 | Sync products and slots from the code; units 120 days ahead for untargeted slots (built in M7) |
 | `stripe.reconcile` | nightly 05:00 | 48 h lookback |
 | `backup.export` | nightly 03:00 | NDJSON parts plus a checksummed manifest → `BACKUPS` (`d1/daily/`, and `d1/monthly/` on the 1st). Live sessions and sign-in tokens are never exported (built in M0) |
 | `retention.purge` | nightly 05:30 | Expired sessions, sign-in tokens and rate counters; job history over 90 days; anonymous quiz takes over 90 days (M3); the email send log over 90 days, subscriptions never confirmed and expired export files (M5); pasted book lists 7 days after they're read, sent author notices after 30 days and emailed change notes after 90 (M6); audit rows over 7 years (built in M0) |
 | `links.health` | weekly Tue 06:00 | Non-Amazon/Royal Road links only |
 | `research.next_volume` | weekly Wed 06:00 (series expecting a release soon); monthly for the rest | The research agent checks ongoing series for announced next books and feeds New & upcoming |
-| `owner.daily_digest` | daily 13:00 | Only if action is needed |
-| `owner.weekly_summary` | Sun 14:00 | KPIs (one line per strategy layer) and upcoming schedule |
-| `news.scan` | daily 06:00 | Research agent scans for cited LitRPG news → briefs |
+| `owner.daily_digest` | daily 13:00 | Only if action is needed (built in M7) |
+| `owner.weekly_summary` | Sun 14:00 | KPIs (one line per strategy layer), what decided itself with undo links, and the week ahead (built in M7) |
+| `owner.alerts` | every 5 min | Instant alerts by email and optional Discord webhook (built in M7) |
+| `news.scan` | with the editorial queue, daily | A `news_scan` editorial item each morning: the run proposes cited briefs (built in M7 as an editorial kind) |
+| `news.briefs` | every 10 min | Fetch the pages the briefs cite; publish what checks out, send the rest to the inbox (built in M7) |
 | `board.fetch` | hourly | Fetch Guild Board sources, summarize, match to catalog, hide off-topic items |
-| `news.daily_roundup` | daily 10:30 | Build and publish "Today in LitRPG" |
-| `news.daily_send` | daily 11:00 | Email *Patch Notes Daily* (opt-in) and auto-post to Bluesky and Mastodon |
-| `news.from_catalog` | daily 09:00 | Announcements, date changes and completions → brief candidates |
+| `news.daily_roundup` | daily 10:30 | Build and publish "Today in LitRPG", then post it to Bluesky and Mastodon if set up (built in M7) |
+| `news.daily_send` | every 5 min, 11:00–13:55 | Email *Patch Notes Daily* (opt-in) a chunk a run (built in M7) |
+| `news.from_catalog` | hourly :12 | Announcements, date changes, cancellations and completions → news tips (built in M7) |
 | `polls.rotate` | weekly Fri 12:00 | Close last week's poll, publish results, open the next |
 | `data.state_of_litrpg` | monthly, 3rd | Build the *State of LitRPG* data story |
 | `pricing.suggest` | monthly, 1st | → inbox |
@@ -2910,18 +2955,27 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `email.direct_affiliate_links` | false |
 | `blog.auto_publish_roundups` | false for the first 4 weeks, then true |
 | `blog.min_books_per_roundup` | 8 |
+| `blog.calendar` | `{mon: [roundup], tue: [guest], wed: [editorial], thu: [guest]}` (M7) |
+| `blog.publish_hour_utc` | 13 |
+| `blog.ai_draft_veto_hours` | 72 |
+| `blog.guest_review_days` | 5 |
+| `news.auto_publish_briefs` | true (a brief publishes once its cited page checks out) |
+| `news.daily_min_items` | 3 (thinner days publish `noindex`) |
+| `inbox.low_risk_max` | 30 (highest risk score "Approve all low-risk" includes) |
+| `owner.alert_min_priority` | 90 |
+| `owner.daily_digest` / `owner.weekly_summary` | true / true |
 | `session.reader_days` / `.author_days` / `.admin_hours` | 30 / 14 / 12 |
 | `session.epoch` | 0 (Unix seconds; sessions created before it are ignored) |
 | `flags.indexable` | false until launch (pages send `X-Robots-Tag: noindex`) |
-| `flags.*` | `ads_paid=false` until M7; everything else on |
+| `flags.*` | `ads_paid=false` until M8 (M7 serves house campaigns only, under `ads_serving`); everything else on |
 
 ### Appendix D: Environment variables and secrets
 
 | Worker | Secrets / vars |
 |---|---|
 | `web` | Bindings (M4): `MEDIA` (read), `EVENTS`; (M5) `PRIVATE` (export downloads and deletes, and from M6 the originals of verified authors' cover uploads). Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key; also signs team invites and release check-ins from M6), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (the topic SES publishes bounces and complaints to; M5), `PUBLIC_*` site config |
-| `admin` | Bindings (M4): `PRIVATE`. Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Secrets: `ADMIN_AUTH_SECRET`, `EDITORIAL_TOKEN_HASH` (SHA-256 of the editorial token; two comma-separated during rotation), `EDITORIAL_ACCESS_CLIENT_IDS` (the Access service token allowed to call the editorial API), `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
-| `jobs` | Bindings (M4): `MEDIA`, `PRIVATE`, `IMAGES`. Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `EMAIL_FROM_NEWS` (M5), `PUBLIC_ORIGIN` (M5, links in emails), `SES_REGION`, `PUBLIC_MEDIA_ORIGIN`, `EVENTS_DATASET`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `LINK_SIGNING_KEYS` (M5, the same value as web), `CF_ACCOUNT_ID` and `CF_API_TOKEN` (Workers AI for embeddings, and *Account Analytics · Read* for `stats.rollup`; cache purges run inside the Worker; optional until embeddings are wanted), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY` (optional: without it, enrichment uses Open Library only), `DISCORD_ALERT_WEBHOOK` (optional) |
+| `admin` | Bindings (M4): `PRIVATE`. Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `SITE_ORIGIN` (M7: links in posts rendered from the console), `RP_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Secrets: `ADMIN_AUTH_SECRET`, `EDITORIAL_TOKEN_HASH` (SHA-256 of the editorial token; two comma-separated during rotation), `EDITORIAL_ACCESS_CLIENT_IDS` (the Access service token allowed to call the editorial API), `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
+| `jobs` | Bindings (M4): `MEDIA`, `PRIVATE`, `IMAGES`. Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `EMAIL_FROM_NEWS` (M5), `PUBLIC_ORIGIN` (M5, links in emails), `ADMIN_ORIGIN` (M7, links in the owner's emails), `SES_REGION`, `PUBLIC_MEDIA_ORIGIN`, `EVENTS_DATASET`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `LINK_SIGNING_KEYS` (M5, the same value as web), `CF_ACCOUNT_ID` and `CF_API_TOKEN` (Workers AI for embeddings, and *Account Analytics · Read* for `stats.rollup`; cache purges run inside the Worker; optional until embeddings are wanted), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY` (optional: without it, enrichment uses Open Library only), `DISCORD_ALERT_WEBHOOK` (optional, M7: a private channel for instant alerts), `BLUESKY_HANDLE` and `BLUESKY_APP_PASSWORD` (optional, M7: an app password, never the account password), `MASTODON_URL` and `MASTODON_TOKEN` (optional, M7: `write:statuses` only) |
 | Cloud environment (editorial runs) | `EDITORIAL_TOKEN`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; network allowlist: readlitrpg.com plus web search |
 | CI (GitHub environments) | `CLOUDFLARE_API_TOKEN` (Workers + D1 edit, one account), `CLOUDFLARE_ACCOUNT_ID`, off-platform backup credentials |
 
