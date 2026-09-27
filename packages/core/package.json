@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
+    "./catalog": "./src/catalog/index.ts",
     "./db": "./src/db/index.ts",
     "./db/backup": "./src/db/backup.ts",
     "./inbox": "./src/inbox/index.ts",
@@ -16,6 +17,7 @@
     "./schema": "./src/db/schema/index.ts",
     "./security": "./src/security/index.ts",
     "./settings": "./src/settings/index.ts",
+    "./taxonomy": "./src/taxonomy/index.ts",
     "./testing": "./src/testing/index.ts"
   },
   "scripts": {

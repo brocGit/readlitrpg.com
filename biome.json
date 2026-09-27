@@ -17,7 +17,8 @@
       "!docs",
       "!data",
       "!scripts",
-      "!migrations"
+      "!migrations",
+      "!**/*.gen.ts"
     ]
   },
   "formatter": {

@@ -17,12 +17,14 @@
     "format": "biome check --write .",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && node scripts/quiz-tool.mjs check",
-    "quiz": "node scripts/quiz-tool.mjs"
+    "check": "pnpm lint && pnpm typecheck && pnpm test && node scripts/quiz-tool.mjs check && node scripts/taxonomy-build.mjs --check",
+    "quiz": "node scripts/quiz-tool.mjs",
+    "taxonomy": "node scripts/taxonomy-build.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
     "drizzle-kit": "0.31.11",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "yaml": "2.9.1"
   }
 }

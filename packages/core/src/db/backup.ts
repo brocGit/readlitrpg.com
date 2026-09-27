@@ -11,11 +11,31 @@ export const BACKUP_TABLES = [
   "job_runs",
   "audit_log",
   "inbox_items",
+  "publishers",
+  "authors",
+  "universes",
+  "series",
+  "books",
+  "book_authors",
+  "narrators",
+  "editions",
+  "edition_narrators",
+  "releases",
+  "book_links",
+  "tags",
+  "book_tags",
+  "book_field_sources",
+  "book_scores",
+  "media",
+  "catalog_confirmations",
+  "catalog_merges",
+  "catalog_imports",
+  "catalog_import_rows",
 ] as const;
 
 /**
  * Never exported. Live sessions and sign-in tokens are secrets with short lives; after a restore,
- * people simply sign in again. Rate counters expire within hours. Derived data (search index,
- * vectors) is rebuilt, not backed up.
+ * people simply sign in again. Rate counters expire within hours. Derived data (`book_similar`,
+ * the search index, vectors) is rebuilt, not backed up.
  */
-export const BACKUP_EXCLUDED = ["sessions", "verifications", "rate_counters"] as const;
+export const BACKUP_EXCLUDED = ["sessions", "verifications", "rate_counters", "book_similar"] as const;
