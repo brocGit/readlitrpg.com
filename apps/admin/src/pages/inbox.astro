@@ -135,7 +135,7 @@ if (Astro.request.method === "POST") {
 
   if (op === "wake") {
     await wakeInboxItem(db, item.id);
-    return Astro.redirect(flash(back, "Back in the inbox."), 303);
+    return Astro.redirect(flash("/inbox", "Back in the inbox."), 303);
   }
 
   if (op === "trust") {

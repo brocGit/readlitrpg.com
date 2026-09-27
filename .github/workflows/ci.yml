@@ -109,3 +109,9 @@ jobs:
           CHROMIUM_PATH: /usr/bin/google-chrome
           E2E_JOBS: "1"
           E2E_JOBS_URL: http://localhost:8788
+      - name: Blog, news, inbox, undo and house ads
+        run: pnpm --filter @rlr/admin run e2e:content
+        env:
+          CHROMIUM_PATH: /usr/bin/google-chrome
+          E2E_JOBS: "1"
+          E2E_JOBS_URL: http://localhost:8788
