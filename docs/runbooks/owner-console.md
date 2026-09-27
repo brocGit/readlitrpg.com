@@ -56,3 +56,24 @@ Console → **Ads** (DESIGN §11.9, as built in §11.11). Free for you, through 
 Where nothing is booked or backfilled, the site shows a built-in house ad (Patch Notes, the quizzes, Today in LitRPG, For authors). Email never gets built-ins: an empty newsletter slot is just left out. A change shows on cached pages within their cache time (the homepage within 5 minutes).
 
 Numbers (shown, seen for a second, clicks) arrive hourly once `CF_ACCOUNT_ID` and `CF_API_TOKEN` are set (see `jobs.md`, `stats.rollup`).
+
+## Paid promotions and billing
+
+Console → **Billing** (DESIGN §11.12, §12.9). Nothing here works until Stripe is set up and `flags.ads_paid` is on ([stripe-setup.md](stripe-setup.md)). Most of it runs itself; what reaches you:
+
+| Inbox item | What it is | If you do nothing |
+|---|---|---|
+| `ad_review` | A paid ad that wasn't approved at once: a new advertiser with a risky line, or a block from the editorial screen. The reasons are on the item | A risky line approves itself 48 hours before the start; an editorial block **rejects** itself 24 hours before, with a full refund. Rejecting asks for a reason, which the author sees |
+| `dispute` | A chargeback. The author is already restricted (T-1, undoable from the audit log) and their future campaigns are paused | Answer it in the Stripe dashboard with the order page's details |
+| `billing_mismatch` | Reconciliation found something that doesn't add up (a payment with no order of ours, different amounts) | Stays open |
+| `price_suggestions` | Once a month, when a price would move 10% or more, with the evidence | Expires after 14 days; prices stay as they are |
+| `system_alert` | A Stripe event failed 5 times | Stays open. The item names the event: check it in the Stripe dashboard |
+
+On the Billing page:
+
+- **Refund** part or all of an order from its page, to the card or as credit, with a reason (the author sees it). Refunds, **Give credit** and **Promotion codes** need a passkey sign-in in the last 15 minutes; the console sends you to sign in again if not.
+- A **100% code** books without Stripe (a comp); use one for launch partners and giveaways. Codes are case-insensitive and limited to the uses you give them.
+- Paid campaigns have their own page (from the order): approve, reject with a refund, or pause.
+- **Download … as CSV** gives the month for bookkeeping: orders, refunds and credit movements, in cents.
+
+Rules that refund on their own, so you don't have to: rejection (in full), a cancellation 7 or more days out (in full, to the card or as credit), 2–7 days out (half, as credit), a place lost after payment (in full), and a newsletter slot whose issue didn't go out (as credit).

@@ -68,6 +68,7 @@ openssl rand -base64 48 | pnpm exec wrangler secret put ADMIN_AUTH_SECRET
     - `stats.rollup` reads it with the jobs Worker's `CF_ACCOUNT_ID` / `CF_API_TOKEN` (the same pair as embeddings, M2). Give that token *Account · Account Analytics · Read* as well as *Workers AI · Read*.
     - For store links to carry an Amazon Associates tag, set `affiliate.amazon_tag_web` in Admin → Settings once the Associates account exists. The Amazon disclosure appears on the site as soon as it's set.
 11. Reader email (M5): SES identities and configuration sets, the SNS topic for bounces and complaints, `LINK_SIGNING_KEYS` on web and jobs, and the postal address are in [email-setup.md](email-setup.md).
+12. Payments (M8): the Stripe account, one restricted key per Worker, the webhook and its secret, the Author Pro prices and turning selling on are in [stripe-setup.md](stripe-setup.md). The web Worker also produces to `rlr-jobs` (`Q_JOBS`) from M8, so a verified webhook is processed at once.
 
 ## Staging (before launch)
 

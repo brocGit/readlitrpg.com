@@ -12,6 +12,8 @@
 | Access service token (`rlr-editorial`) | Zero Trust + admin (`EDITORIAL_ACCESS_CLIENT_IDS`) + Claude env | [editorial-runs.md](editorial-runs.md#rotating-or-revoking) | None if both IDs are allowed during the switch |
 | `LINK_SIGNING_KEYS` | web + jobs (same value) | Add a new key in front and keep the old ones: [email-setup.md](email-setup.md#3-link-signing-keys-web-and-jobs) | None; dropping an old key breaks the unsubscribe links it signed |
 | `SNS_TOPIC_ARN` | web | Only changes with the topic: set the new ARN, then move the SES event destinations | Bounce and complaint events are refused until both match |
+| `STRIPE_SECRET_KEY` | web, admin, jobs (one restricted key each) | Create a new restricted key with the same permissions, set it in that Worker, then roll (expire) the old key: [stripe-setup.md](stripe-setup.md#2-restricted-keys-one-per-worker) | None if done in that order |
+| `STRIPE_WEBHOOK_SECRET` | web | Roll the endpoint's signing secret in Stripe with an overlap, set `old,new` (comma-separated), then the new one alone: [stripe-setup.md](stripe-setup.md#rotating-the-webhook-secret) | None during the overlap |
 | `CF_API_TOKEN` (Workers AI) | jobs | Roll it in the Cloudflare dashboard, then `wrangler secret put CF_API_TOKEN` in `apps/jobs` | Embeddings pause until updated |
 
 If a secret may have leaked, also:

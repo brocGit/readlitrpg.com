@@ -2,7 +2,7 @@
 
 A free discovery engine, book database and marketing network for LitRPG, progression fantasy, GameLit and cultivation fiction. Tell it three books you loved and it finds your next read. A release calendar grows in behind it.
 
-**Status:** M0 (foundations) through M7 (owner console, blog and news, house ads) are built:
+**Status:** M0 (foundations) through M8 (paid promotions, Stripe and Author Pro) are built:
 
 - three Cloudflare Workers, passwordless sign-in, the owner console behind Cloudflare Access, the job scheduler, the audit log and CI;
 - the catalog: taxonomy, provenance, duplicate detection, Open Library and Google Books lookups, CSV and seed imports, and merges, with a first seed of 101 series;
@@ -13,9 +13,10 @@ A free discovery engine, book database and marketing network for LitRPG, progres
 - authors: claim or create a profile, verify it (website, DNS, email domain, Bluesky, or a check by hand), submit books (live straight away once verified), edit under protected-field rules, a team, per-book stats including match appearances, a daily note of changes others made, "Still on for …?" release check-ins, and a pasted book list turned into drafts by an editorial run;
 - the blog and a daily news desk: posts with live book cards from shortcodes, a validator that keeps automated posts to our own data, an editorial calendar, weekly and monthly release roundups, guides drafted by editorial runs, guest posts and interviews from verified authors, cited news briefs, and *Today in LitRPG* every morning on the site, by email (*Patch Notes Daily*) and on Bluesky and Mastodon;
 - the owner console: an inbox with countdowns, reasons, snooze, bulk approval of low-risk items and keyboard shortcuts; undo for 30 days from the audit log; a daily action email only when needed, a Sunday summary and instant alerts;
-- ads: the real engine (slots, inventory, serving, labeled placements, `/go/` click redirects, served and viewable impressions) running house campaigns on the homepage, tag and "books like" pages and in *Patch Notes*.
+- ads: the real engine (slots, inventory, serving, labeled placements, `/go/` click redirects, served and viewable impressions) running house campaigns on the homepage, tag and "books like" pages and in *Patch Notes*;
+- money: authors book placements (Homepage Spotlight, Tag Page and Books-Like sponsors, *Patch Notes* slots) and Sponsored Match budgets, counted on our server and shown only to readers the book fits, then pay through Stripe Checkout with credits and promotion codes applied first. A deterministic check and an editorial screen review each ad, with automatic refunds under the published terms. Also Author Pro, advertiser reports, nightly reconciliation, disputes, make-goods, monthly price suggestions and the owner's billing console with its CSV export.
 
-It runs locally; going live needs the Cloudflare account ([runbook](docs/runbooks/cloudflare-setup.md)) and, for email, Amazon SES ([runbook](docs/runbooks/email-setup.md)). M8 (paid ads, Stripe and Author Pro) is next.
+It runs locally; going live needs the Cloudflare account ([runbook](docs/runbooks/cloudflare-setup.md)), Amazon SES for email ([runbook](docs/runbooks/email-setup.md)) and Stripe to sell anything ([runbook](docs/runbooks/stripe-setup.md)). Launch (Phase 1: the verified catalog, legal and trust pages, the security checklist) is next.
 
 ## Documents
 
@@ -25,7 +26,7 @@ It runs locally; going live needs the Cloudflare account ([runbook](docs/runbook
 | [`docs/DESIGN.md`](docs/DESIGN.md) | The full system design: architecture, data model, AI automation, owner approval inbox, ads and payments, email, blog, security, privacy, costs, and build plan |
 | [`docs/QUIZZES.md`](docs/QUIZZES.md) | Quiz lead magnets: 8 drafted (personality, trivia and series fan quizzes; previews in [`docs/quizzes/`](docs/quizzes/)), the lead-gen funnel, the welcome email sequence and onboarding |
 | [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary, the 17 taste dials and the 12 book stats (Competent MC, Rule of Cool, Number Go Up…) that power matching |
-| [`docs/runbooks/`](docs/runbooks/) | Operations: Cloudflare setup and first deploy, email (SES, SNS, link keys), making the owner an admin, author decisions in the inbox, the owner console (inbox, undo, alerts, house ads), the news desk and social accounts, rotating secrets, scheduled jobs |
+| [`docs/runbooks/`](docs/runbooks/) | Operations: Cloudflare setup and first deploy, email (SES, SNS, link keys), making the owner an admin, author decisions in the inbox, the owner console (inbox, undo, alerts, house ads), the news desk and social accounts, Stripe, rotating secrets, scheduled jobs |
 | [`CLAUDE.md`](CLAUDE.md) | Conventions, commands and gotchas for Claude sessions working on the code |
 
 ## Stack at a glance

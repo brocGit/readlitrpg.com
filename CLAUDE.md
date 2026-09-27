@@ -11,7 +11,7 @@ ReadLitRPG.com: a free discovery engine, book database and news brand for LitRPG
 - `docs/TAXONOMY.md`, `docs/QUIZZES.md`: the vocabulary, dials, stats and quizzes.
 - `docs/runbooks/`: operations (account setup, admin bootstrap, author decisions, secrets, jobs).
 
-Status: **M0 (foundations) through M7 (owner console, blog and daily news, house ads) are built.** M8 (money: paid ads, Stripe, Author Pro) is next (DESIGN §20).
+Status: **M0 (foundations) through M8 (paid promotions, Stripe, Author Pro) are built.** M8 is off until Stripe is set up (`docs/runbooks/stripe-setup.md`). Launch (Phase 1: the verified catalog, legal and trust pages, the security checklist) is next (DESIGN §20).
 
 ## Layout
 
@@ -20,7 +20,7 @@ Status: **M0 (foundations) through M7 (owner console, blog and daily news, house
 | `apps/web` | Astro 7 on Workers: readlitrpg.com (public site, accounts, public APIs) |
 | `apps/admin` | Astro 7 on Workers: admin.readlitrpg.com (owner console and the editorial API) |
 | `apps/jobs` | Plain Worker: cron heartbeat, queue consumers (jobs, email, dead letters) |
-| `packages/core` | Shared: Drizzle schema, policy (incl. the publish policy engine), settings, audit, scheduler, security, auth, rate limits, catalog (normalize, provenance, ingest, enrichment, imports, merges, scores, tag suggestions, embeddings), editorial (queue, runs, proposal schemas, apply, citations, watchdog), match (feature matrix, profiles, scoring, explanations, classes, find, lists, similar, eval), quiz (engine, takes, go-live), appraisals, site (public page read models, feeds, sitemaps, JSON-LD), media (image checks, covers, variants, share-image keys), analytics (beacon filters, rollups), readers (consent and suppression, signed links, profiles and levels, follows, marks, saved queries, library import, export and deletion, sequences, email picks, SNS verification), authors (members and invites, verification, submissions, protected edits, inbox handlers, notices, dashboard, release check-ins), content (posts, Markdown and shortcodes, the auto-post validator, calendar, roundups, the daily news desk and briefs, guest posts, interviews), inbox (default actions, snooze, low-risk, trust; `inbox/handlers` combines every type's handler), undo (specs stored in audit rows, applying them), owner (digests and alerts), ads (catalog, inventory, house campaigns, serving, `/go/`, delivery), taxonomy, test helpers |
+| `packages/core` | Shared: Drizzle schema, policy (incl. the publish policy engine), settings, audit, scheduler, security, auth, rate limits, catalog (normalize, provenance, ingest, enrichment, imports, merges, scores, tag suggestions, embeddings), editorial (queue, runs, proposal schemas, apply, citations, watchdog), match (feature matrix, profiles, scoring, explanations, classes, find, lists, similar, eval), quiz (engine, takes, go-live), appraisals, site (public page read models, feeds, sitemaps, JSON-LD), media (image checks, covers, variants, share-image keys), analytics (beacon filters, rollups), readers (consent and suppression, signed links, profiles and levels, follows, marks, saved queries, library import, export and deletion, sequences, email picks, SNS verification), authors (members and invites, verification, submissions, protected edits, inbox handlers, notices, dashboard, release check-ins), content (posts, Markdown and shortcodes, the auto-post validator, calendar, roundups, the daily news desk and briefs, guest posts, interviews), inbox (default actions, snooze, low-risk, trust; `inbox/handlers` combines every type's handler), undo (specs stored in audit rows, applying them), owner (digests and alerts), ads (catalog, inventory, house campaigns, serving, `/go/`, delivery, paid promotions and their review, Sponsored Match, advertiser reports, settling, make-goods, price suggestions), billing (orders and their states, the Stripe client and the local fake, webhook verification and event processing, credits, promotion codes, refunds, subscriptions and Author Pro, reconciliation, the console's reads and CSV), taxonomy, test helpers |
 | `packages/editorial` | The `pnpm editorial` CLI for runs, the eval harness and the golden-set merge |
 | `packages/email` | Email providers (SES, console), the queue message schema, and the sign-in, reader and author templates |
 | `packages/ui` | Brand tokens, base CSS and the share-card SVGs |
@@ -59,7 +59,7 @@ pnpm dev:admin    # http://localhost:4322 (see docs/runbooks/bootstrap-admin.md)
 pnpm dev:jobs     # then: curl "http://localhost:8787/__scheduled?cron=*/5+*+*+*+*"
 ```
 
-Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on 4322 (and the jobs Worker with `wrangler dev --test-scheduled` on 8788), then `pnpm --filter @rlr/web run e2e`, `pnpm --filter @rlr/admin run e2e`, `pnpm --filter @rlr/web run e2e:reader`, `pnpm --filter @rlr/admin run e2e:author` and `pnpm --filter @rlr/admin run e2e:content` (the last four with `E2E_JOBS=1`). `astro preview` runs as a daemon: read its output with `pnpm exec astro preview logs` and stop it with `astro preview stop`.
+Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on 4322 (and the jobs Worker with `wrangler dev --test-scheduled` on 8788), then `pnpm --filter @rlr/web run e2e`, `pnpm --filter @rlr/admin run e2e`, `pnpm --filter @rlr/web run e2e:reader`, `pnpm --filter @rlr/admin run e2e:author`, `pnpm --filter @rlr/admin run e2e:content` and `pnpm --filter @rlr/admin run e2e:money` (the last five with `E2E_JOBS=1`; money runs against the fake Stripe). `astro preview` runs as a daemon: read its output with `pnpm exec astro preview logs` and stop it with `astro preview stop`.
 
 ## Rules that matter
 
@@ -164,3 +164,16 @@ Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on
 - A release dated today counts as out, not announced: news tips for announcements use dates strictly after today.
 - Email has no beacon. Newsletter placements count an email send when they're queued (`countEmailSends`), and the rollup only overwrites served, viewable and clicks.
 - `pnpm lint | tail` hides a failing exit code. Check lint on its own before committing.
+
+## Gotchas learned in M8
+
+- **The fake Stripe is local only.** `STRIPE_PROVIDER=fake` keeps Stripe objects in KV and serves a checkout and portal under `/dev/stripe/`. Its "Pay" signs the events with the local `STRIPE_WEBHOOK_SECRET` and sends them through the real webhook route, so tests use the production path. `stripeFor` refuses the fake unless `ENVIRONMENT` is `local`.
+- `STRIPE_WEBHOOK_SECRET` is in web's `.dev.vars.example`, so `wrangler types` declares it. Declaring it again in `env.d.ts` is a duplicate-type error. Only `STRIPE_SECRET_KEY` (not in `.dev.vars`) is declared there, as optional.
+- Money moves only through conditional updates: `transitionOrder` (from the allowed states), holds, credit spends (one INSERT…SELECT that checks the balance), Sponsored Match impressions, settling and the quarterly credit claim. A read-then-write lets two requests spend the same money. Keep them conditional.
+- `credits_ledger` refuses UPDATE (and deletes younger than 7 years) in the database. Correct a balance by appending an entry.
+- Stripe Checkout sessions must expire at least 30 minutes out, so `ads.hold_minutes` can't go below 30, and holds outlast their session by 4 minutes. A charge under 50¢ is refused, so `settle` uses less credit or discount to reach it.
+- A product added to `AD_PRODUCTS` has no `ad_products` row until `inventory.generate` runs. Look products up with `productIdFor`, which syncs the catalog on a miss.
+- Money actions in the console (refunds, credits, codes, settings) need a passkey sign-in within 15 minutes (`can(adminActor(admin), "money.refund")`). Browser tests sign the owner in with a virtual passkey right before.
+- `ads.checkout_attempts_per_hour` limits the browser test too: the money E2E raises it (and the Sponsored Match score) through the settings page, then resets both.
+- A `waitForURL` predicate that also matches the form's own URL (`/dashboard/promote/new` starts with `/dashboard/promote/`) passes before a refusal shows. Check for `.notice.error` first, then wait for the exact next URL.
+- Browser flows that book inventory use up the local database's places: the money E2E picks the first days with a place left, so it can run again.

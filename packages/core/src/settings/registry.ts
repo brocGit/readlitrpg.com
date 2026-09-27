@@ -210,7 +210,7 @@ export const SETTINGS = {
   // Ads (§11)
   "ads.sponsored_match_min_score": def(share, 0.7, "Lowest match score for a Sponsored Match"),
   "ads.hold_minutes": def(
-    z.number().int().min(5).max(240),
+    z.number().int().min(30).max(240),
     30,
     "Minutes an inventory hold lasts during checkout",
   ),
