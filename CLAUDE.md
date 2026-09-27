@@ -11,7 +11,7 @@ ReadLitRPG.com: a free discovery engine, book database and news brand for LitRPG
 - `docs/TAXONOMY.md`, `docs/QUIZZES.md`: the vocabulary, dials, stats and quizzes.
 - `docs/runbooks/`: operations (account setup, admin bootstrap, secrets, jobs).
 
-Status: **M0 (foundations), M1 (catalog core and seed) and M2 (editorial pipeline) are built.** M3 (match engine and discovery) is next.
+Status: **M0 (foundations), M1 (catalog core and seed), M2 (editorial pipeline) and M3 (match engine and discovery) are built.** M4 is next (DESIGN §20).
 
 ## Layout
 
@@ -20,7 +20,7 @@ Status: **M0 (foundations), M1 (catalog core and seed) and M2 (editorial pipelin
 | `apps/web` | Astro 7 on Workers: readlitrpg.com (public site, accounts, public APIs) |
 | `apps/admin` | Astro 7 on Workers: admin.readlitrpg.com (owner console and the editorial API) |
 | `apps/jobs` | Plain Worker: cron heartbeat, queue consumers (jobs, email, dead letters) |
-| `packages/core` | Shared: Drizzle schema, policy (incl. the publish policy engine), settings, audit, scheduler, security, auth, rate limits, catalog (normalize, provenance, ingest, enrichment, imports, merges, scores, tag suggestions, embeddings), editorial (queue, runs, proposal schemas, apply, citations, watchdog), taxonomy, test helpers |
+| `packages/core` | Shared: Drizzle schema, policy (incl. the publish policy engine), settings, audit, scheduler, security, auth, rate limits, catalog (normalize, provenance, ingest, enrichment, imports, merges, scores, tag suggestions, embeddings), editorial (queue, runs, proposal schemas, apply, citations, watchdog), match (feature matrix, profiles, scoring, explanations, classes, find, lists, similar, eval), quiz (engine, takes, go-live), appraisals, taxonomy, test helpers |
 | `packages/editorial` | The `pnpm editorial` CLI for runs, the eval harness and the golden-set merge |
 | `packages/email` | Email providers (SES, console) and templates |
 | `packages/ui` | Brand tokens and base CSS |
@@ -29,7 +29,7 @@ Status: **M0 (foundations), M1 (catalog core and seed) and M2 (editorial pipelin
 | `data/seed/` | AI seed files: series-level catalog records awaiting confirmation (see its README) |
 | `data/eval/` | The classification golden set and its baseline (DESIGN §7.14; see its README) |
 | `.claude/skills/editorial-*` | Instructions for editorial runs: the run loop, classify, dedupe, research, moderate, image review |
-| `data/quizzes/`, `scripts/quiz-tool.mjs` | Quiz content and its validator |
+| `data/quizzes/`, `scripts/quiz-tool.mjs` | Quiz content and its validator; `build` compiles it into `packages/core/src/quiz/quizzes.gen.ts` |
 | `scripts/openlibrary-dump.mjs` | Streams the Open Library bulk dumps into an importable extract |
 
 ## Commands
@@ -45,6 +45,7 @@ pnpm db:generate --name <what_changed>   # after editing packages/core/src/db/sc
 pnpm taxonomy        # after editing data/taxonomy.yaml (and docs/TAXONOMY.md to match)
 pnpm editorial …     # editorial runs: start, pull, validate, push, finish, status, brief (docs/runbooks/editorial-runs.md)
 pnpm eval:classify [proposals]   # lint the golden set, or score a run's labels against it
+node scripts/quiz-tool.mjs build # after editing data/quizzes/ (CI checks the generated module is current)
 ```
 
 Local dev (all three apps share `.wrangler/state`, so one local D1):
@@ -108,3 +109,11 @@ Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on
 - Admin Worker secrets that aren't in `.dev.vars` are declared in `apps/admin/src/env.d.ts`, not `wrangler.jsonc`, or they would be committed.
 - CI runs only on pull requests and `main`, so check `wrangler types --check` for all three apps before pushing a branch: the jobs types had gone stale unnoticed.
 - The admin E2E drives a real editorial run through the CLI (`EDITORIAL_STATE_DIR` keeps its files out of your `.editorial/`).
+
+## Gotchas learned in M3
+
+- A Drizzle `sql` field in `select({…})` has no column name unless you add `.as("name")`, so ``orderBy(sql`name`)`` fails with "no such column". `searchPublished` hit this.
+- The web Worker keeps the match model in isolate memory and checks KV at most once a minute. After a rebuild, tests poll `/api/match` until the new model is served.
+- Locally, both previews write to one SQLite file. An island still sending requests (the Match Quiz's live preview) can make the other app's next query fail with `SQLITE_BUSY`. Wait for `networkidle` before switching apps in E2E. Production D1 doesn't have this problem.
+- Quiz go-live is a database decision (`quiz_status`, audited), not the `status` field in the JSON. With no row, a quiz isn't on the site.
+- Pages are cached by `routeRules` TTLs (`apps/web/astro.config.ts`). Nothing purges the web cache from the admin Worker yet, so a console change shows once the TTL runs out.

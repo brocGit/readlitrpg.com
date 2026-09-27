@@ -361,9 +361,10 @@ The checker enforces the rules for every series quiz: a `spoiler_boundary`, the 
 
 - **Format:** each quiz is one JSON file in `data/quizzes/`: `slug`, `title`, `dek`, `kind`, `status`, `spoiler_boundary`, and `questions[].options[]`.
   - **Personality** quizzes (`kind: "fun"`) give each option `points` and `effects`, plus `outcomes` (or `"outcomes_from": "reader-classes"`).
-  - **Trivia** quizzes (`kind: "trivia"`) mark one option per question `correct`, add an `explain` line, and use rank tiers with `min_score`. This maps one-to-one onto the `quizzes`, `quiz_items` and `quiz_outcomes` tables (DESIGN §5.6). M1 seeds them from these files.
+  - **Trivia** quizzes (`kind: "trivia"`) mark one option per question `correct`, add an `explain` line, and use rank tiers with `min_score`.
+  - *As built (M3):* the files are the source of truth and ship with the code. `node scripts/quiz-tool.mjs build` compiles them into `packages/core/src/quiz/quizzes.gen.ts`, and the site scores takes with the same rules as the checker. The database stores only what changes at runtime: `quiz_status` (live or retired, set from Admin → Quizzes and audited), `quiz_takes` (anonymous takes, deleted after 90 days unless attached to an account) and `quiz_daily` (outcome totals for the console).
 - **Checker:** `scripts/quiz-tool.mjs` validates keys against the dial and stat lists and against `TAXONOMY.md`, checks reachability and runs the balance simulation. The quiz factory (DESIGN §7.16) reuses the same rules before any quiz reaches the owner's inbox.
 - **Build placement:**
-  - **M3:** quiz engine, result pages, share cards, Party up, the four launch quizzes.
+  - **M3 (built):** quiz engine, result pages, SVG share cards, Party up, and all eight drafted quizzes ready to publish. None is live until the owner publishes it in Admin → Quizzes. The player never receives points, effects or correct answers: the server scores every take.
   - **M5:** email capture, the welcome sequence, profile levels.
   - **M7:** quiz analytics in the owner's weekly report.

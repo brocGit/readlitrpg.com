@@ -222,7 +222,7 @@ export default function MatchResults({
         ))}
       </details>
       <p class="share">
-        <a href={shareUrl}>Link to these results</a>{" "}
+        <a href={shareUrl}>Link to these results</a> ·{" "}
         <button
           type="button"
           class="link-button"

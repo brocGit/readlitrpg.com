@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v1.8: M0 (foundations), M1 (catalog core and seed) and M2 (editorial pipeline) built ([§20](#20-build-plan-and-milestones)) |
+| **Status** | v1.9: M0 (foundations), M1 (catalog core and seed), M2 (editorial pipeline) and M3 (match engine and discovery) built ([§20](#20-build-plan-and-milestones)) |
 | **Owner** | Site owner (sole admin) |
 | **Last updated** | 2026-09-27 |
 | **Companion docs** | [`STRATEGY.md`](./STRATEGY.md) (the three-layer strategy and flywheel) · [`TAXONOMY.md`](./TAXONOMY.md) (tags, dials, book stats) · [`QUIZZES.md`](./QUIZZES.md) (quiz drafts, lead-gen funnel, onboarding) |
@@ -1108,6 +1108,21 @@ The class, the reader's top stats and their hard no's make the shareable **reade
 - **Collaborative filtering** (co-loved books) joins as a fifth signal once ≥ 5k readers have ≥ 3 loved books (Phase 2).
 
 **Sponsored matches never touch organic ranking.** They're a separate, labeled slot with its own eligibility rules (§11.3).
+
+**As built (M3).** Where the build differs from the plan above, and why:
+
+- **The matrix** (`packages/core/src/match/matrix.ts`) is a binary blob: a JSON header, then 8-byte-aligned typed arrays for dials, stats and their confidences, tags, authors, series, flags and embeddings. Unknown values are a sentinel, not a guess.
+- **Embeddings are reduced by a seeded random projection** (768 → 64, quantized to int8), not PCA. A projection needs no fitting, so every build projects the same way and a Worker can do it cheaply. Embeddings come from D1 (§7.2), not Vectorize.
+- **`match.model_build` runs hourly at :50, not nightly.** The version is `{n}-{content hash}`, so an unchanged catalog writes nothing. KV holds the pointer (`match:model:current`) and the last three versions. The web Worker checks the pointer at most once a minute.
+- **Rollback pins the model.** Admin → Match can roll back to the previous version; that drops the bad version and pins the pointer, so the hourly build can't put it straight back. A rebuild by hand clears the pin. The same page runs a sample match with the site's own settings.
+- **Match % is `clamp(round(score × 100), 50, 99)`**, not a percentile map. A percentile needs a distribution of real scores, and those come with traffic. `match.min_display_score` still decides what is called a match.
+- **"Books like X" is computed on request** from the matrix (`similarTo`: same scoring as `bookSim`, other volumes of the series left out, at most two per author) and edge-cached. `book_similar` and `similar.update` aren't needed at this size; they return if the catalog outgrows a per-request scan.
+- **Bounced-off series are skipped entirely**, as are loved ones, so a reader who bounced off book 1 is never offered book 2.
+- **Reader classes** use the affinity rules in `data/quizzes/reader-classes.json`. Calibrating them against real books waits for enough classified books to be meaningful.
+- **Offline eval** (`recallAtK`) is built and tested. It needs reader shelves with at least four loved books, which arrive with accounts' reading marks (M5); until then weight changes rely on the unit tests' ranking cases.
+- **Appraisals recalibrate immediately** (`submitAppraisals` → `recalibrate`), so there is no `scores.recalibrate` job. Answers map to values (yes 8, mixed 5, no 2; less/right/more = shown − 2 / shown / shown + 2). Appraising needs a verified account at least 7 days old. Ten appraisals of one book from accounts under 30 days old within 24 hours are held and open an inbox item.
+- **Share cards are SVG** (1200×630, text only, served with their own locked-down CSP). PNG versions for platforms that don't show SVG come with M4's media pipeline.
+- **Match results are never stored.** The inputs are encoded into the share link (`/match/r?p=`), so the same link always gives the same, cacheable page.
 
 ### 7.9 Scheduler
 
@@ -2587,7 +2602,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | **M0: Foundations** ✅ built | Monorepo, Workers (`web`/`admin`/`jobs`), D1 + Drizzle + migrations, R2, Queues, CI/CD with staging/prod, Better Auth (magic link + passkey), Access on admin, security headers/CSP, policy module + route registry test, settings table + KV cache, heartbeat scheduler, audit log. **Spikes:** caching mechanism, CSP approach, Images binding. *Status:* everything is built and tested locally in workerd; caching (§4.6) and CSP (§15.5) are decided. Waiting on the Cloudflare account: first deploy, the Access application, staging resources, and the Images binding spike (moved to M4's media pipeline, where `imageService: "cloudflare-binding"` is one line in the adapter config) | 1.5–2 wks |
 | **M1: Catalog core and seed** ✅ built | Books, editions, releases, series, authors, narrators, links, tags and **dials** schema. Taxonomy seed. Provenance and precedence. Admin quick-add and CSV import. Entity resolution. Open Library/Google Books enrichment. Open Library dump import and AI seed import into the candidates pool (§7.15). *Status:* all built and tested (unit, and in the browser against workerd). The first AI seed is 101 series / 142 books in `data/seed/`, kept deliberately smaller than the 500–800 target: only authors and titles known with confidence. The rest comes from M2's research runs (which cite sources) and the Open Library dump extract, run once the dumps can be downloaded | 2 wks |
 | **M2: Editorial pipeline** ✅ built | `editorial_queue`, the editorial API (Access service token + scoped token), the `pnpm editorial pull/push` CLI, proposal schemas and server-side validation, publish policy engine, and skills for classify, dedupe, moderation and image review. Deterministic tag suggestions, Workers AI embeddings, eval harness + golden set (tags and dials), watchdog. Seed verification and the publication gate. **Scheduled routines** set up in the cloud environment. *Status:* all built and tested (unit, and in the browser: the console E2E drives a real run through the CLI). Research runs confirm seeds only after the server fetches the cited page. Embeddings use the Workers AI REST API and D1 instead of a binding and Vectorize (§7.2). The golden set's first slice is 74 books. The routines are written down (`docs/runbooks/editorial-runs.md`) and are created once the site is deployed and the tokens are in the environment | 2 wks |
-| **M3: Match engine and discovery** | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, result pages, share cards, Party up, plus the launch set of fun quizzes (drafted in `data/quizzes/`) | 4 wks |
+| **M3: Match engine and discovery** ✅ built | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, result pages, share cards, Party up, plus the launch set of fun quizzes (drafted in `data/quizzes/`). *Status:* all built and tested (unit, and in the browser: the console E2E rebuilds the model, matches from a loved book, and publishes, plays, shares and retires a quiz). Decisions are in §7.8 "As built". Quizzes go live one at a time from Admin → Quizzes (audited); none is live until then. Pages rely on cache TTLs for freshness until cross-Worker cache purges are wired up | 4 wks |
 | **M4: Public site** | Home (match-first), book/series/author/narrator/tag pages, New & upcoming (curated), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics | 1.5–2 wks |
 | **M5: Readers and email** | Signup (double opt-in), onboarding with profile levels, quiz email capture and the welcome sequence, book marks and appraisals, saved matches/searches → alerts, follows, account/privacy (export/delete), Goodreads/StoryGraph library import, SES integration, templates, weekly digest Workflow, alerts, unsubscribe/suppression, SNS webhooks | 2 wks |
 | **M6: Authors** | Author onboarding, verification methods, submission flow (including paste-anything import and dial nudges), dashboard (books, to-dos, stats including match appearances, change history), protected fields, change notifications, release confirmation asks, team members | 1.5–2 wks |
@@ -2669,9 +2684,9 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 |---|---|
 | `/` | Home (match-first) |
 | `/match`, `/match/quiz` | Match engine: books you loved, or the quiz |
-| `/match/r?{params}` | Shareable results (inputs in the URL, `noindex`) |
+| `/match/r?{params}`, `/match/card.svg?{params}` | Shareable results (inputs in the URL, `noindex`) and the reader class card |
 | `/find` | Discovery search (include/exclude, dial ranges, sort by any dial or stat) |
-| `/quiz`, `/quiz/{slug}`, `/quiz/{slug}/r/{outcome}` | Quiz hub, quizzes, shareable result pages |
+| `/quiz`, `/quiz/{slug}`, `/quiz/{slug}/r/{outcome}`, `…/r/{outcome}/card.svg` | Quiz hub, quizzes, shareable result pages and their share cards |
 | `/top/{stat}` | Stat leaderboards (reader-appraised only) |
 | `/books-like/{slug}` | "Books like X" |
 | `/lists`, `/lists/{slug}` | Living lists |
@@ -2718,11 +2733,11 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 
 **APIs and webhooks (`web`)**
 
-`/api/me/*` (islands), `/api/match`, `/api/find`, `/api/quiz`, `/api/marks`, `/api/feel-checks`, `/api/saved`, `/api/search`, `/api/books/{id}/follow`, `/api/submissions`, `/api/uploads`, `/api/checkout`, `/api/webhooks/stripe`, `/api/webhooks/ses`, `/healthz`
+`/api/me/*` (islands), `/api/match`, `/api/match/classics`, `/api/quiz/{slug}`, `/api/appraise/{slug}`, `/api/marks`, `/api/feel-checks`, `/api/saved`, `/api/search`, `/api/books/{id}/follow`, `/api/submissions`, `/api/uploads`, `/api/checkout`, `/api/webhooks/stripe`, `/api/webhooks/ses`, `/healthz`
 
 **Admin (`admin.readlitrpg.com`)**
 
-`/inbox`, `/dashboard`, `/catalog/*`, `/taxonomy`, `/editorial`, `/editorial/runs/{id}`, `/people/*`, `/ads/*`, `/billing/*`, `/blog/*`, `/newsletter/*`, `/automation/*`, `/settings`, `/audit`, `/security`
+`/inbox`, `/dashboard`, `/catalog/*`, `/taxonomy`, `/editorial`, `/editorial/runs/{id}`, `/match`, `/quizzes`, `/people/*`, `/ads/*`, `/billing/*`, `/blog/*`, `/newsletter/*`, `/automation/*`, `/settings`, `/audit`, `/security`
 
 Editorial API (Access service token + editorial token, §7.1): `POST /api/editorial/runs`, `POST /api/editorial/pull`, `POST /api/editorial/push`, `POST /api/editorial/runs/{id}/finish`, `GET /api/editorial/status`
 
@@ -2749,9 +2764,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `interviews.invite` | daily 14:00 | Authors with releases 21–35 days out |
 | `authors.change_digest` | daily 17:00 | Change notifications to authors |
 | `vectors.update` | hourly :40 | Embed new and changed books (Workers AI REST, `embed.batch_size` a run) and flag near-duplicates; does nothing without `CF_ACCOUNT_ID`/`CF_API_TOKEN` (built in M2) |
-| `similar.update` | nightly 02:30 | Neighbors for changed books |
-| `match.model_build` | nightly 03:30 | Rebuild the feature matrix (dials, tags, reduced embeddings, quality prior) and bump `match_model_version` |
-| `scores.recalibrate` | nightly 03:45 | Fold new appraisals into `book_scores`; flip judgment stats to public once they reach the appraisal threshold |
+| `match.model_build` | hourly :50 | Rebuild the feature matrix (dials, stats, tags, reduced embeddings, quality prior) and store it in KV under a content-derived version; skipped while a rollback pins the model (built in M3). "Books like X" is computed from it on request, so there is no `similar.update` job, and appraisals recalibrate as they arrive, so there is no `scores.recalibrate` job (§7.8 "As built") |
 | `saved_queries.alerts` | daily 12:00 (instant) / with the digest | New books matching saved matches and searches |
 | `search.sync` / `search.rebuild` | on change / weekly Sun 03:00 | FTS index |
 | `stats.rollup` | hourly | Analytics Engine → daily tables |
@@ -2759,7 +2772,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `inventory.generate` | nightly 04:30 | 120 days ahead |
 | `stripe.reconcile` | nightly 05:00 | 48 h lookback |
 | `backup.export` | nightly 03:00 | NDJSON parts plus a checksummed manifest → `BACKUPS` (`d1/daily/`, and `d1/monthly/` on the 1st). Live sessions and sign-in tokens are never exported (built in M0) |
-| `retention.purge` | nightly 05:30 | Expired sessions, sign-in tokens and rate counters; job history over 90 days; audit rows over 7 years (built in M0) |
+| `retention.purge` | nightly 05:30 | Expired sessions, sign-in tokens and rate counters; job history over 90 days; anonymous quiz takes over 90 days (M3); audit rows over 7 years (built in M0) |
 | `links.health` | weekly Tue 06:00 | Non-Amazon/Royal Road links only |
 | `research.next_volume` | weekly Wed 06:00 (series expecting a release soon); monthly for the rest | The research agent checks ongoing series for announced next books and feeds New & upcoming |
 | `owner.daily_digest` | daily 13:00 | Only if action is needed |
@@ -2798,6 +2811,8 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `match.weights` | `{dial: 0.35, stat: 0.20, tag: 0.20, semantic: 0.15, quality: 0.10}` |
 | `stats.display_min_appraisals` | 5 |
 | `match.max_headsups` | 3 |
+| `match.bounced_penalty` | 0.3 |
+| `match.classic_slugs` | `[]` (empty: the Match Quiz asks about the most complete published book 1s) |
 | `quiz.fun_effect_importance` | 0.3 (relative to Match Quiz answers = 1.0) |
 | `quiz.balance_max_share` / `.min_share` | 0.25 / 0.03 (8 outcomes; scaled by outcome count) |
 | `match.min_display_score` | 0.60 |
