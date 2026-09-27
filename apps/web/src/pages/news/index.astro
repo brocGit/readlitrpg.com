@@ -1,0 +1,45 @@
+---
+// Patch Notes news (DESIGN §14.6): "Today in LitRPG" every morning, cited briefs, roundups.
+import { listPosts, NEWS_SECTION_TYPES, postPath } from "@rlr/core/content";
+import PostList from "../../components/blog/PostList.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import "../../styles/blog.css";
+
+const db = getDb();
+const before = Astro.url.searchParams.get("before");
+const valid = before && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(before) ? before : null;
+const [today] = valid ? [] : await listPosts(db, { types: ["daily"], limit: 1 });
+const posts = await listPosts(db, { types: NEWS_SECTION_TYPES, limit: 30, before: valid });
+const next = posts.length === 30 ? posts.at(-1)?.publishedAt : null;
+Astro.cache.set({ tags: ["posts"] });
+---
+
+<Base
+  title="Patch Notes: LitRPG news"
+  description="LitRPG and progression fantasy news every day: books out today, new announcements, date changes and completions."
+  canonical={valid ? undefined : "/news"}
+  noIndex={Boolean(valid)}
+>
+  <h1>Patch Notes</h1>
+  <p class="lead">LitRPG and progression fantasy news, every day. Every item links its source.</p>
+  {
+    today && (
+      <div class="today-card">
+        <p class="post-type">Today in LitRPG</p>
+        <h2>
+          <a href={postPath(today)}>{today.title}</a>
+        </h2>
+        {today.dek && <p>{today.dek}</p>}
+      </div>
+    )
+  }
+  <nav class="section-nav" aria-label="News">
+    <a href="/news/today">Today in LitRPG</a>
+    <a href="/new">New &amp; upcoming</a>
+    <a href="/subscribe">Get Patch Notes by email</a>
+    <a href="/feeds/news.xml">RSS</a>
+  </nav>
+  {posts.length === 0 ? <p class="muted">[Quest log empty] News starts with the first morning roundup.</p> : <PostList posts={posts} />}
+  {next && <p><a href={`/news?before=${encodeURIComponent(next)}`}>Older news</a></p>}
+</Base>

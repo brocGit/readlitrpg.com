@@ -1,0 +1,32 @@
+---
+// The blog (DESIGN §14.1): guides, guest posts, interviews and posts from us. News is at /news.
+import { BLOG_TYPES, listPosts } from "@rlr/core/content";
+import PostList from "../../components/blog/PostList.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import "../../styles/blog.css";
+
+const before = Astro.url.searchParams.get("before");
+const valid = before && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(before) ? before : null;
+const posts = await listPosts(getDb(), { types: BLOG_TYPES, limit: 20, before: valid });
+const next = posts.length === 20 ? posts.at(-1)?.publishedAt : null;
+Astro.cache.set({ tags: ["posts"] });
+---
+
+<Base
+  title="Blog"
+  description="Guides to LitRPG and progression fantasy, author interviews and guest posts."
+  canonical={valid ? undefined : "/blog"}
+  noIndex={Boolean(valid)}
+>
+  <h1>Blog</h1>
+  <nav class="section-nav" aria-label="Blog sections">
+    <a href="/blog/type/guides">Guides</a>
+    <a href="/blog/type/interviews">Interviews</a>
+    <a href="/blog/type/guest-posts">Guest posts</a>
+    <a href="/news">News</a>
+    <a href="/feeds/blog.xml">RSS</a>
+  </nav>
+  {posts.length === 0 ? <p class="muted">[Quest log empty] The first posts are on their way.</p> : <PostList posts={posts} />}
+  {next && <p><a href={`/blog?before=${encodeURIComponent(next)}`}>Older posts</a></p>}
+</Base>

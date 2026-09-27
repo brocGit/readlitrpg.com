@@ -200,6 +200,21 @@ export const SETTINGS = {
   // Blog (§14)
   "blog.auto_publish_roundups": def(z.boolean(), false, "Publish roundups without review"),
   "blog.min_books_per_roundup": def(z.number().int().min(1), 8, "Fewest books a roundup needs"),
+  "blog.calendar": def(
+    z.record(
+      z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]),
+      z.array(z.enum(["roundup", "news", "editorial", "guest", "owner"])).max(5),
+    ),
+    { mon: ["roundup"], tue: ["guest"], wed: ["editorial"], thu: ["guest"], fri: [], sat: [], sun: [] },
+    "Which kinds of approved post take which weekday's slot (guest covers interviews too)",
+  ),
+  "blog.publish_hour_utc": def(z.number().int().min(0).max(23), 13, "Hour (UTC) slotted posts go live"),
+  "blog.ai_draft_veto_hours": def(hours, 72, "Hours an AI-drafted post waits for a veto before it publishes"),
+  "blog.guest_review_days": def(
+    z.number().int().min(1).max(30),
+    5,
+    "Days before a clean guest post or interview from a verified author approves itself",
+  ),
 
   // Sessions (§15.3)
   "session.reader_days": def(z.number().int().min(1).max(90), 30, "Reader session length (sliding)"),

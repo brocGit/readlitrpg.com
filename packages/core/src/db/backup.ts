@@ -55,6 +55,14 @@ export const BACKUP_TABLES = [
   "author_submissions",
   "change_notifications",
   "release_asks",
+  // Blog and news (M7).
+  "posts",
+  "post_revisions",
+  "post_books",
+  "guest_submissions",
+  "interview_responses",
+  "editorial_slots",
+  "news_tips",
   // Analytics Engine keeps 90 days; these daily totals are the long-term record.
   "page_views_daily",
   "referrers_daily",

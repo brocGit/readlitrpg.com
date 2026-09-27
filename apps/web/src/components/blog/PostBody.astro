@@ -1,0 +1,43 @@
+---
+// A post's body (DESIGN §14.4, §14.7): sanitized HTML with live cards where a shortcode stood alone.
+// The HTML was rendered and sanitized at save by @rlr/core/content (no raw HTML, no inline styles).
+import type { BodySegment } from "@rlr/core/content";
+import BookRow from "../site/BookRow.astro";
+import ReleaseList from "../site/ReleaseList.astro";
+
+interface Props {
+  segments: BodySegment[];
+}
+const { segments } = Astro.props;
+---
+
+<div class="post-body">
+  {
+    segments.map((s) =>
+      s.kind === "html" ? (
+        <div class="prose" set:html={s.html} />
+      ) : s.kind === "book" ? (
+        <ul class="book-list">
+          <BookRow book={s.book} />
+        </ul>
+      ) : s.kind === "series" ? (
+        <p class="entity-link">
+          <a href={`/series/${s.slug}`}>{s.name}</a> <span class="muted">· the series, in order</span>
+        </p>
+      ) : s.kind === "author" ? (
+        <p class="entity-link">
+          <a href={`/authors/${s.slug}`}>{s.name}</a> <span class="muted">· every book by them</span>
+        </p>
+      ) : s.kind === "releases" ? (
+        <section class="post-releases">
+          <h3>{s.title.charAt(0).toUpperCase() + s.title.slice(1)}</h3>
+          {s.releases.length ? <ReleaseList releases={s.releases} /> : <p class="muted">Nothing dated yet.</p>}
+        </section>
+      ) : (
+        <p class="post-cta">
+          <strong>Patch Notes</strong>: new LitRPG that fits you, every Friday. <a href="/subscribe">Get it free</a>
+        </p>
+      ),
+    )
+  }
+</div>

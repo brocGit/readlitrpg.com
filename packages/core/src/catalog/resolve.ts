@@ -11,13 +11,20 @@ import {
   editions,
   narrators,
   type Origin,
+  type posts,
   publishers,
   series,
 } from "../db/schema";
 import { ulid } from "../ids";
 import { cleanText, extractVolume, nameKey, slugify, trigramSimilarity } from "./normalize";
 
-type SlugTable = typeof books | typeof authors | typeof series | typeof publishers | typeof narrators;
+type SlugTable =
+  | typeof books
+  | typeof authors
+  | typeof series
+  | typeof publishers
+  | typeof narrators
+  | typeof posts;
 
 /** A slug not yet taken: the base, then base-<hint>, then base-2, base-3… Slugs never change later. */
 export async function uniqueSlug(

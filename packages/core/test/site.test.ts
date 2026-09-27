@@ -270,7 +270,7 @@ describe("feeds, sitemaps and robots.txt", () => {
     );
     const counts = await sitemapCounts(db, opts.now);
     expect(counts).toEqual({ books: 1, series: 1, authors: 1, narrators: 0 });
-    expect(sitemapNames(counts)).toEqual(["pages", "tags", "books-1", "series-1", "authors-1"]);
+    expect(sitemapNames(counts)).toEqual(["pages", "tags", "posts", "books-1", "series-1", "authors-1"]);
     const entries = await sitemapEntries(db, "books", 1, opts.now);
     expect(entries.map((e) => e.path)).toEqual(["/books/public-one"]);
     expect(sitemapXml(entries, "https://readlitrpg.com")).toContain(

@@ -1,0 +1,11 @@
+---
+// /news/today goes to the latest "Today in LitRPG" (today's once it's out, yesterday's before).
+import { listPosts, postPath } from "@rlr/core/content";
+import { getDb } from "../../lib/runtime";
+
+const [latest] = await listPosts(getDb(), { types: ["daily"], limit: 1 });
+return new Response(null, {
+  status: 302,
+  headers: { location: latest ? postPath(latest) : "/news", "cache-control": "public, max-age=300" },
+});
+---

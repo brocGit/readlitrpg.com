@@ -10,6 +10,7 @@
     "./auth": "./src/auth/index.ts",
     "./authors": "./src/authors/index.ts",
     "./catalog": "./src/catalog/index.ts",
+    "./content": "./src/content/index.ts",
     "./db": "./src/db/index.ts",
     "./db/backup": "./src/db/backup.ts",
     "./editorial": "./src/editorial/index.ts",
@@ -39,6 +40,7 @@
     "better-auth": "1.7.6",
     "drizzle-orm": "0.45.3",
     "jose": "6.2.12",
+    "micromark": "4.0.3",
     "zod": "4.6.5"
   },
   "devDependencies": {

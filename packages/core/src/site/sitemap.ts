@@ -110,9 +110,9 @@ ${names.map((n) => `<sitemap><loc>${xml(`${origin}/sitemaps/${n}.xml`)}</loc><la
 `;
 }
 
-/** Sitemap file names for the index: pages and tags, then each type split into pages. */
+/** Sitemap file names for the index: pages, tags and posts, then each type split into pages. */
 export function sitemapNames(counts: Record<SitemapKind, number>): string[] {
-  const names = ["pages", "tags"];
+  const names = ["pages", "tags", "posts"];
   for (const kind of SITEMAP_KINDS) {
     const files = Math.max(1, Math.ceil(counts[kind] / SITEMAP_PAGE));
     for (let n = 1; n <= files; n++) if (counts[kind] > 0) names.push(`${kind}-${n}`);

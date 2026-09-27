@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { addConfirmation, ingestBook, setVisibility, writeBookFields } from "@rlr/core/catalog";
+import { createPost, updatePost } from "@rlr/core/content";
 import { createDb, type Db } from "@rlr/core/db";
 import {
   acceptImage,
@@ -13,7 +14,7 @@ import {
   variantKey,
 } from "@rlr/core/media";
 import { READER_CLASSES, setQuizStatus } from "@rlr/core/quiz";
-import { books, media } from "@rlr/core/schema";
+import { books, media, posts } from "@rlr/core/schema";
 import { syncTaxonomy } from "@rlr/core/taxonomy";
 import { createTestD1, TestKV, TestR2 } from "@rlr/core/testing";
 import { eq } from "drizzle-orm";
@@ -153,5 +154,23 @@ describe("og.render", () => {
     expect(await renderShareImages(ctx)).toBe(1);
     const [after] = await db.select({ key: books.ogImageKey }).from(books).where(eq(books.id, bookId));
     expect(after?.key).not.toBe(b?.key);
+  });
+
+  it("draws a card for each published post, and again when its title changes", async () => {
+    const env = { origin: "https://readlitrpg.test", mediaOrigin: "https://media.test" };
+    const post = await createPost(
+      db,
+      { type: "daily", title: "Today in LitRPG: Oct 5", dek: "3 books out today.", status: "published" },
+      env,
+    );
+    await createPost(db, { type: "owner", title: "A draft nobody sees yet" }, env);
+    await renderShareImages(ctx);
+    const [p] = await db.select({ key: posts.ogImageKey }).from(posts).where(eq(posts.id, post.id));
+    expect(p?.key).toMatch(/^og\/post\/.+\.png$/);
+    expect(isCard(ctx.env.MEDIA.objects.get(p?.key ?? "")?.bytes)).toEqual({ width: 1200, height: 630 });
+    expect((await db.select({ key: posts.ogImageKey }).from(posts)).filter((r) => r.key).length).toBe(1);
+    expect(await renderShareImages(ctx)).toBe(0);
+    await updatePost(db, post.id, { title: "Today in LitRPG: October 5" }, env, null);
+    expect(await renderShareImages(ctx)).toBe(1);
   });
 });

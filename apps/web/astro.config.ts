@@ -69,5 +69,15 @@ export default defineConfig({
     "/feeds/releases.ics": { maxAge: 1800, swr: 3600 },
     "/feeds/tags/[slug].xml": { maxAge: 1800, swr: 3600 },
     "/feeds/tags/[slug].ics": { maxAge: 1800, swr: 3600 },
+    // Blog and news: the news pages change every morning and whenever a brief lands.
+    "/blog": { maxAge: 600, swr: 3600 },
+    "/blog/[slug]": { maxAge: 1800, swr: 86400 },
+    "/blog/type/[type]": { maxAge: 1800, swr: 3600 },
+    "/news": { maxAge: 300, swr: 900 },
+    "/news/today": { maxAge: 300, swr: 600 },
+    "/news/[slug]": { maxAge: 900, swr: 3600 },
+    "/news/[yyyy]/[mm]/[dd]": { maxAge: 900, swr: 3600 },
+    "/feeds/blog.xml": { maxAge: 900, swr: 3600 },
+    "/feeds/news.xml": { maxAge: 300, swr: 900 },
   },
 });

@@ -1,0 +1,14 @@
+---
+import { NEWS_SECTION_TYPES, postPath, publishedPost } from "@rlr/core/content";
+import PostPage from "../../components/blog/PostPage.astro";
+import { getDb } from "../../lib/runtime";
+import { movedTo, notFound } from "../../lib/site";
+
+const post = await publishedPost(getDb(), Astro.params.slug ?? "");
+if (!post) return notFound();
+const path = postPath(post);
+if (!NEWS_SECTION_TYPES.includes(post.type) || path !== `/news/${post.slug}`) return movedTo(path);
+Astro.cache.set({ tags: ["posts", `post:${post.slug}`] });
+---
+
+<PostPage post={post} section="news" />

@@ -1,0 +1,38 @@
+---
+import { listPosts } from "@rlr/core/content";
+import type { PostType } from "@rlr/core/schema";
+import PostList from "../../../components/blog/PostList.astro";
+import Base from "../../../layouts/Base.astro";
+import { getDb } from "../../../lib/runtime";
+import { notFound } from "../../../lib/site";
+import "../../../styles/blog.css";
+
+const SECTIONS: Record<string, { title: string; types: PostType[]; lead: string }> = {
+  guides: {
+    title: "Guides",
+    types: ["ai_editorial", "owner"],
+    lead: "Where to start with a subgenre, and what to read next.",
+  },
+  interviews: {
+    title: "Author interviews",
+    types: ["interview"],
+    lead: "Authors on their systems, their progression beats and the books they love, in their own words.",
+  },
+  "guest-posts": {
+    title: "Guest posts",
+    types: ["guest"],
+    lead: "Verified authors on the craft of LitRPG.",
+  },
+};
+const section = SECTIONS[Astro.params.type ?? ""];
+if (!section) return notFound();
+const posts = await listPosts(getDb(), { types: section.types, limit: 50 });
+Astro.cache.set({ tags: ["posts"] });
+---
+
+<Base title={section.title} description={section.lead} canonical={`/blog/type/${Astro.params.type}`}>
+  <h1>{section.title}</h1>
+  <p class="lead">{section.lead}</p>
+  {posts.length === 0 ? <p class="muted">Nothing here yet.</p> : <PostList posts={posts} showType={false} />}
+  <p><a href="/blog">All posts</a></p>
+</Base>

@@ -22,6 +22,8 @@ export const PAGE_KINDS = [
   "match",
   "find",
   "new",
+  "post",
+  "news",
   "other",
 ] as const;
 export type PageKind = (typeof PAGE_KINDS)[number];
@@ -40,6 +42,9 @@ const ROUTES: [RegExp, PageKind][] = [
   [/^\/match(\/quiz|\/r)?$/, "match"],
   [/^\/find$/, "find"],
   [/^\/new$/, "new"],
+  [/^\/(?:blog|news)\/([a-z0-9-]{1,200})$/, "post"],
+  [/^\/news\/(\d{4}\/\d{2}\/\d{2})$/, "post"],
+  [/^\/(?:blog|news)$/, "news"],
 ];
 
 /** Private pages are never counted, and a path we don't know is counted only as "other". */

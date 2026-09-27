@@ -1,3 +1,4 @@
+import { sitemapPosts } from "@rlr/core/content";
 import { LIVING_LISTS } from "@rlr/core/match";
 import { liveQuizzes } from "@rlr/core/quiz";
 import {
@@ -40,6 +41,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
         "/tags",
         "/for-authors",
         "/subscribe",
+        "/blog",
+        "/news",
         "/lists",
         ...LIVING_LISTS.map((l) => `/lists/${l.slug}`),
         "/quiz",
@@ -51,6 +54,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       ].map((path) => ({ path })),
     );
   }
+  if (name === "posts") return xmlResponse(await sitemapPosts(db));
   if (name === "tags") {
     const tags = await tagIndex(db, pageOptions(await locals.settings()));
     return xmlResponse(tags.filter((t) => t.books > 0).map((t) => ({ path: `/tags/${t.slug}` })));

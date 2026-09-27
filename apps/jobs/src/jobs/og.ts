@@ -1,27 +1,31 @@
 // Link-preview images (DESIGN §7.10): the site card, the 12 reader classes, every outcome of every
-// live quiz, and one card per published book. Rendered once into MEDIA under keys derived from the
+// live quiz, and one card per published book and post. Rendered once into MEDIA under keys derived from the
 // card's content (@rlr/core/media og.ts), so pages can point at them directly.
 
+import { POST_TYPE_LABEL } from "@rlr/core/content";
 import {
   bookOgKey,
   classCardText,
   classOgKey,
   OG_VERSION,
+  postCardText,
+  postOgKey,
   quizCardText,
   quizOgKey,
   siteCardText,
   siteOgKey,
 } from "@rlr/core/media";
 import { liveQuizzes, QUIZ_HASH, READER_CLASSES } from "@rlr/core/quiz";
-import { authors, bookAuthors, books, media, series } from "@rlr/core/schema";
+import { authors, bookAuthors, books, media, posts, series } from "@rlr/core/schema";
 import { bookNumber } from "@rlr/core/site";
 import { getTag } from "@rlr/core/taxonomy";
 import { bookCardSvg, cardSvg } from "@rlr/ui/cards";
-import { and, asc, eq, gt, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import type { Rasterizer } from "../og/rasterizer";
 import type { JobContext } from "./types";
 
 const BOOKS_PER_RUN = 15;
+const POSTS_PER_RUN = 10;
 
 function base64(bytes: Uint8Array): string {
   let binary = "";
@@ -136,6 +140,42 @@ async function drawBooks(ctx: JobContext, rasterize: Rasterizer): Promise<number
   return drawn;
 }
 
+/** Published posts whose card is missing or out of date (recently edited ones are re-checked). */
+async function drawPosts(ctx: JobContext, rasterize: Rasterizer): Promise<number> {
+  const since = new Date(ctx.now.getTime() - 2 * 86_400_000).toISOString();
+  const due = await ctx.db
+    .select({
+      id: posts.id,
+      type: posts.type,
+      title: posts.title,
+      dek: posts.dek,
+      bylineName: posts.bylineName,
+      authorName: authors.name,
+      ogImageKey: posts.ogImageKey,
+    })
+    .from(posts)
+    .leftJoin(authors, eq(authors.id, posts.bylineAuthorId))
+    .where(and(eq(posts.status, "published"), or(isNull(posts.ogImageKey), gt(posts.updatedAt, since))))
+    .orderBy(desc(posts.publishedAt))
+    .limit(POSTS_PER_RUN);
+  let drawn = 0;
+  for (const p of due) {
+    const input = {
+      id: p.id,
+      kicker: POST_TYPE_LABEL[p.type],
+      title: p.title,
+      dek: p.dek,
+      byline: p.authorName ?? p.bylineName,
+    };
+    const key = await postOgKey(input);
+    if (key === p.ogImageKey) continue;
+    await put(ctx, key, await rasterize(cardSvg(postCardText(input))));
+    await ctx.db.update(posts).set({ ogImageKey: key }).where(eq(posts.id, p.id));
+    drawn++;
+  }
+  return drawn;
+}
+
 export async function renderShareImages(ctx: JobContext): Promise<number> {
   const rasterize = ctx.rasterize ?? (await import("../og/binaries")).workerRasterizer();
   const png = async (text: Parameters<typeof cardSvg>[0]) => rasterize(cardSvg(text));
@@ -156,6 +196,7 @@ export async function renderShareImages(ctx: JobContext): Promise<number> {
     });
   }
   drawn += await drawBooks(ctx, rasterize);
+  drawn += await drawPosts(ctx, rasterize);
   if (drawn) ctx.log.info("og.rendered", { drawn });
   return drawn;
 }

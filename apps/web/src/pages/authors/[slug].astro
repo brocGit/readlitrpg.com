@@ -1,7 +1,9 @@
 ---
 // An author (DESIGN §9.5): their books by series, standalones and upcoming releases. The bio and
 // links show only once the author has verified the profile.
+import { postsByAuthor } from "@rlr/core/content";
 import { authorPage, breadcrumbJsonLd, personJsonLd } from "@rlr/core/site";
+import PostList from "../../components/blog/PostList.astro";
 import FollowButton from "../../components/FollowButton";
 import BookRow from "../../components/site/BookRow.astro";
 import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
@@ -13,11 +15,13 @@ import "../../styles/discover.css";
 import "../../styles/site.css";
 import "../../styles/reader.css";
 import "../../styles/dashboard.css";
+import "../../styles/blog.css";
 
 const found = await authorPage(getDb(), Astro.params.slug ?? "");
 if (found.kind === "redirect") return movedTo(`/authors/${found.slug}`);
 if (found.kind === "missing") return notFound();
 const a = found.data;
+const writing = await postsByAuthor(getDb(), a.id, 5);
 const count = a.series.reduce((n, s) => n + s.books.length, 0) + a.standalone.length;
 const lead = `${a.name} has ${count} ${count === 1 ? "book" : "books"} on ReadLitRPG${a.series.length ? `, in ${a.series.length} ${a.series.length === 1 ? "series" : "series"}` : ""}.`;
 const crumbs = [
@@ -61,6 +65,14 @@ Astro.cache.set({ tags: [`author:${a.slug}`] });
       <section>
         <h2>Coming up</h2>
         <ReleaseList releases={a.upcoming} />
+      </section>
+    )
+  }
+  {
+    writing.length > 0 && (
+      <section>
+        <h2>Writing on ReadLitRPG</h2>
+        <PostList posts={writing} />
       </section>
     )
   }

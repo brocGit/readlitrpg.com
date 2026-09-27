@@ -77,3 +77,26 @@ export function quizCardText(
     footer: `readlitrpg.com/quiz/${quiz.slug}`,
   };
 }
+
+export interface PostCardInput {
+  id: string;
+  kicker: string;
+  title: string;
+  dek: string | null;
+  byline: string | null;
+}
+
+/** "og/post/{id}/{hash}.png", drawn by the jobs Worker once a post is published. */
+export async function postOgKey(p: PostCardInput): Promise<string> {
+  const text = JSON.stringify([OG_VERSION, p.kicker, p.title, p.dek, p.byline]);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  const hex = [...new Uint8Array(digest)].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `og/post/${p.id}/${hex.slice(0, 12)}.png`;
+}
+
+export const postCardText = (p: PostCardInput): CardText => ({
+  kicker: p.kicker,
+  title: p.title,
+  ...(p.dek ? { subtitle: p.dek } : {}),
+  footer: p.byline ? `${p.byline} · readlitrpg.com` : "readlitrpg.com",
+});

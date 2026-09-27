@@ -1,4 +1,5 @@
 ---
+import { postPath, postsForBook } from "@rlr/core/content";
 // The book page (DESIGN §9.5): the facts, where to read it, its status screen and tags, and ways
 // on to similar books. Same HTML for everyone; Appraise is an island that asks /api/me.
 import { indexOfBook, similarTo } from "@rlr/core/match";
@@ -68,6 +69,7 @@ const perks = [
   b.editions.some((e) => e.kindleUnlimited) && "Kindle Unlimited",
   b.editions.some((e) => e.audiblePlus) && "Audible Plus",
 ].filter(Boolean);
+const writing = await postsForBook(getDb(), b.id, 4);
 const today = new Date().toISOString().slice(0, 10);
 const upcoming = b.releases.filter((r) => r.date && r.date >= today);
 const confirmedNotes = b.releases.filter((r) => r.confirmedBy === "author" && r.confirmedAt);
@@ -242,6 +244,15 @@ Astro.cache.set({ tags: [`book:${b.id}`] });
       <section>
         <h2>Readers who like this may like</h2>
         <ul class="book-list">{similar.map((s) => <BookRow book={s} />)}</ul>
+      </section>
+    )
+  }
+
+  {
+    writing.length > 0 && (
+      <section>
+        <h2>On the blog</h2>
+        <ul>{writing.map((p) => <li><a href={postPath(p)}>{p.title}</a></li>)}</ul>
       </section>
     )
   }

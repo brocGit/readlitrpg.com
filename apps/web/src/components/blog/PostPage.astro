@@ -1,0 +1,84 @@
+---
+// One published post (DESIGN §14): label, byline, how it was made, the live body, and its sources.
+import { POST_TYPE_LABEL, type PublishedPost, postJsonLd, postPath, renderBody } from "@rlr/core/content";
+import { breadcrumbJsonLd, formatDate } from "@rlr/core/site";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import { mediaUrl, origin } from "../../lib/site";
+import Breadcrumbs from "../site/Breadcrumbs.astro";
+import PostBody from "./PostBody.astro";
+import "../../styles/site.css";
+import "../../styles/blog.css";
+
+interface Props {
+  post: PublishedPost;
+  section: "blog" | "news";
+}
+const { post, section } = Astro.props;
+const segments = await renderBody(getDb(), post.bodyHtml);
+const path = postPath(post);
+const crumbs = [
+  { name: "Home", path: "/" },
+  section === "news" ? { name: "News", path: "/news" } : { name: "Blog", path: "/blog" },
+  { name: post.title, path },
+];
+const byline =
+  post.type === "guest" && post.byline
+    ? { label: "Guest post by", name: post.byline.name, href: `/authors/${post.byline.slug}` }
+    : post.type === "interview" && post.byline
+      ? { label: "Interview with", name: post.byline.name, href: `/authors/${post.byline.slug}` }
+      : post.bylineName
+        ? { label: "By", name: post.bylineName, href: null }
+        : null;
+const description = post.seoDescription ?? post.dek ?? `${POST_TYPE_LABEL[post.type]} from ReadLitRPG.`;
+---
+
+<Base
+  title={post.seoTitle ?? post.title}
+  description={description}
+  canonical={post.canonicalUrl ?? path}
+  noIndex={post.noindex}
+  ogImage={post.ogImageKey ? mediaUrl(post.ogImageKey) : null}
+  jsonLd={[postJsonLd(post, origin()), breadcrumbJsonLd(crumbs, origin())]}
+>
+  <Breadcrumbs crumbs={crumbs} />
+  <article>
+    <header class="post-head">
+      <p class="muted small">
+        <span class="post-type">{post.isSponsored ? "Sponsored" : POST_TYPE_LABEL[post.type]}</span> ·
+        <time datetime={post.publishedAt ?? ""}>{formatDate((post.publishedAt ?? "").slice(0, 10), "day")}</time>
+      </p>
+      <h1>{post.title}</h1>
+      {post.dek && <p class="dek">{post.dek}</p>}
+      {
+        byline && (
+          <p class="byline">
+            {byline.label} {byline.href ? <a href={byline.href}>{byline.name}</a> : byline.name}
+          </p>
+        )
+      }
+    </header>
+    <PostBody segments={segments} />
+    <footer class="post-foot muted">
+      {
+        post.sources.length > 0 && (
+          <>
+            <p>Sources:</p>
+            <ul>
+              {post.sources.map((s) => (
+                <li>
+                  <a href={s.url} rel="noopener">{s.title ?? new URL(s.url).host}</a>
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      }
+      {post.disclosure && <p class="ai-label">{post.disclosure}.</p>}
+      {post.type === "guest" && <p>Guest posts are the author's own views. Outside links in them aren't endorsed by us.</p>}
+      <p>
+        Spot a mistake? <a href={`mailto:hello@readlitrpg.com?subject=${encodeURIComponent(`Error in: ${post.title}`)}`}>Tell us</a> and we'll fix it.
+      </p>
+    </footer>
+  </article>
+</Base>

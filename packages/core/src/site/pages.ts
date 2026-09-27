@@ -612,6 +612,7 @@ export async function seriesPage(
 // Author page
 
 export interface AuthorPage {
+  id: string;
   slug: string;
   name: string;
   bio: string | null;
@@ -678,6 +679,7 @@ export async function authorPage(
   return {
     kind: "found",
     data: {
+      id: a.id,
       slug: a.slug,
       name: a.name,
       bio: a.verifiedAt ? a.bio : null,
@@ -803,6 +805,45 @@ export async function newAndUpcoming(
       .limit(limit),
   ]);
   return { recent: recent.map(toRelease), upcoming: upcoming.map(toRelease) };
+}
+
+/** Live releases of public books dated `from` to `to` (inclusive), soonest first. */
+export async function releasesBetween(
+  db: Db,
+  from: string,
+  to: string,
+  opts: { now?: string; tagSlug?: string; kinds?: string[]; limit?: number } = {},
+): Promise<UpcomingRelease[]> {
+  const now = opts.now ?? new Date().toISOString();
+  const rows = await db
+    .select(releaseFields)
+    .from(releases)
+    .innerJoin(books, eq(books.id, releases.bookId))
+    .leftJoin(series, eq(series.id, books.seriesId))
+    .where(
+      and(
+        publicBook(now),
+        liveRelease,
+        gte(releases.date, from),
+        lte(releases.date, to),
+        opts.kinds?.length
+          ? inArray(releases.kind, opts.kinds as (typeof releases.$inferSelect)["kind"][])
+          : undefined,
+        opts.tagSlug
+          ? inArray(
+              releases.bookId,
+              db
+                .select({ id: bookTags.bookId })
+                .from(bookTags)
+                .innerJoin(tags, eq(tags.id, bookTags.tagId))
+                .where(and(eq(tags.slug, opts.tagSlug), gte(bookTags.score, 0.5))),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(asc(releases.date), asc(books.title))
+    .limit(opts.limit ?? 200);
+  return rows.map(toRelease);
 }
 
 // ---------------------------------------------------------------------------------------------

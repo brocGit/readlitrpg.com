@@ -1,0 +1,17 @@
+---
+// "Today in LitRPG" for one day (DESIGN §14.6): its address is its date.
+import { dailyPost, publishedPost } from "@rlr/core/content";
+import PostPage from "../../../../components/blog/PostPage.astro";
+import { getDb } from "../../../../lib/runtime";
+import { notFound } from "../../../../lib/site";
+
+const { yyyy = "", mm = "", dd = "" } = Astro.params;
+if (!/^\d{4}$/.test(yyyy) || !/^\d{2}$/.test(mm) || !/^\d{2}$/.test(dd)) return notFound();
+const db = getDb();
+const daily = await dailyPost(db, `${yyyy}-${mm}-${dd}`);
+const post = daily?.status === "published" ? await publishedPost(db, daily.slug) : null;
+if (!post) return notFound();
+Astro.cache.set({ tags: ["posts", `post:${post.slug}`] });
+---
+
+<PostPage post={post} section="news" />
