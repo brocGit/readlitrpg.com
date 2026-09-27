@@ -68,6 +68,11 @@ export const JOBS = [
     description: "Fetch pages that research runs cite; a page naming the book confirms it",
   },
   {
+    key: "quiz.announce",
+    cron: "9 * * * *",
+    description: "Open an inbox item for each quiz that shipped in the code and awaits a publish decision",
+  },
+  {
     key: "match.model_build",
     cron: "50 * * * *",
     description: "Rebuild the match feature matrix from published books and store it in KV",

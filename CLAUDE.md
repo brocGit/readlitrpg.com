@@ -29,6 +29,7 @@ Status: **M0 (foundations), M1 (catalog core and seed), M2 (editorial pipeline) 
 | `data/seed/` | AI seed files: series-level catalog records awaiting confirmation (see its README) |
 | `data/eval/` | The classification golden set and its baseline (DESIGN §7.14; see its README) |
 | `.claude/skills/editorial-*` | Instructions for editorial runs: the run loop, classify, dedupe, research, moderate, image review |
+| `.claude/skills/quiz-factory` | Drafting a quiz from `data/quizzes/BRIEFS.md` into a pull request (DESIGN §7.16) |
 | `data/quizzes/`, `scripts/quiz-tool.mjs` | Quiz content and its validator; `build` compiles it into `packages/core/src/quiz/quizzes.gen.ts` |
 | `scripts/openlibrary-dump.mjs` | Streams the Open Library bulk dumps into an importable extract |
 
@@ -115,5 +116,5 @@ Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on
 - A Drizzle `sql` field in `select({…})` has no column name unless you add `.as("name")`, so ``orderBy(sql`name`)`` fails with "no such column". `searchPublished` hit this.
 - The web Worker keeps the match model in isolate memory and checks KV at most once a minute. After a rebuild, tests poll `/api/match` until the new model is served.
 - Locally, both previews write to one SQLite file. An island still sending requests (the Match Quiz's live preview) can make the other app's next query fail with `SQLITE_BUSY`. Wait for `networkidle` before switching apps in E2E. Production D1 doesn't have this problem.
-- Quiz go-live is a database decision (`quiz_status`, audited), not the `status` field in the JSON. With no row, a quiz isn't on the site.
+- Quiz go-live is a database decision (`quiz_status`, audited), not the `status` field in the JSON. With no row, a quiz isn't on the site. The `quiz_ready` inbox default publishes it after `quiz.auto_publish_hours`.
 - Pages are cached by `routeRules` TTLs (`apps/web/astro.config.ts`). Nothing purges the web cache from the admin Worker yet, so a console change shows once the TTL runs out.

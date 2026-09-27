@@ -134,6 +134,11 @@ export const SETTINGS = {
 
   // Quizzes (§7.16)
   "quiz.fun_effect_importance": def(share, 0.3, "Weight of fun-quiz answers relative to Match Quiz answers"),
+  "quiz.auto_publish_hours": def(
+    z.number().int().min(0).max(720),
+    48,
+    "Hours a new quiz waits in the inbox before it goes live unless vetoed (0 = wait for the owner)",
+  ),
   "quiz.balance_max_share": def(
     share,
     0.25,

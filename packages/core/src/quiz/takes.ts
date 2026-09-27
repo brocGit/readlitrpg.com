@@ -2,11 +2,12 @@
 // default: a random id in the reader's browser, answers, and the result. Nothing identifies the
 // person unless they later sign in on the same browser.
 
-import { and, count, desc, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import { appendAudit } from "../audit";
 import { randomToken } from "../crypto";
 import type { Db } from "../db";
-import { quizDaily, quizStatus, quizTakes } from "../db/schema";
+import { inboxItems, quizDaily, quizStatus, quizTakes } from "../db/schema";
+import { decideInboxItem, openInboxItem } from "../inbox";
 import { nowIso } from "../time";
 import { QUIZZES, type Quiz } from "./engine";
 
@@ -120,12 +121,91 @@ export async function setQuizStatus(
     .insert(quizStatus)
     .values({ slug, status, updatedBy: actorId, updatedAt: now })
     .onConflictDoUpdate({ target: quizStatus.slug, set: { status, updatedBy: actorId, updatedAt: now } });
+  // Deciding in the console answers the "ready to publish" inbox item too.
+  await db
+    .update(inboxItems)
+    .set({
+      status: status === "live" ? "approved" : "rejected",
+      decidedBy: actorId,
+      decidedAt: now,
+      updatedAt: now,
+    })
+    .where(and(eq(inboxItems.dedupeKey, readyKey(slug)), inArray(inboxItems.status, ["open", "snoozed"])));
   await appendAudit(db, {
-    actor: { type: "admin", id: actorId },
+    actor: actorId.startsWith("system:") ? { type: "system", id: actorId } : { type: "admin", id: actorId },
     action: status === "live" ? "quiz.publish" : "quiz.retire",
     subjectType: "quiz",
     subjectId: slug,
   });
+}
+
+const readyKey = (slug: string) => `quiz_ready:${slug}`;
+
+/**
+ * The quiz factory's approval step (DESIGN §7.16 step 4, QUIZZES §6.3): a quiz that has shipped in
+ * the code but that nobody has decided on gets one inbox item pointing at its preview. It goes live
+ * after `publishAfterHours` unless the owner retires it first; 0 means it waits for the owner.
+ */
+export async function announceNewQuizzes(db: Db, publishAfterHours = 48, now = new Date()): Promise<number> {
+  const statuses = await quizStatuses(db);
+  const waiting = QUIZZES.filter((q) => !statuses.has(q.slug));
+  if (waiting.length === 0) return 0;
+  const known = new Set(
+    (
+      await db
+        .select({ key: inboxItems.dedupeKey })
+        .from(inboxItems)
+        .where(inArray(inboxItems.dedupeKey, waiting.map((q) => readyKey(q.slug)).slice(0, 90)))
+    ).map((r) => r.key),
+  );
+  let opened = 0;
+  for (const q of waiting.slice(0, 90)) {
+    if (known.has(readyKey(q.slug))) continue;
+    const item = await openInboxItem(db, {
+      type: "quiz_ready",
+      title: `Quiz ready to publish: ${q.title}`,
+      subjectType: "quiz",
+      subjectId: q.slug,
+      payload: { slug: q.slug },
+      priority: 30,
+      dedupeKey: readyKey(q.slug),
+      aiSummary: `${q.kind === "trivia" ? "Trivia" : "Personality"} quiz: ${q.questions.length} questions, ${q.outcomes.length} results. ${q.dek} It passed the balance and key checks in CI.`,
+      aiRecommendation: "approve",
+      defaultAction: publishAfterHours > 0 ? "approve" : "none",
+      defaultActionAt: new Date(now.getTime() + publishAfterHours * 3_600_000).toISOString(),
+    });
+    if (item) opened++;
+  }
+  return opened;
+}
+
+/** The heartbeat's side of the default: publish quizzes whose veto window has passed. */
+export async function publishDueQuizzes(db: Db, now = new Date()): Promise<string[]> {
+  const due = await db
+    .select({ id: inboxItems.id, slug: inboxItems.subjectId })
+    .from(inboxItems)
+    .where(
+      and(
+        eq(inboxItems.type, "quiz_ready"),
+        eq(inboxItems.status, "open"),
+        eq(inboxItems.defaultAction, "approve"),
+        lte(inboxItems.defaultActionAt, now.toISOString()),
+      ),
+    )
+    .limit(20);
+  const published: string[] = [];
+  for (const item of due) {
+    if (!item.slug || !QUIZZES.some((q) => q.slug === item.slug)) continue;
+    const decided = await decideInboxItem(db, item.id, {
+      status: "auto_approved",
+      decidedBy: "system:default_action",
+      reasonCode: "default_action",
+    });
+    if (!decided) continue;
+    await setQuizStatus(db, item.slug, "live", "system:default_action");
+    published.push(item.slug);
+  }
+  return published;
 }
 
 /** Outcome shares over the last N days, for the console (QUIZZES §3.5). */

@@ -365,6 +365,10 @@ The checker enforces the rules for every series quiz: a `spoiler_boundary`, the 
   - *As built (M3):* the files are the source of truth and ship with the code. `node scripts/quiz-tool.mjs build` compiles them into `packages/core/src/quiz/quizzes.gen.ts`, and the site scores takes with the same rules as the checker. The database stores only what changes at runtime: `quiz_status` (live or retired, set from Admin → Quizzes and audited), `quiz_takes` (anonymous takes, deleted after 90 days unless attached to an account) and `quiz_daily` (outcome totals for the console).
 - **Checker:** `scripts/quiz-tool.mjs` validates keys against the dial and stat lists and against `TAXONOMY.md`, checks reachability and runs the balance simulation. The quiz factory (DESIGN §7.16) reuses the same rules before any quiz reaches the owner's inbox.
 - **Build placement:**
-  - **M3 (built):** quiz engine, result pages, SVG share cards, Party up, and all eight drafted quizzes ready to publish. None is live until the owner publishes it in Admin → Quizzes. The player never receives points, effects or correct answers: the server scores every take.
+  - **M3 (built):**
+    - quiz engine, result pages, SVG share cards and Party up, with all eight drafted quizzes ready to publish;
+    - the quiz factory: `.claude/skills/quiz-factory/SKILL.md` and the `data/quizzes/BRIEFS.md` backlog.
+    
+    Each quiz in the code gets a `quiz_ready` inbox item and goes live after 48 hours unless the owner retires it (§6.3). The player never receives points, effects or correct answers: the server scores every take.
   - **M5:** email capture, the welcome sequence, profile levels.
   - **M7:** quiz analytics in the owner's weekly report.

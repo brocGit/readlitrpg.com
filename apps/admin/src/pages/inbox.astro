@@ -90,6 +90,9 @@ const recommendation: Record<string, string> = {
                 {(item.type === "seed_check" || item.type === "scope_check") && field(item.payload, "bookId") && (
                   <p><a href={`/catalog/books/${field(item.payload, "bookId")}`}>Open the book</a> to hide it, fix it, or override the field.</p>
                 )}
+                {item.type === "quiz_ready" && field(item.payload, "slug") && (
+                  <p><a href={`/quizzes?preview=${field(item.payload, "slug")}`}>Preview it</a>, then publish or retire it from Quizzes.</p>
+                )}
                 {item.type === "possible_duplicate" && isPair(item.payload) && (
                   <p>
                     Compare <a href={`/catalog/books/${item.payload.bookId}`}>this book</a> with{" "}

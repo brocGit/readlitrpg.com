@@ -6,6 +6,7 @@
 import { createLogger, type Logger, maskEmail } from "@rlr/core";
 import { createDb, type Db } from "@rlr/core/db";
 import { openInboxItem, runInboxDefaults } from "@rlr/core/inbox";
+import { publishDueQuizzes } from "@rlr/core/quiz";
 import {
   finishJobRun,
   HEARTBEAT_KV_KEY,
@@ -30,6 +31,7 @@ import { buildQueue, checkCitations, watchdog } from "./jobs/editorial";
 import { enrichCatalog } from "./jobs/enrich";
 import { importCatalog } from "./jobs/import";
 import { buildMatchModel } from "./jobs/match";
+import { announceQuizzes } from "./jobs/quizzes";
 import { purgeExpired } from "./jobs/retention";
 import { syncTaxonomyJob } from "./jobs/taxonomy-sync";
 import type { JobHandler } from "./jobs/types";
@@ -46,6 +48,7 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "editorial.watchdog": watchdog,
   "editorial.citations": checkCitations,
   "vectors.update": updateVectors,
+  "quiz.announce": announceQuizzes,
   "match.model_build": buildMatchModel,
 };
 
@@ -76,6 +79,9 @@ export default {
     let defaults = 0;
     try {
       defaults = await runInboxDefaults(db, now);
+      const published = await publishDueQuizzes(db, now);
+      defaults += published.length;
+      if (published.length) log.info("quiz.auto_published", { quizzes: published });
     } catch (error) {
       log.error("heartbeat.inbox_defaults_failed", { error });
     }

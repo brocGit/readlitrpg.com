@@ -11,11 +11,14 @@ import {
 import { createDb, type Db } from "../src/db";
 import { bookScores, inboxItems, quizDaily, quizTakes, users } from "../src/db/schema";
 import {
+  announceNewQuizzes,
   attachTakes,
   getQuiz,
   isLive,
   liveQuizzes,
+  publishDueQuizzes,
   purgeAnonymousTakes,
+  QUIZZES,
   recordTake,
   setQuizStatus,
   takeOutcome,
@@ -77,6 +80,38 @@ describe("quiz takes", () => {
     await setQuizStatus(db, "whats-your-litrpg-class", "retired", "owner");
     expect(await isLive(db, "whats-your-litrpg-class")).toBe(false);
     await expect(setQuizStatus(db, "nope", "live", "owner")).rejects.toThrow();
+  });
+
+  it("asks the owner once about each quiz that ships, and the console decision answers it", async () => {
+    expect(await announceNewQuizzes(db)).toBe(QUIZZES.length);
+    expect(await announceNewQuizzes(db)).toBe(0);
+    await setQuizStatus(db, "whats-your-litrpg-class", "live", "owner");
+    const [item] = await db
+      .select()
+      .from(inboxItems)
+      .where(eq(inboxItems.dedupeKey, "quiz_ready:whats-your-litrpg-class"));
+    expect(item?.status).toBe("approved");
+    expect(item?.subjectId).toBe("whats-your-litrpg-class");
+    const open = await db.select().from(inboxItems).where(eq(inboxItems.status, "open"));
+    expect(open).toHaveLength(QUIZZES.length - 1);
+  });
+
+  it("publishes a quiz when its veto window ends, unless the owner retired it", async () => {
+    const t0 = new Date("2026-10-01T12:00:00Z");
+    await announceNewQuizzes(db, 48, t0);
+    await setQuizStatus(db, "which-dcc-character-are-you", "retired", "owner");
+    expect(await publishDueQuizzes(db, new Date("2026-10-03T11:00:00Z"))).toEqual([]);
+    const published = await publishDueQuizzes(db, new Date("2026-10-03T12:00:00Z"));
+    expect(published).toHaveLength(QUIZZES.length - 1);
+    expect(published).not.toContain("which-dcc-character-are-you");
+    expect(await isLive(db, "whats-your-litrpg-class")).toBe(true);
+    expect(await isLive(db, "which-dcc-character-are-you")).toBe(false);
+    expect(await publishDueQuizzes(db, new Date("2026-10-04T12:00:00Z"))).toEqual([]);
+  });
+
+  it("waits for the owner when auto-publishing is off", async () => {
+    await announceNewQuizzes(db, 0);
+    expect(await publishDueQuizzes(db, new Date(Date.now() + 365 * 86_400_000))).toEqual([]);
   });
 });
 

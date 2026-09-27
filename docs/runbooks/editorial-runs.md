@@ -65,9 +65,10 @@ Times are US Eastern. Each routine starts a fresh session in this repository wit
 |---|---|---|
 | Morning | daily 05:30 | "Use the editorial-run skill for a daily run against production, labeled morning. Clear moderation and image review, then classify up to 80 books, then the dedupe questions, then up to 15 research items. Finish with notes." |
 | Afternoon | daily 14:00 | "Use the editorial-run skill for a daily run against production, labeled afternoon. Work whatever the morning left in the queue, most urgent first, up to 120 items. Finish with notes." |
+| Quiz factory | Tuesdays 09:00 | "Use the quiz-factory skill: draft the next quiz from data/quizzes/BRIEFS.md and open a pull request for it." |
 | Monthly eval | 1st, 07:00 | "Run the classification eval: `pnpm editorial eval-input`, classify the file blind following the editorial-classify skill (don't read data/eval), then `pnpm eval:classify <your proposals file>`. Report the metrics and whether the gate passed. Don't change any files in the repository." |
 
-The news desk, quiz factory and audit runs join these as their milestones land.
+The news desk and audit runs join these as their milestones land. The quiz factory needs no editorial token: it only writes to the repository. Merging its pull request is your content review. After the deploy, the quiz goes live in 48 hours unless you retire it (inbox item `quiz_ready`).
 
 ## Running one by hand
 
@@ -90,7 +91,8 @@ The news desk, quiz factory and audit runs join these as their milestones land.
   - `editorial_stale`: work waiting with no successful run for 36 hours;
   - `seed_check`: research couldn't find a seed, or found different details;
   - `scope_check`: a run marked a book out of scope;
-  - `security_event`: a bad editorial token.
+  - `security_event`: a bad editorial token;
+  - `quiz_ready`: a new quiz that goes live after 48 hours unless you retire it in Admin → Quizzes.
 - Each book page shows its classification, dials and stats with their sources, the proposals about it, and a **Classify next** button.
 
 ## Rotating or revoking
