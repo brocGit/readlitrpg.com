@@ -35,6 +35,15 @@ export const ROUTES = {
   "/api/quiz/[slug]": PUBLIC,
   // GET is public; POST checks for a signed-in reader itself (appraisals are account actions).
   "/api/appraise/[slug]": PUBLIC,
+  // The public site (M4).
+  "/books/[slug]": PUBLIC,
+  "/series/[slug]": PUBLIC,
+  "/authors/[slug]": PUBLIC,
+  "/narrators/[slug]": PUBLIC,
+  "/tags": PUBLIC,
+  "/tags/[slug]": PUBLIC,
+  "/new": PUBLIC,
+  "/search": PUBLIC,
 } satisfies RouteRegistry;
 
 /** Routes whose responses are personal and must never be cached anywhere. */

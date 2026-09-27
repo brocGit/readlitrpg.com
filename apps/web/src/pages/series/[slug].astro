@@ -1,0 +1,68 @@
+---
+// A series (DESIGN §9.5): reading order, status, length, audio coverage and where to start.
+import {
+  breadcrumbJsonLd,
+  formatDuration,
+  SERIES_STATUS_LABEL,
+  seriesJsonLd,
+  seriesPage,
+} from "@rlr/core/site";
+import BookRow from "../../components/site/BookRow.astro";
+import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
+import ReleaseList from "../../components/site/ReleaseList.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import { coverOgUrl, movedTo, notFound, origin } from "../../lib/site";
+import "../../styles/discover.css";
+import "../../styles/site.css";
+
+const found = await seriesPage(getDb(), Astro.params.slug ?? "");
+if (found.kind === "redirect") return movedTo(`/series/${found.slug}`);
+if (found.kind === "missing") return notFound();
+const s = found.data;
+const first = s.books[0];
+const n = s.books.length;
+const byline = s.authors.map((a) => a.name).join(" and ");
+const status = SERIES_STATUS_LABEL[s.status] ?? s.status;
+const lead = `${s.name} is ${s.status === "complete" ? "a complete" : s.status === "ongoing" ? "an ongoing" : "a"} series by ${byline}, with ${n} ${n === 1 ? "book" : "books"} listed here.`;
+const crumbs = [
+  { name: "Home", path: "/" },
+  ...(s.authors[0] ? [{ name: s.authors[0].name, path: `/authors/${s.authors[0].slug}` }] : []),
+  { name: s.name, path: `/series/${s.slug}` },
+];
+Astro.cache.set({ tags: [`series:${s.slug}`, ...s.books.map((b) => `book:${b.id}`)] });
+---
+
+<Base
+  title={`${s.name} series in order`}
+  description={lead}
+  canonical={`/series/${s.slug}`}
+  ogImage={coverOgUrl(first?.cover ?? null)}
+  jsonLd={[seriesJsonLd(s, origin()), breadcrumbJsonLd(crumbs, origin())]}
+>
+  <Breadcrumbs crumbs={crumbs} />
+  <h1>{s.name}</h1>
+  <p class="lead">{lead}</p>
+  <dl class="facts">
+    <dt>Status</dt><dd>{status}</dd>
+    <dt>Books</dt><dd>{n}{s.expectedLength && s.expectedLength > n && ` of ${s.expectedLength} planned`}</dd>
+    {s.totalPages && <><dt>Total length</dt><dd>{s.totalPages.toLocaleString("en-US")} pages</dd></>}
+    <dt>Audio</dt>
+    <dd>{s.audio.books === 0 ? "No audiobooks listed" : `${s.audio.books} of ${n} books${formatDuration(s.audio.minutes) ? ` · ${formatDuration(s.audio.minutes)} in all` : ""}`}</dd>
+    {s.kindleUnlimited && <><dt>Kindle Unlimited</dt><dd>Yes</dd></>}
+    <dt>By</dt><dd>{s.authors.map((a, i) => <>{i > 0 && ", "}<a href={`/authors/${a.slug}`}>{a.name}</a></>)}</dd>
+  </dl>
+  {first && <p><a class="button" href={`/books/${first.slug}`}>Start with {first.title}</a></p>}
+
+  <h2>Reading order</h2>
+  <ol class="book-list">{s.books.map((b) => <BookRow book={b} showSeries={false} />)}</ol>
+
+  {
+    s.upcoming.length > 0 && (
+      <section>
+        <h2>Coming up</h2>
+        <ReleaseList releases={s.upcoming} />
+      </section>
+    )
+  }
+</Base>

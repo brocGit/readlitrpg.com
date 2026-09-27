@@ -10,6 +10,7 @@ export * from "./merge";
 export * from "./normalize";
 export * from "./provenance";
 export * from "./queries";
+export * from "./releases";
 export * from "./resolve";
 export * from "./scores";
 export * from "./suggest";

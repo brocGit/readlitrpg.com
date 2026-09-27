@@ -1,0 +1,44 @@
+---
+// Releases grouped by month, each with the date at the precision we know (DESIGN §9.4).
+import { bookNumber, formatDate, RELEASE_LABEL, type UpcomingRelease } from "@rlr/core/site";
+
+interface Props {
+  releases: UpcomingRelease[];
+  newestFirst?: boolean;
+}
+const { releases } = Astro.props;
+const groups = new Map<string, UpcomingRelease[]>();
+for (const r of releases) {
+  const month = r.precision === "day" || r.precision === "month" ? formatDate(r.date, "month") : "Later";
+  groups.set(month, [...(groups.get(month) ?? []), r]);
+}
+---
+
+<div class="release-list">
+  {
+    [...groups.entries()].map(([month, list]) => (
+      <section>
+        <h3>{month}</h3>
+        <ul>
+          {list.map((r) => (
+            <li>
+              <span class="release-date">{formatDate(r.date, r.precision)}</span>
+              <a href={`/books/${r.bookSlug}`}>{r.title}</a>
+              {r.series && (
+                <span class="muted">
+                  {" "}
+                  · <a href={`/series/${r.series.slug}`}>{r.series.name}</a>
+                  {bookNumber(r.series.position) && ` ${bookNumber(r.series.position)}`}
+                </span>
+              )}
+              <span class="badge">{RELEASE_LABEL[r.kind] ?? r.kind}</span>
+              {r.status === "slipped" && r.previousDate && (
+                <span class="badge warn">Delayed from {formatDate(r.previousDate, "day")}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</div>

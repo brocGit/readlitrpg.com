@@ -51,5 +51,14 @@ export default defineConfig({
     "/quiz": { maxAge: 300, swr: 600 },
     "/quiz/[slug]": { maxAge: 300, swr: 600 },
     "/quiz/[slug]/r/[outcome]": { maxAge: 900, swr: 3600 },
+    // Entity pages: 30 minutes (DESIGN §4.6); tags and releases change more often than books.
+    "/books/[slug]": { maxAge: 1800, swr: 86400 },
+    "/series/[slug]": { maxAge: 1800, swr: 86400 },
+    "/authors/[slug]": { maxAge: 1800, swr: 86400 },
+    "/narrators/[slug]": { maxAge: 1800, swr: 86400 },
+    "/tags": { maxAge: 1800, swr: 86400 },
+    "/tags/[slug]": { maxAge: 1800, swr: 86400 },
+    "/new": { maxAge: 300, swr: 3600 },
+    "/search": { maxAge: 300, swr: 3600 },
   },
 });

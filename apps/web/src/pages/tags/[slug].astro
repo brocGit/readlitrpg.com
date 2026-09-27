@@ -1,0 +1,92 @@
+---
+// A tag landing page (DESIGN §9.5, §17.2): what the tag means, the best-documented books that
+// carry it, related tags, and what's coming. Ranked from the match model, like the living lists.
+import { findBooks, findQuerySchema, tagsOf } from "@rlr/core/match";
+import { bookItems, breadcrumbJsonLd, newAndUpcoming, tagLookup } from "@rlr/core/site";
+import { getTag } from "@rlr/core/taxonomy";
+import BookRow from "../../components/site/BookRow.astro";
+import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
+import ReleaseList from "../../components/site/ReleaseList.astro";
+import Base from "../../layouts/Base.astro";
+import { getMatrix, matchOptions } from "../../lib/match";
+import { getDb } from "../../lib/runtime";
+import { movedTo, notFound, origin } from "../../lib/site";
+import "../../styles/discover.css";
+import "../../styles/site.css";
+
+const db = getDb();
+const found = await tagLookup(db, Astro.params.slug ?? "");
+if (found.kind === "redirect") return movedTo(`/tags/${found.slug}`);
+if (found.kind === "missing") return notFound();
+const t = found.data;
+const settings = await Astro.locals.settings();
+const m = await getMatrix();
+const q = findQuerySchema.parse({ include: [t.slug] });
+const { total, hits } = m ? findBooks(m, q, null, matchOptions(settings)) : { total: 0, hits: [] };
+const top = await bookItems(
+  db,
+  hits.slice(0, 24).map((h) => m?.ids[h.i] ?? ""),
+);
+
+// Related tags: what the same books also carry most often.
+const related = new Map<string, number>();
+if (m) {
+  for (const h of hits.slice(0, 200)) {
+    for (const [idx, score] of tagsOf(m, h.i)) {
+      const slug = m.tags[idx];
+      if (slug && slug !== t.slug && score >= settings["tags.display_min"])
+        related.set(slug, (related.get(slug) ?? 0) + 1);
+    }
+  }
+}
+const relatedTags = [...related.entries()]
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10)
+  .flatMap(([slug]) => (getTag(slug) ? [{ slug, name: getTag(slug)?.name ?? slug }] : []));
+const releases = await newAndUpcoming(db, { tagSlug: t.slug, pastDays: 30, aheadDays: 180, limit: 10 });
+const heading = t.facet === "genre" ? `${t.name} books` : `${t.name} LitRPG and progression fantasy`;
+const lead = `${t.description.replace(/\.$/, "")}. ${total > 0 ? `${total} ${total === 1 ? "book" : "books"} here carry this tag.` : "Books with this tag appear here as the catalog grows."}`;
+const crumbs = [
+  { name: "Home", path: "/" },
+  { name: "Tags", path: "/tags" },
+  { name: t.name, path: `/tags/${t.slug}` },
+];
+Astro.cache.set({ tags: ["tags", `tag:${t.slug}`] });
+---
+
+<Base
+  title={heading}
+  description={lead}
+  canonical={`/tags/${t.slug}`}
+  noIndex={total === 0}
+  jsonLd={[breadcrumbJsonLd(crumbs, origin())]}
+>
+  <Breadcrumbs crumbs={crumbs} />
+  <h1>{heading}</h1>
+  <p class="lead">{lead}</p>
+  {t.includeWhen && <p class="muted prose">Tagged when: {t.includeWhen}</p>}
+  <p class="feeds">
+    <a href={`/find?inc=${t.slug}`}>Filter these books</a> · <a href={`/feeds/tags/${t.slug}.xml`}>RSS</a> ·
+    <a href={`/feeds/tags/${t.slug}.ics`}>Release calendar (ICS)</a>
+  </p>
+
+  {top.length > 0 && <ol class="book-list">{top.map((b) => <BookRow book={b} />)}</ol>}
+  {total > top.length && <p><a class="button secondary" href={`/find?inc=${t.slug}&page=2`}>See all {total}</a></p>}
+
+  {
+    relatedTags.length > 0 && (
+      <section>
+        <h2>Often tagged together</h2>
+        <ul class="tag-list">{relatedTags.map((r) => <li><a href={`/tags/${r.slug}`}>{r.name}</a></li>)}</ul>
+      </section>
+    )
+  }
+  {
+    releases.upcoming.length + releases.recent.length > 0 && (
+      <section>
+        <h2>New and upcoming</h2>
+        <ReleaseList releases={[...releases.recent.slice().reverse(), ...releases.upcoming]} />
+      </section>
+    )
+  }
+</Base>

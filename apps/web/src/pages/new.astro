@@ -1,0 +1,42 @@
+---
+// New & upcoming, Phase 1 (DESIGN §9.4): a curated list of notable releases, labeled as that, not
+// as every release. It grows into the full calendar once authors submit at scale.
+import { breadcrumbJsonLd, newAndUpcoming } from "@rlr/core/site";
+import Breadcrumbs from "../components/site/Breadcrumbs.astro";
+import ReleaseList from "../components/site/ReleaseList.astro";
+import Base from "../layouts/Base.astro";
+import { getDb } from "../lib/runtime";
+import { origin } from "../lib/site";
+import "../styles/site.css";
+
+const { recent, upcoming } = await newAndUpcoming(getDb());
+const crumbs = [
+  { name: "Home", path: "/" },
+  { name: "New & upcoming", path: "/new" },
+];
+Astro.cache.set({ tags: ["releases"] });
+---
+
+<Base
+  title="New and upcoming LitRPG releases"
+  description="Notable new and upcoming LitRPG, progression fantasy and cultivation releases, with audiobooks."
+  canonical="/new"
+  jsonLd={[breadcrumbJsonLd(crumbs, origin())]}
+>
+  <Breadcrumbs crumbs={crumbs} />
+  <h1>New &amp; upcoming</h1>
+  <p class="lead">Notable new and upcoming releases, not every release. Dates show only what's known: a month or a quarter until the day is confirmed.</p>
+  <p class="feeds"><a href="/feeds/releases.xml">RSS</a> · <a href="/feeds/releases.ics">Add to your calendar (ICS)</a></p>
+
+  <h2>Coming up</h2>
+  {upcoming.length === 0 ? <p class="status-screen">[Quest log empty] No announced releases yet. Check back soon.</p> : <ReleaseList releases={upcoming} />}
+
+  {
+    recent.length > 0 && (
+      <section>
+        <h2>Out recently</h2>
+        <ReleaseList releases={recent} />
+      </section>
+    )
+  }
+</Base>

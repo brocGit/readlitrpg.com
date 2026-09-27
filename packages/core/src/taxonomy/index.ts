@@ -46,6 +46,11 @@ export const FACETS = TAXONOMY_DATA.facets as readonly FacetDef[];
 export const TAGS = TAXONOMY_DATA.tags as readonly TagDef[];
 export const DIALS = TAXONOMY_DATA.dials as readonly ScaleDef[];
 export const STATS = TAXONOMY_DATA.stats as readonly StatDef[];
+export const CONTENT_FLAG_DEFS = TAXONOMY_DATA.content_flags as readonly {
+  slug: string;
+  name: string;
+  definition: string;
+}[];
 export const CONTENT_FLAGS = TAXONOMY_DATA.content_flags.map((f) => f.slug) as readonly string[];
 export const HAREM_VALUES = TAXONOMY_DATA.harem.map((h) => h.value) as readonly string[];
 export const CRUNCH_LEVELS = TAXONOMY_DATA.crunch_levels as readonly { value: number; label: string }[];

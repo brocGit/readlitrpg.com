@@ -2,14 +2,17 @@
 import {
   addConfirmation,
   type BookField,
+  cancelRelease,
   FieldValueError,
   findBookRef,
   getBookDetail,
   MergeError,
   mergeBooks,
   publicationGate,
+  ReleaseError,
   resolveField,
   type SourcedValue,
+  setRelease,
   setVisibility,
   suggestTagsForBook,
   unmergeBooks,
@@ -19,7 +22,7 @@ import {
 import { enqueue } from "@rlr/core/editorial";
 import { can } from "@rlr/core/policy";
 import { enqueueJob } from "@rlr/core/scheduler";
-import { books } from "@rlr/core/schema";
+import { books, RELEASE_KINDS } from "@rlr/core/schema";
 import { eq } from "drizzle-orm";
 import Console from "../../../layouts/Console.astro";
 import { adminActor } from "../../../lib/admin-session";
@@ -114,6 +117,39 @@ if (Astro.request.method === "POST") {
           303,
         );
       }
+      case "release_set": {
+        const kind = RELEASE_KINDS.find((k) => k === form.kind);
+        if (!kind) return Astro.redirect(flash(here, "Pick a release kind.", "error"), 303);
+        const r = await setRelease(
+          db,
+          id,
+          { kind, date: form.date ?? "", region: form.region || "US" },
+          "admin",
+        );
+        await log("catalog.release_set", {
+          kind,
+          date: form.date,
+          change: r.change,
+          previousDate: r.previousDate,
+        });
+        return Astro.redirect(
+          flash(
+            here,
+            r.change === "moved" && r.previousDate
+              ? `Moved; the page will say "Delayed from ${r.previousDate}".`
+              : `Release date ${r.change}.`,
+          ),
+          303,
+        );
+      }
+      case "release_cancel": {
+        const ok = await cancelRelease(db, id, form.release ?? "");
+        await log("catalog.release_cancel", { release: form.release });
+        return Astro.redirect(
+          flash(here, ok ? "Release cancelled." : "No such release.", ok ? "ok" : "error"),
+          303,
+        );
+      }
       case "unmerge": {
         await unmergeBooks(db, form.merge ?? "", admin.userId);
         await log("catalog.unmerge", { mergeId: form.merge });
@@ -121,7 +157,7 @@ if (Astro.request.method === "POST") {
       }
     }
   } catch (error) {
-    if (error instanceof FieldValueError || error instanceof MergeError) {
+    if (error instanceof FieldValueError || error instanceof MergeError || error instanceof ReleaseError) {
       return Astro.redirect(flash(here, error.message, "error"), 303);
     }
     throw error;
@@ -288,9 +324,29 @@ const fieldRows: [BookField, unknown][] = [
     </tbody>
   </table>
   <ul>{detail.links.map((l) => <li>{l.kind}: <code>{l.url}</code></li>)}</ul>
+  <h3>Release dates</h3>
   {detail.releases.length > 0 && (
-    <ul>{detail.releases.map((r) => <li>{r.kind} {r.date ?? "TBA"} ({r.datePrecision}, {r.status}, {r.region})</li>)}</ul>
+    <ul>
+      {detail.releases.map((r) => (
+        <li>
+          {r.kind} {r.date ?? "TBA"} ({r.datePrecision}, {r.status}, {r.region}{r.previousDate ? `, was ${r.previousDate}` : ""}{r.confirmedBy ? `, from ${r.confirmedBy}` : ""})
+          {r.status !== "cancelled" && (
+            <form method="post" class="inline">
+              <input type="hidden" name="release" value={r.id} />
+              <button class="button small secondary" name="action" value="release_cancel" type="submit">Cancel</button>
+            </form>
+          )}
+        </li>
+      ))}
+    </ul>
   )}
+  <form method="post" class="inline">
+    <label>Kind <select name="kind">{RELEASE_KINDS.map((k) => <option value={k}>{k}</option>)}</select></label>
+    <label>Date <input type="text" name="date" placeholder="2026-11-03, Nov 2026, Q1 2027" required /></label>
+    <label>Region <input type="text" name="region" value="US" size="3" maxlength="2" /></label>
+    <button class="button small" name="action" value="release_set" type="submit">Set release date</button>
+  </form>
+  <p class="muted">Setting a later date on an existing release marks it delayed and keeps the old date.</p>
 
   <h2>Confirmations</h2>
   {detail.confirmations.length === 0 ? <p class="muted">None yet.</p> : (

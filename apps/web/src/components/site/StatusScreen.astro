@@ -1,0 +1,60 @@
+---
+// The book's status screen (DESIGN §6.7): stats readers look for, and the dial profile. Judgment
+// stats stay ??? until readers appraise them.
+import type { DialRow, StatRow } from "@rlr/core/site";
+
+interface Props {
+  title: string;
+  stats: StatRow[];
+  dials: DialRow[];
+}
+const { title, stats, dials } = Astro.props;
+---
+
+<section class="status-screen book-status" aria-labelledby="status-heading">
+  <p class="label" id="status-heading">[Status: {title}]</p>
+  <dl class="status-mini">
+    {
+      stats.map((s) => (
+        <div>
+          <dt>{s.name}</dt>
+          <dd>
+            {s.value === null ? (
+              <span class="unknown">???</span>
+            ) : (
+              <>
+                <meter min="0" max="10" value={s.value} /> {s.value}{" "}
+                <span class="muted">
+                  · {s.label}
+                  {s.label === "Readers say" && ` (${s.appraisals})`}
+                </span>
+              </>
+            )}
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+  {
+    dials.length > 0 && (
+      <>
+        <p class="label">[Feel]</p>
+        <dl class="dials">
+          {dials.map((d) => (
+            <div>
+              <dt>{d.name}</dt>
+              <dd>
+                <meter min="0" max="10" value={d.value} aria-label={`${d.name}: ${d.value} of 10`} />
+                <span class="ends" aria-hidden="true">
+                  <span>{d.low}</span>
+                  <span>{d.high}</span>
+                </span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </>
+    )
+  }
+  <slot />
+</section>

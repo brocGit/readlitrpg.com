@@ -1,0 +1,248 @@
+---
+// The book page (DESIGN §9.5): the facts, where to read it, its status screen and tags, and ways
+// on to similar books. Same HTML for everyone; Appraise is an island that asks /api/me.
+import { indexOfBook, similarTo } from "@rlr/core/match";
+import {
+  bookItems,
+  bookJsonLd,
+  bookNumber,
+  bookPage,
+  breadcrumbJsonLd,
+  CONTENT_FLAG_LABEL,
+  crunchLabel,
+  FORMAT_LABEL,
+  formatDate,
+  formatDuration,
+  HAREM_LABEL,
+  LINK_LABEL,
+  RELEASE_LABEL,
+  romanceLabel,
+  SERIES_STATUS_LABEL,
+  storeLink,
+} from "@rlr/core/site";
+import { getTag } from "@rlr/core/taxonomy";
+import Appraise from "../../components/Appraise";
+import BookRow from "../../components/site/BookRow.astro";
+import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
+import Cover from "../../components/site/Cover.astro";
+import StatusScreen from "../../components/site/StatusScreen.astro";
+import Base from "../../layouts/Base.astro";
+import { getMatrix } from "../../lib/match";
+import { getDb } from "../../lib/runtime";
+import { coverOgUrl, movedTo, notFound, origin, pageOptions } from "../../lib/site";
+import "../../styles/discover.css";
+import "../../styles/site.css";
+
+const settings = await Astro.locals.settings();
+const found = await bookPage(getDb(), Astro.params.slug ?? "", pageOptions(settings));
+if (found.kind === "redirect") return movedTo(`/books/${found.slug}`);
+if (found.kind === "missing") return notFound();
+const b = found.data;
+
+const genre = b.primaryGenre ? (getTag(b.primaryGenre)?.name ?? null) : null;
+const authorNames = b.authors.map((a) => a.name);
+const byline =
+  authorNames.length > 1
+    ? `${authorNames.slice(0, -1).join(", ")} and ${authorNames.at(-1)}`
+    : authorNames[0];
+const number = bookNumber(b.series?.position ?? null);
+// The first sentence answers "what is this?" (DESIGN §17.2).
+const lead = [
+  `${b.title} is ${/^[aeiou]/i.test(genre ?? "LitRPG") ? "an" : "a"} ${genre ?? "LitRPG"} book by ${byline}`,
+  b.series && number ? `, ${number.toLowerCase()} of the ${b.series.name} series` : "",
+  b.firstPublished ? ` (${formatDate(b.firstPublished, b.firstPublishedPrecision ?? "year")})` : "",
+  ".",
+].join("");
+
+const amazonTag = settings["affiliate.amazon_tag_web"];
+const stores = b.links
+  .filter((l) => LINK_LABEL[l.kind])
+  .map((l) => ({ ...storeLink(l.kind, l.url, amazonTag), label: LINK_LABEL[l.kind] ?? l.kind }));
+const narrators = [...new Map(b.editions.flatMap((e) => e.narrators).map((n) => [n.slug, n])).values()];
+const audio = b.editions.find((e) => e.format === "audiobook");
+const formats = [...new Set(b.editions.map((e) => FORMAT_LABEL[e.format] ?? e.format))];
+const perks = [
+  b.editions.some((e) => e.kindleUnlimited) && "Kindle Unlimited",
+  b.editions.some((e) => e.audiblePlus) && "Audible Plus",
+].filter(Boolean);
+const today = new Date().toISOString().slice(0, 10);
+const upcoming = b.releases.filter((r) => r.date && r.date >= today);
+const confirmedNotes = b.releases.filter((r) => r.confirmedBy === "author" && r.confirmedAt);
+const SOURCE_LABEL: Record<string, string> = {
+  openlibrary: "Open Library",
+  google_books: "Google Books",
+  creators_api: "Amazon",
+  research: "a cited source",
+  author_claim: "the author",
+  owner_check: "our editor",
+  publisher_feed: "the publisher",
+};
+
+// Similar books from the match model: in memory, so the rail costs one query.
+const m = await getMatrix();
+const at = m ? indexOfBook(m).get(b.slug) : undefined;
+const similar =
+  m && at !== undefined
+    ? await bookItems(
+        getDb(),
+        similarTo(m, at, 4).map((s) => m.ids[s.i] ?? ""),
+      )
+    : [];
+const shown = Object.fromEntries(b.dials.map((d) => [d.key, d.value]));
+
+const crumbs = [
+  { name: "Home", path: "/" },
+  ...(b.series
+    ? [{ name: b.series.name, path: `/series/${b.series.slug}` }]
+    : b.authors[0]
+      ? [{ name: b.authors[0].name, path: `/authors/${b.authors[0].slug}` }]
+      : []),
+  { name: b.title, path: `/books/${b.slug}` },
+];
+const coverUrl = coverOgUrl(b.cover);
+Astro.cache.set({ tags: [`book:${b.id}`] });
+---
+
+<Base
+  title={`${b.title}${b.authors[0] ? ` by ${b.authors[0].name}` : ""}`}
+  description={b.hook ?? lead}
+  canonical={`/books/${b.slug}`}
+  ogImage={coverUrl}
+  jsonLd={[bookJsonLd(b, origin(), coverUrl), breadcrumbJsonLd(crumbs, origin())]}
+>
+  <Breadcrumbs crumbs={crumbs} />
+  <div class="book-head">
+    <Cover cover={b.cover} title={b.title} author={authorNames[0]} width={220} eager />
+    <div>
+      <h1>{b.title}</h1>
+      {b.subtitle && <p class="subtitle">{b.subtitle}</p>}
+      <p class="byline">
+        by {b.authors.map((a, i) => <>{i > 0 && ", "}<a href={`/authors/${a.slug}`}>{a.name}</a></>)}
+      </p>
+      {
+        b.series && (
+          <p class="series-nav">
+            <span>
+              {number && `${number} of `}<a href={`/series/${b.series.slug}`}>{b.series.name}</a>{" "}
+              <span class="muted">({SERIES_STATUS_LABEL[b.series.status] ?? b.series.status})</span>
+            </span>
+            {b.series.prev && <a href={`/books/${b.series.prev.slug}`} rel="prev">← {b.series.prev.title}</a>}
+            {b.series.next && <a href={`/books/${b.series.next.slug}`} rel="next">{b.series.next.title} →</a>}
+          </p>
+        )
+      }
+      <p class="lead">{lead}</p>
+      {b.hook && <p class="hook">{b.hook}</p>}
+      {
+        stores.length > 0 && (
+          <>
+            <ul class="stores" aria-label="Where to read">
+              {stores.map((s) => (
+                <li>
+                  <a class="button small secondary" href={s.url} rel={s.affiliate ? "sponsored noopener" : "noopener"}>
+                    {s.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {stores.some((s) => s.affiliate) && <p class="muted ai-label">As an Amazon Associate I earn from qualifying purchases.</p>}
+          </>
+        )
+      }
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      {
+        b.description && (
+          <section>
+            <h2>About the book</h2>
+            <p class="prose">{b.description.text}</p>
+            {b.description.by === "us" && <p class="ai-label">Summary written by ReadLitRPG with AI assistance.</p>}
+          </section>
+        )
+      }
+
+      <section>
+        <h2>Details</h2>
+        <dl class="facts">
+          {genre && <><dt>Genre</dt><dd><a href={`/tags/${b.primaryGenre}`}>{genre}</a></dd></>}
+          {formats.length > 0 && <><dt>Formats</dt><dd>{formats.join(", ")}{perks.length > 0 && ` · ${perks.join(", ")}`}</dd></>}
+          {narrators.length > 0 && <><dt>Narrated by</dt><dd>{narrators.map((n, i) => <>{i > 0 && ", "}<a href={`/narrators/${n.slug}`}>{n.name}</a></>)}</dd></>}
+          {formatDuration(audio?.durationMinutes ?? null) && <><dt>Listening time</dt><dd>{formatDuration(audio?.durationMinutes ?? null)}</dd></>}
+          {b.pageCount && <><dt>Length</dt><dd>{b.pageCount} pages</dd></>}
+          {b.firstPublished && <><dt>First published</dt><dd>{formatDate(b.firstPublished, b.firstPublishedPrecision ?? "year")}</dd></>}
+          {crunchLabel(b.crunchLevel) && <><dt>System crunch</dt><dd>{crunchLabel(b.crunchLevel)}</dd></>}
+          {romanceLabel(b.romanceLevel) && <><dt>Romance</dt><dd>{romanceLabel(b.romanceLevel)}</dd></>}
+          <dt>Harem</dt><dd>{HAREM_LABEL[b.harem] ?? b.harem}</dd>
+          {(b.aiUse === "ai_generated" || b.aiUse === "ai_assisted") && <><dt>AI use</dt><dd>{b.aiUse === "ai_generated" ? "AI-generated text" : "AI-assisted"}</dd></>}
+        </dl>
+        {
+          b.contentFlags.length > 0 && (
+            <details>
+              <summary>Content notes</summary>
+              <ul>{b.contentFlags.map((f) => <li>{CONTENT_FLAG_LABEL[f] ?? f}</li>)}</ul>
+            </details>
+          )
+        }
+      </section>
+
+      {
+        upcoming.length > 0 && (
+          <section>
+            <h2>Coming up</h2>
+            <ul>
+              {upcoming.map((r) => (
+                <li>
+                  {RELEASE_LABEL[r.kind] ?? r.kind}: {formatDate(r.date, r.precision)}
+                  {r.status === "slipped" && r.previousDate && <span class="badge warn">Delayed from {formatDate(r.previousDate, "day")}</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      {
+        b.tags.length > 0 && (
+          <section>
+            <h2>Tags</h2>
+            <div class="tag-groups">
+              {b.tags.map((g) => (
+                <div>
+                  <h3>{g.facetName}</h3>
+                  <ul class="tag-list">
+                    {g.tags.map((t) => <li><a href={`/tags/${t.slug}`}>{t.name}</a></li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+        )
+      }
+    </div>
+
+    <div>
+      <StatusScreen title={b.title} stats={b.stats} dials={b.dials}>
+        <Appraise client:idle slug={b.slug} shown={shown} />
+      </StatusScreen>
+      <p><a class="button" href={`/books-like/${b.slug}`}>Books like this</a> <a class="button secondary" href="/match">Find my match</a></p>
+    </div>
+  </div>
+
+  {
+    similar.length > 0 && (
+      <section>
+        <h2>Readers who like this may like</h2>
+        <ul class="book-list">{similar.map((s) => <BookRow book={s} />)}</ul>
+      </section>
+    )
+  }
+
+  <p class="muted">
+    Last updated {formatDate(b.updatedAt, "day")}.
+    {b.confirmedBy.length > 0 && ` Confirmed by ${b.confirmedBy.map((c) => SOURCE_LABEL[c] ?? c).join(" and ")}.`}
+    {confirmedNotes.map((r) => ` ${RELEASE_LABEL[r.kind] ?? "Release"} date confirmed by the author on ${formatDate(r.confirmedAt, "day")}.`)}
+  </p>
+</Base>

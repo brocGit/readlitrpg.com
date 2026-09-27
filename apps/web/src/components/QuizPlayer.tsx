@@ -41,7 +41,10 @@ function Books({ books }: { books: ResultCard[] }) {
     <ol class="quiz-books">
       {books.map((b) => (
         <li key={b.slug}>
-          <strong>{b.title}</strong> <span class="muted">{b.authors.join(", ")}</span>
+          <a href={`/books/${b.slug}`}>
+            <strong>{b.title}</strong>
+          </a>{" "}
+          <span class="muted">{b.authors.join(", ")}</span>
           {b.hook && <div>{b.hook}</div>}
         </li>
       ))}

@@ -1,0 +1,356 @@
+/* Book, series, author, narrator, tag and release pages (DESIGN §9.4–9.5). Classes only: the CSP
+   forbids inline styles. */
+
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.breadcrumbs li + li::before {
+  content: "›";
+  margin-right: var(--space-2);
+}
+
+.lead {
+  font-size: 1.1rem;
+  max-width: var(--measure);
+}
+
+/* Covers and the placeholder card */
+.cover {
+  border-radius: var(--radius-small);
+  background: var(--color-line);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.cover.large {
+  inline-size: 220px;
+  block-size: auto;
+}
+
+.cover.small {
+  inline-size: 120px;
+  block-size: auto;
+}
+
+.cover.tiny {
+  inline-size: 72px;
+  block-size: auto;
+}
+
+.cover.placeholder {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 2 / 3;
+  padding: var(--space-2);
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+  font-family: var(--font-system);
+  overflow: hidden;
+}
+
+.cover.placeholder .ph-title {
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.cover.placeholder .ph-author {
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+.cover.placeholder.large .ph-title {
+  font-size: 1.3rem;
+}
+
+.cover.placeholder.large .ph-author {
+  font-size: 0.95rem;
+}
+
+.cover.placeholder.tiny {
+  padding: var(--space-1);
+}
+
+.cover.placeholder.tiny .ph-title {
+  font-size: 0.55rem;
+}
+
+.cover.placeholder.tiny .ph-author {
+  display: none;
+}
+
+/* Book page */
+.book-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-6);
+  align-items: start;
+  margin-block: var(--space-6);
+}
+
+@media (max-width: 40rem) {
+  .book-head {
+    grid-template-columns: 1fr;
+  }
+}
+
+.book-head h1 {
+  margin: 0 0 var(--space-2);
+}
+
+.subtitle {
+  font-size: 1.15rem;
+  color: var(--color-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.byline {
+  margin: 0 0 var(--space-3);
+}
+
+.series-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: 0.95rem;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.facts dt {
+  color: var(--color-muted);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.ai-label {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.stores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+@media (max-width: 52rem) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.book-status {
+  margin-bottom: var(--space-6);
+}
+
+.dials {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dials dd {
+  margin: var(--space-1) 0 0;
+}
+
+.dials meter {
+  inline-size: 100%;
+}
+
+.dials .ends {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.dials .ends span:last-child {
+  text-align: right;
+}
+
+.tag-groups {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.tag-groups h3 {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  margin: var(--space-2) 0 0;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.tag-list a {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border: 1.5px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.tag-list .count {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+/* Lists of books */
+.book-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.book-row {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.book-row h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.book-row .meta {
+  margin: var(--space-1) 0;
+  font-size: 0.9rem;
+}
+
+.book-row .hook {
+  margin: 0;
+  font-style: italic;
+}
+
+ol.book-list.numbered {
+  counter-reset: none;
+}
+
+/* Releases */
+.release-list h3 {
+  margin: var(--space-6) 0 var(--space-2);
+  font-size: 1rem;
+  color: var(--color-muted);
+}
+
+.release-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.release-date {
+  display: inline-block;
+  min-inline-size: 7.5rem;
+  font-family: var(--font-system);
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-small);
+  background: var(--color-line);
+  font-size: 0.8rem;
+}
+
+.badge.warn {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-danger);
+  color: var(--color-danger);
+}
+
+.feeds {
+  font-size: 0.9rem;
+}
+
+/* Tag index */
+.facet-group h2 {
+  margin-top: var(--space-8);
+}
+
+/* Home */
+.home-hero {
+  margin-block: var(--space-8) var(--space-6);
+}
+
+.home-hero h1 {
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  margin: 0 0 var(--space-3);
+}
+
+.strip {
+  margin-top: var(--space-12);
+}
+
+.strip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.cards li {
+  border: 1.5px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  padding: var(--space-4);
+}
+
+.cards h3 {
+  margin: 0 0 var(--space-1);
+  font-size: 1.05rem;
+}
+
+.search-form {
+  display: flex;
+  gap: var(--space-2);
+  margin-block: var(--space-4);
+}

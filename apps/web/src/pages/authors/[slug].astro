@@ -1,0 +1,63 @@
+---
+// An author (DESIGN §9.5): their books by series, standalones and upcoming releases. The bio and
+// links show only once the author has verified the profile.
+import { authorPage, breadcrumbJsonLd, personJsonLd } from "@rlr/core/site";
+import BookRow from "../../components/site/BookRow.astro";
+import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
+import ReleaseList from "../../components/site/ReleaseList.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import { movedTo, notFound, origin } from "../../lib/site";
+import "../../styles/discover.css";
+import "../../styles/site.css";
+
+const found = await authorPage(getDb(), Astro.params.slug ?? "");
+if (found.kind === "redirect") return movedTo(`/authors/${found.slug}`);
+if (found.kind === "missing") return notFound();
+const a = found.data;
+const count = a.series.reduce((n, s) => n + s.books.length, 0) + a.standalone.length;
+const lead = `${a.name} has ${count} ${count === 1 ? "book" : "books"} on ReadLitRPG${a.series.length ? `, in ${a.series.length} ${a.series.length === 1 ? "series" : "series"}` : ""}.`;
+const crumbs = [
+  { name: "Home", path: "/" },
+  { name: a.name, path: `/authors/${a.slug}` },
+];
+Astro.cache.set({ tags: [`author:${a.slug}`] });
+---
+
+<Base
+  title={`${a.name}: books in order`}
+  description={lead}
+  canonical={`/authors/${a.slug}`}
+  jsonLd={[personJsonLd(a, origin(), "authors"), breadcrumbJsonLd(crumbs, origin())]}
+>
+  <Breadcrumbs crumbs={crumbs} />
+  <h1>{a.name}</h1>
+  <p class="lead">{lead}</p>
+  {a.bio && <p class="prose">{a.bio}</p>}
+  {a.links.length > 0 && <ul class="stores">{a.links.map((l) => <li><a href={l} rel="noopener">{new URL(l).hostname.replace(/^www\./, "")}</a></li>)}</ul>}
+
+  {
+    a.series.map((s) => (
+      <section>
+        <h2><a href={`/series/${s.slug}`}>{s.name}</a></h2>
+        <ol class="book-list">{s.books.map((b) => <BookRow book={b} showSeries={false} />)}</ol>
+      </section>
+    ))
+  }
+  {
+    a.standalone.length > 0 && (
+      <section>
+        <h2>{a.series.length ? "Other books" : "Books"}</h2>
+        <ul class="book-list">{a.standalone.map((b) => <BookRow book={b} />)}</ul>
+      </section>
+    )
+  }
+  {
+    a.upcoming.length > 0 && (
+      <section>
+        <h2>Coming up</h2>
+        <ReleaseList releases={a.upcoming} />
+      </section>
+    )
+  }
+</Base>

@@ -1,0 +1,38 @@
+---
+// A cover from the media domain, or a generated placeholder card when we have no licensed cover
+// (DESIGN §16.5). Covers below the fold load lazily.
+import type { Cover } from "@rlr/core/site";
+import { coverImage } from "../../lib/site";
+
+interface Props {
+  cover: Cover | null;
+  title: string;
+  author?: string | undefined;
+  width?: number;
+  eager?: boolean;
+}
+const { cover, title, author, width = 120, eager = false } = Astro.props;
+const img = cover ? coverImage(cover, width) : null;
+const size = width >= 200 ? "large" : width <= 80 ? "tiny" : "small";
+---
+
+{
+  img ? (
+    <img
+      class={`cover ${size}`}
+      src={img.src}
+      srcset={img.srcset}
+      sizes={img.sizes}
+      width={img.width}
+      height={img.height}
+      alt={`Cover of ${title}`}
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
+    />
+  ) : (
+    <div class={`cover placeholder ${size}`} role="img" aria-label={`No cover yet for ${title}`}>
+      <span class="ph-title">{title}</span>
+      {author && <span class="ph-author">{author}</span>}
+    </div>
+  )
+}

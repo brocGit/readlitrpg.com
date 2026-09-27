@@ -1,40 +1,116 @@
 ---
+// Home, match-first (DESIGN §9.1, M4): the "books you loved" form up top, then quizzes, what's new,
+// lists and tags. The same HTML for every visitor, cached at the edge for five minutes.
+import { LIVING_LISTS } from "@rlr/core/match";
+import { liveQuizzes } from "@rlr/core/quiz";
+import { books } from "@rlr/core/schema";
+import { newAndUpcoming, tagIndex } from "@rlr/core/site";
+import { and, count, eq, isNull } from "drizzle-orm";
+import BooksYouLoved from "../components/BooksYouLoved";
+import ReleaseList from "../components/site/ReleaseList.astro";
 import Base from "../layouts/Base.astro";
+import { getDb } from "../lib/runtime";
+import { pageOptions } from "../lib/site";
+import "../styles/discover.css";
+import "../styles/site.css";
 
-// The same HTML for every visitor: cached at the edge (routeRules) and purged by tag on change.
+const db = getDb();
+const settings = await Astro.locals.settings();
+const [[catalog], quizzes, releases, tagsAll] = await Promise.all([
+  db
+    .select({ n: count() })
+    .from(books)
+    .where(and(eq(books.visibility, "published"), isNull(books.redirectTo))),
+  liveQuizzes(db),
+  newAndUpcoming(db, { pastDays: 0, aheadDays: 120, limit: 6 }),
+  tagIndex(db, pageOptions(settings)),
+]);
+const size = catalog?.n ?? 0;
+const popular = tagsAll
+  .filter((t) => t.books > 0 && t.facet !== "tone")
+  .sort((a, b) => b.books - a.books)
+  .slice(0, 18);
 Astro.cache.set({ tags: ["home"] });
 ---
 
-<Base title="ReadLitRPG">
-  <section class="hero prose">
-    <h1>Tell it three books you loved. It finds your next read.</h1>
-    <p class="lede">
-      A free discovery engine for LitRPG, progression fantasy, GameLit and cultivation. Match on what
-      actually matters in this genre: how crunchy the system is, how fast the power climbs, and whether the MC
-      is competent.
+<Base title="ReadLitRPG" description="Tell it the books you loved. It finds your next LitRPG, progression fantasy or cultivation read." canonical="/">
+  <section class="home-hero">
+    <h1>Tell it the books you loved. It finds your next read.</h1>
+    <p class="lead muted">
+      A free discovery engine for LitRPG, progression fantasy, GameLit and cultivation. It matches on what matters in
+      this genre: how crunchy the system is, how fast the power climbs, how dark it gets, and whether the MC is competent.
     </p>
   </section>
+  <BooksYouLoved client:load />
+  <p>Prefer questions? <a href="/match/quiz">Take the Match Quiz</a> (about two minutes). Or <a href="/find">filter the catalog</a>.</p>
 
-  <section class="status-screen" aria-labelledby="status-title">
-    <p class="label" id="status-title">[System notice]</p>
-    <p>Construction in progress. The guild hall opens when the catalog reaches 2,000 verified books.</p>
-    <p class="muted">Progress is saved. Please do not feed the dungeon.</p>
+  <p class="status-screen">
+    <span class="label">[Early access]</span>{" "}
+    {size.toLocaleString("en-US")} books catalogued so far. More are verified every day; the guild hall opens properly at 2,000.
+  </p>
+
+  {
+    quizzes.length > 0 && (
+      <section class="strip">
+        <div class="strip-head">
+          <h2>Quizzes</h2>
+          <a href="/quiz">All quizzes</a>
+        </div>
+        <ul class="cards">
+          {quizzes.slice(0, 3).map((q) => (
+            <li>
+              <h3><a href={`/quiz/${q.slug}`}>{q.title}</a></h3>
+              <p class="muted">{q.dek}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    releases.upcoming.length > 0 && (
+      <section class="strip">
+        <div class="strip-head">
+          <h2>Coming up</h2>
+          <a href="/new">New &amp; upcoming</a>
+        </div>
+        <ReleaseList releases={releases.upcoming} />
+      </section>
+    )
+  }
+
+  <section class="strip">
+    <div class="strip-head">
+      <h2>Reading lists</h2>
+      <a href="/lists">All lists</a>
+    </div>
+    <ul class="cards">
+      {LIVING_LISTS.slice(0, 6).map((l) => (
+        <li>
+          <h3><a href={`/lists/${l.slug}`}>{l.title}</a></h3>
+        </li>
+      ))}
+    </ul>
   </section>
-</Base>
 
-<style>
-  .hero {
-    margin-bottom: var(--space-8);
+  {
+    popular.length > 0 && (
+      <section class="strip">
+        <div class="strip-head">
+          <h2>Popular tags</h2>
+          <a href="/tags">All tags</a>
+        </div>
+        <ul class="tag-list">
+          {popular.map((t) => (
+            <li>
+              <a href={`/tags/${t.slug}`}>
+                {t.name} <span class="count">{t.books}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
   }
-  .hero h1 {
-    font-size: clamp(1.9rem, 4vw, 2.8rem);
-    margin: 0 0 var(--space-4);
-  }
-  .lede {
-    font-size: 1.15rem;
-    color: var(--color-muted);
-  }
-  .status-screen {
-    max-width: var(--measure);
-  }
-</style>
+</Base>

@@ -1,0 +1,46 @@
+---
+// A narrator (DESIGN §9.5): every audiobook here they read, and what's coming. Following narrators
+// is a LitRPG habit, since so much of the audience listens.
+import { breadcrumbJsonLd, formatDuration, narratorPage, personJsonLd } from "@rlr/core/site";
+import BookRow from "../../components/site/BookRow.astro";
+import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
+import ReleaseList from "../../components/site/ReleaseList.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import { notFound, origin } from "../../lib/site";
+import "../../styles/discover.css";
+import "../../styles/site.css";
+
+const found = await narratorPage(getDb(), Astro.params.slug ?? "");
+if (found.kind !== "found") return notFound();
+const n = found.data;
+const count = n.books.length;
+const lead = `${n.name} narrated ${count} LitRPG and progression fantasy ${count === 1 ? "audiobook" : "audiobooks"} listed on ReadLitRPG.`;
+const crumbs = [
+  { name: "Home", path: "/" },
+  { name: n.name, path: `/narrators/${n.slug}` },
+];
+Astro.cache.set({ tags: [`narrator:${n.slug}`] });
+---
+
+<Base
+  title={`${n.name}: audiobooks narrated`}
+  description={lead}
+  canonical={`/narrators/${n.slug}`}
+  jsonLd={[personJsonLd(n, origin(), "narrators"), breadcrumbJsonLd(crumbs, origin())]}
+>
+  <Breadcrumbs crumbs={crumbs} />
+  <h1>{n.name}</h1>
+  <p class="lead">{lead}</p>
+  <ul class="book-list">
+    {n.books.map((b) => <BookRow book={b} note={formatDuration(b.durationMinutes) ? `Listening time: ${formatDuration(b.durationMinutes)}` : null} />)}
+  </ul>
+  {
+    n.upcoming.length > 0 && (
+      <section>
+        <h2>Coming up on audio</h2>
+        <ReleaseList releases={n.upcoming} />
+      </section>
+    )
+  }
+</Base>

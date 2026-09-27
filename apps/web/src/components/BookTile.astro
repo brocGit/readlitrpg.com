@@ -13,7 +13,7 @@ const shown = status.filter((s) => s.value !== null).slice(0, 3);
 ---
 
 <article class="book-tile">
-  <h3>{card.title}</h3>
+  <h3><a href={`/books/${card.slug}`}>{card.title}</a></h3>
   <p class="muted">
     {card.authors.map((a) => a.name).join(", ")}
     {card.series && ` · ${card.series.name}${card.series.position ? ` #${card.series.position}` : ""}`}

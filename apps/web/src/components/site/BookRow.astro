@@ -1,0 +1,29 @@
+---
+// One book in a list (series order, an author's books, a tag page).
+import { type BookListItem, bookNumber, formatDate } from "@rlr/core/site";
+import Cover from "./Cover.astro";
+
+interface Props {
+  book: BookListItem;
+  showSeries?: boolean;
+  note?: string | null | undefined;
+}
+const { book, showSeries = true, note } = Astro.props;
+const number = bookNumber(book.position);
+---
+
+<li class="book-row">
+  <Cover cover={book.cover} title={book.title} width={72} />
+  <div>
+    <h3><a href={`/books/${book.slug}`}>{book.title}</a></h3>
+    <p class="muted meta">
+      {showSeries && book.series && <a href={`/series/${book.series.slug}`}>{book.series.name}</a>}
+      {showSeries && book.series && number && ` · ${number}`}
+      {!showSeries && number}
+      {book.firstPublished && ` · ${formatDate(book.firstPublished, "year")}`}
+      {book.pageCount && ` · ${book.pageCount} pages`}
+    </p>
+    {book.hook && <p class="hook">{book.hook}</p>}
+    {note && <p>{note}</p>}
+  </div>
+</li>

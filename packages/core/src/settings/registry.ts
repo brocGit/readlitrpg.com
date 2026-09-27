@@ -176,6 +176,11 @@ export const SETTINGS = {
   "email.circuit.complaint_rate": def(share, 0.0008, "Complaint rate that pauses sending"),
   "email.circuit.bounce_rate": def(share, 0.04, "Bounce rate that pauses sending"),
   "email.direct_affiliate_links": def(z.boolean(), false, "Put affiliate links directly in emails"),
+  "affiliate.amazon_tag_web": def(
+    z.string().regex(/^([a-z0-9-]{1,40}-2\d)?$/),
+    "",
+    "Amazon Associates tracking ID for store links on the site (empty = plain links, no disclosure)",
+  ),
 
   // Blog (§14)
   "blog.auto_publish_roundups": def(z.boolean(), false, "Publish roundups without review"),

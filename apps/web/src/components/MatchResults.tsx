@@ -67,7 +67,9 @@ function Card({
     <article class="match-card">
       {label && <p class="label">{label}</p>}
       <header>
-        <h3>{card.title}</h3>
+        <h3>
+          <a href={`/books/${card.slug}`}>{card.title}</a>
+        </h3>
         <p class="match-percent">
           {card.isMatch ? `${card.percent}%` : "Close"}
           <span class="visually-hidden"> match</span>

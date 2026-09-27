@@ -13,6 +13,7 @@
     "./editorial": "./src/editorial/index.ts",
     "./inbox": "./src/inbox/index.ts",
     "./match": "./src/match/index.ts",
+    "./media": "./src/media/index.ts",
     "./net": "./src/net/safe-fetch.ts",
     "./policy": "./src/policy/index.ts",
     "./quiz": "./src/quiz/index.ts",
@@ -21,6 +22,7 @@
     "./schema": "./src/db/schema/index.ts",
     "./security": "./src/security/index.ts",
     "./settings": "./src/settings/index.ts",
+    "./site": "./src/site/index.ts",
     "./taxonomy": "./src/taxonomy/index.ts",
     "./testing": "./src/testing/index.ts"
   },

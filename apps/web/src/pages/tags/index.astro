@@ -1,0 +1,46 @@
+---
+// Every tag, grouped by facet, with how many books carry it (DESIGN §9.5). The tag pages are the
+// site's evergreen landing pages.
+import { breadcrumbJsonLd, tagIndex } from "@rlr/core/site";
+import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import { origin, pageOptions } from "../../lib/site";
+import "../../styles/site.css";
+
+const all = await tagIndex(getDb(), pageOptions(await Astro.locals.settings()));
+const facets = new Map<string, typeof all>();
+for (const t of all) facets.set(t.facetName, [...(facets.get(t.facetName) ?? []), t]);
+const crumbs = [
+  { name: "Home", path: "/" },
+  { name: "Tags", path: "/tags" },
+];
+Astro.cache.set({ tags: ["tags"] });
+---
+
+<Base
+  title="LitRPG and progression fantasy tags"
+  description="Browse LitRPG, progression fantasy and cultivation books by premise, class, progression, tone and more."
+  canonical="/tags"
+  jsonLd={[breadcrumbJsonLd(crumbs, origin())]}
+>
+  <Breadcrumbs crumbs={crumbs} />
+  <h1>Tags</h1>
+  <p class="lead">Every tag we use, from dungeon cores to crafting. Tags come from each book's content, and readers can correct them.</p>
+  {
+    [...facets.entries()].map(([facet, list]) => (
+      <section class="facet-group">
+        <h2>{facet}</h2>
+        <ul class="tag-list">
+          {list.map((t) => (
+            <li>
+              <a href={`/tags/${t.slug}`} title={t.description}>
+                {t.name} <span class="count">{t.books}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</Base>
