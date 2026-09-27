@@ -16,6 +16,25 @@ export const ROUTES = {
   "/api/auth/[...all]": PUBLIC,
   "/api/signin/magic-link": PUBLIC,
   "/api/me": PUBLIC,
+  // Discovery (M3). Match results are computed from inputs in the URL, never the session.
+  "/match": PUBLIC,
+  "/match/quiz": PUBLIC,
+  "/match/r": PUBLIC,
+  "/match/card.svg": PUBLIC,
+  "/find": PUBLIC,
+  "/books-like/[slug]": PUBLIC,
+  "/lists": PUBLIC,
+  "/lists/[slug]": PUBLIC,
+  "/quiz": PUBLIC,
+  "/quiz/[slug]": PUBLIC,
+  "/quiz/[slug]/r/[outcome]": PUBLIC,
+  "/quiz/[slug]/r/[outcome]/card.svg": PUBLIC,
+  "/api/match": PUBLIC,
+  "/api/match/classics": PUBLIC,
+  "/api/search": PUBLIC,
+  "/api/quiz/[slug]": PUBLIC,
+  // GET is public; POST checks for a signed-in reader itself (appraisals are account actions).
+  "/api/appraise/[slug]": PUBLIC,
 } satisfies RouteRegistry;
 
 /** Routes whose responses are personal and must never be cached anywhere. */

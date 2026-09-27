@@ -1,0 +1,41 @@
+---
+// A book in a server-rendered list (find, living lists, books like X). Same HTML for everyone.
+import type { BookCard } from "@rlr/core/match";
+import type { StatusRow } from "../lib/match";
+
+interface Props {
+  card: BookCard;
+  note?: string | null;
+  status?: StatusRow[];
+}
+const { card, note, status = [] } = Astro.props;
+const shown = status.filter((s) => s.value !== null).slice(0, 3);
+---
+
+<article class="book-tile">
+  <h3>{card.title}</h3>
+  <p class="muted">
+    {card.authors.map((a) => a.name).join(", ")}
+    {card.series && ` · ${card.series.name}${card.series.position ? ` #${card.series.position}` : ""}`}
+    {card.series?.status === "complete" && " · complete"}
+    {card.formats.includes("audiobook") && " · audio"}
+    {card.kindleUnlimited && " · KU"}
+  </p>
+  {card.hook && <p class="hook">{card.hook}</p>}
+  {note && <p>{note}</p>}
+  {
+    shown.length > 0 && (
+      <dl class="status-mini">
+        {shown.map((s) => (
+          <div>
+            <dt>{s.name}</dt>
+            <dd>
+              <meter min="0" max="10" value={s.value ?? 0} /> {s.value} <span class="muted">· {s.label}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+  <p><a href={`/books-like/${card.slug}`}>Books like this</a></p>
+</article>

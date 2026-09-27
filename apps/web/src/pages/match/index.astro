@@ -1,0 +1,20 @@
+---
+// The match engine's front door (DESIGN §9.1 Flow A). Static: everything personal happens in the island.
+import BooksYouLoved from "../../components/BooksYouLoved";
+import Base from "../../layouts/Base.astro";
+import "../../styles/discover.css";
+
+Astro.cache.set({ tags: ["match"] });
+---
+
+<Base title="Find your next LitRPG" description="Tell it the books you loved. It matches on crunch, pacing, power fantasy and more.">
+  <section class="prose">
+    <h1>Tell it the books you loved.</h1>
+    <p class="muted">
+      One to five books is enough. We match on what matters in this genre: how crunchy the system is, how fast the power
+      climbs, how dark it gets, and whether the MC is competent. No account needed.
+    </p>
+  </section>
+  <BooksYouLoved client:load />
+  <p>Prefer questions? <a href="/match/quiz">Take the Match Quiz</a> (about two minutes, every step skippable).</p>
+</Base>

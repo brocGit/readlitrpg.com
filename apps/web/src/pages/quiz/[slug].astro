@@ -1,0 +1,27 @@
+---
+// Playing a quiz (QUIZZES.md §3.2). The page is the same for everyone; the island asks the server
+// to score the answers. ?party= carries a friend's take id for Party up, ?src= where the link came from.
+import { getQuiz, isLive } from "@rlr/core/quiz";
+import QuizPlayer from "../../components/QuizPlayer";
+import Base from "../../layouts/Base.astro";
+import { playable } from "../../lib/quiz";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+
+const SOURCES = ["share", "search", "community", "author", "onsite", "newsletter"];
+
+const quiz = getQuiz(Astro.params.slug ?? "");
+if (!quiz || !(await isLive(getDb(), quiz.slug))) return new Response(null, { status: 404 });
+const partyParam = Astro.url.searchParams.get("party") ?? "";
+const party = /^[A-Za-z0-9_-]{8,40}$/.test(partyParam) ? partyParam : null;
+const srcParam = Astro.url.searchParams.get("src") ?? "";
+const source = SOURCES.includes(srcParam) ? srcParam : party ? "share" : null;
+Astro.cache.set({ tags: ["quizzes", `quiz:${quiz.slug}`] });
+---
+
+<Base title={quiz.title} description={quiz.dek} noIndex={party !== null}>
+  <h1>{quiz.title}</h1>
+  <p class="muted">{quiz.dek}{quiz.estimated_seconds ? ` About ${Math.max(1, Math.round(quiz.estimated_seconds / 60))} min.` : ""}</p>
+  {party && <p class="notice">[Party invite] A friend wants to compare results. Finish the quiz to see your party.</p>}
+  <QuizPlayer client:load quiz={playable(quiz)} party={party} source={source} />
+</Base>

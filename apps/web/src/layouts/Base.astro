@@ -7,13 +7,20 @@ interface Props {
   description?: string;
   /** Pages that carry one-time tokens in the URL must not leak them via Referer. */
   noReferrer?: boolean;
+  /** Personal or parameter pages (shared results, searches) stay out of search engines. */
+  noIndex?: boolean;
+  /** A share card path, for link previews. */
+  ogImage?: string;
 }
 
 const {
   title,
   description = "Tell it three books you loved. It finds your next LitRPG.",
   noReferrer = false,
+  noIndex = false,
+  ogImage,
 } = Astro.props;
+const canonicalOrigin = Astro.site?.origin ?? Astro.url.origin;
 const fullTitle = title === "ReadLitRPG" ? title : `${title} · ReadLitRPG`;
 ---
 
@@ -25,6 +32,11 @@ const fullTitle = title === "ReadLitRPG" ? title : `${title} · ReadLitRPG`;
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     {noReferrer && <meta name="referrer" content="no-referrer" />}
+    {noIndex && <meta name="robots" content="noindex, follow" />}
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    {ogImage && <meta property="og:image" content={new URL(ogImage, canonicalOrigin).toString()} />}
+    {ogImage && <meta name="twitter:card" content="summary_large_image" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
@@ -32,7 +44,11 @@ const fullTitle = title === "ReadLitRPG" ? title : `${title} · ReadLitRPG`;
     <header class="site-header">
       <div class="container bar">
         <a class="wordmark" href="/" aria-label="ReadLitRPG home"><span aria-hidden="true">[</span>ReadLitRPG<span aria-hidden="true">]</span></a>
-        <nav aria-label="Account">
+        <nav aria-label="Site">
+          <a href="/match">Match</a>
+          <a href="/find">Find</a>
+          <a href="/quiz">Quizzes</a>
+          <a href="/lists">Lists</a>
           <a href="/account">Account</a>
         </nav>
       </div>
@@ -66,6 +82,11 @@ const fullTitle = title === "ReadLitRPG" ? title : `${title} · ReadLitRPG`;
   }
   .wordmark span {
     color: var(--color-accent);
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
   }
   main {
     padding-block: var(--space-8) var(--space-12);

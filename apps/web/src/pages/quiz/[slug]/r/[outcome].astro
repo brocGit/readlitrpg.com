@@ -1,0 +1,50 @@
+---
+// A shareable quiz result (QUIZZES.md §3.2): the outcome, three books for it, and the way in.
+// It shows a result, never a person: the URL carries only the quiz and the outcome key.
+import { getOutcome, getQuiz, isLive } from "@rlr/core/quiz";
+import Base from "../../../../layouts/Base.astro";
+import { booksForOutcome, publicOutcome } from "../../../../lib/quiz";
+import { getDb } from "../../../../lib/runtime";
+import "../../../../styles/discover.css";
+
+const quiz = getQuiz(Astro.params.slug ?? "");
+const found = quiz ? getOutcome(quiz, Astro.params.outcome ?? "") : undefined;
+if (!quiz || !found || !(await isLive(getDb(), quiz.slug))) return new Response(null, { status: 404 });
+const outcome = publicOutcome(found);
+const books = quiz.kind === "fun" ? await booksForOutcome(found, await Astro.locals.settings()) : [];
+Astro.cache.set({ tags: ["quizzes", `quiz:${quiz.slug}`, "match"] });
+const card = `/quiz/${quiz.slug}/r/${outcome.key}/card.svg`;
+---
+
+<Base title={`${outcome.name}: ${quiz.title}`} description={outcome.shareText} ogImage={card}>
+  <p class="label">[{quiz.title}]</p>
+  <section class="status-screen">
+    <h1>{outcome.name}</h1>
+    <p><strong>{outcome.tagline}</strong></p>
+    <p>{outcome.description}</p>
+    {outcome.loves.length > 0 && <ul>{outcome.loves.map((l) => <li>{l}</li>)}</ul>}
+    {outcome.watchOut && <p class="muted">Watch out for: {outcome.watchOut}</p>}
+  </section>
+
+  {quiz.kind === "fun" && (
+    <section>
+      <h2>3 books for {outcome.name}</h2>
+      {books.length === 0 ? <p class="muted">Book picks appear once the catalog opens.</p> : (
+        <ol class="quiz-books">
+          {books.map((b) => (
+            <li>
+              <a href={`/books-like/${b.slug}`}><strong>{b.title}</strong></a> <span class="muted">{b.authors.join(", ")}</span>
+              {b.hook && <div>{b.hook}</div>}
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  )}
+
+  <div class="quiz-actions">
+    <a class="button" href={`/quiz/${quiz.slug}?src=share`}>Take the quiz</a>
+    {quiz.kind === "fun" && <a class="button secondary" href={`/match/quiz?quiz=${quiz.slug}&outcome=${outcome.key}`}>Get matches for this result</a>}
+    <a class="button secondary" href="/quiz">More quizzes</a>
+  </div>
+</Base>

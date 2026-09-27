@@ -1,0 +1,46 @@
+---
+// The quiz hub (DESIGN §9.3): the quizzes the owner has put live. Content lives in git; going live
+// is an audited decision in the console, so a quiz only shows here once someone has approved it.
+import { liveQuizzes } from "@rlr/core/quiz";
+import Base from "../../layouts/Base.astro";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+
+const quizzes = await liveQuizzes(getDb());
+const fun = quizzes.filter((q) => q.kind === "fun");
+const trivia = quizzes.filter((q) => q.kind === "trivia");
+Astro.cache.set({ tags: ["quizzes"] });
+---
+
+<Base title="Quizzes" description="LitRPG quizzes: find your class, test your lore, and get three books picked for your result.">
+  <h1>Quizzes</h1>
+  <p class="muted">No email gate. Every result comes with three books picked for it.</p>
+  {quizzes.length === 0 && <p class="status-screen">[Quest board empty] New quizzes are being prepared. Try the <a href="/match/quiz">Match Quiz</a> meanwhile.</p>}
+  {fun.length > 0 && (
+    <section>
+      <h2>Personality</h2>
+      <ul class="quiz-list">
+        {fun.map((q) => (
+          <li>
+            <a href={`/quiz/${q.slug}`}><strong>{q.title}</strong></a>
+            <div class="muted">{q.dek}</div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+  {trivia.length > 0 && (
+    <section>
+      <h2>Trivia</h2>
+      <ul class="quiz-list">
+        {trivia.map((q) => (
+          <li>
+            <a href={`/quiz/${q.slug}`}><strong>{q.title}</strong></a>
+            <div class="muted">{q.dek}</div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+  <p><a href="/match/quiz">The Match Quiz</a> is the one that tunes your recommendations.</p>
+</Base>

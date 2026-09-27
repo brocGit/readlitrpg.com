@@ -163,8 +163,14 @@ export const matchInputsSchema = z
     tune: z.record(z.string().max(30), level).optional(),
     /** Heads-ups the reader dismissed ("Doesn't bother me"). */
     relax: z.array(z.string().max(60)).max(20).optional(),
-    /** A fun quiz taken on the way in. */
-    quiz: z.object({ slug: z.string().max(80), answers: z.array(z.string().max(8)).max(30) }).optional(),
+    /** A fun quiz taken on the way in: its answers, or just its result (from a share). */
+    quiz: z
+      .object({
+        slug: z.string().max(80),
+        answers: z.array(z.string().max(8)).max(30).optional(),
+        outcome: z.string().max(60).optional(),
+      })
+      .optional(),
   })
   .strict();
 export type MatchInputs = z.infer<typeof matchInputsSchema>;

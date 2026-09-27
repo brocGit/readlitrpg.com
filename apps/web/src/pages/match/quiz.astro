@@ -1,0 +1,20 @@
+---
+// The Match Quiz (DESIGN §9.1 Flow B). A result from a fun quiz can pre-fill it ("Sharpen my matches").
+import type { MatchInputs } from "@rlr/core/match";
+import { getQuiz } from "@rlr/core/quiz";
+import MatchQuiz from "../../components/MatchQuiz";
+import Base from "../../layouts/Base.astro";
+import "../../styles/discover.css";
+
+const slug = Astro.url.searchParams.get("quiz") ?? "";
+const outcome = Astro.url.searchParams.get("outcome") ?? "";
+const quiz = getQuiz(slug);
+const initial: MatchInputs = quiz?.outcomes.some((o) => o.key === outcome) ? { quiz: { slug, outcome } } : {};
+Astro.cache.set({ tags: ["match"] });
+---
+
+<Base title="Match Quiz" description="Nine quick steps to your next LitRPG. Every step can be skipped.">
+  <h1>Match Quiz</h1>
+  <p class="muted">Nine quick steps. Skip anything. The preview updates as you go, so stop when the list looks right.</p>
+  <MatchQuiz client:load initial={initial} />
+</Base>

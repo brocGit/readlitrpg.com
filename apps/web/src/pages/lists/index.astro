@@ -1,0 +1,15 @@
+---
+import { LIVING_LISTS } from "@rlr/core/match";
+import Base from "../../layouts/Base.astro";
+import "../../styles/discover.css";
+
+Astro.cache.set({ tags: ["lists"] });
+---
+
+<Base title="Reading lists" description="LitRPG and progression fantasy lists that update themselves as the catalog grows.">
+  <h1>Reading lists</h1>
+  <p class="muted">Each list is a saved search: it updates itself as books are added and readers appraise them.</p>
+  <ul>
+    {LIVING_LISTS.map((l) => <li><a href={`/lists/${l.slug}`}>{l.title}</a></li>)}
+  </ul>
+</Base>

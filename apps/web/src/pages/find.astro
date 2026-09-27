@@ -1,0 +1,139 @@
+---
+// Discovery search (DESIGN §9.2): include/exclude tags, dial ranges, formats, series status and
+// hard no's, sorted by any dial or public stat. A plain GET form: works without JavaScript, and
+// every search is a shareable URL (noindex).
+import { bookCards, FIND_PAGE_SIZE, findBooks, findParams, parseFindParams } from "@rlr/core/match";
+import { DIALS, STATS, TAGS } from "@rlr/core/taxonomy";
+import BookTile from "../components/BookTile.astro";
+import Base from "../layouts/Base.astro";
+import { getMatrix, matchOptions, statusScreen } from "../lib/match";
+import { getDb } from "../lib/runtime";
+import "../styles/discover.css";
+
+const q = parseFindParams(Astro.url.searchParams);
+const m = await getMatrix();
+const settings = await Astro.locals.settings();
+const { total, hits } = m ? findBooks(m, q, null, matchOptions(settings)) : { total: 0, hits: [] };
+const cards = m
+  ? await bookCards(
+      getDb(),
+      hits.map((h) => m.ids[h.i] ?? ""),
+    )
+  : new Map();
+const tagOptions = TAGS.filter((t) => (t.status ?? "active") === "active").sort((a, b) =>
+  a.name.localeCompare(b.name),
+);
+const sortOptions = [
+  ["quality", "Most complete data"],
+  ["newest", "Newest"],
+  ...DIALS.flatMap((d) => [
+    [`dial:${d.key}:desc`, `Most: ${d.name}`],
+    [`dial:${d.key}:asc`, `Least: ${d.name}`],
+  ]),
+  ...STATS.map((s) => [`stat:${s.key}`, `Highest ${s.name}`]),
+];
+const pages = Math.ceil(total / FIND_PAGE_SIZE);
+const pageUrl = (page: number) => `/find?${findParams({ ...q, page }).toString()}`;
+Astro.cache.set({ tags: ["find"] });
+---
+
+<Base title="Find LitRPG books" description="Search LitRPG and progression fantasy by subgenre, pacing, crunch and more." noIndex>
+  <h1>Find</h1>
+  <form class="find-form" method="get" action="/find">
+    <label>
+      Must have
+      <select name="inc">
+        <option value="">Any tag</option>
+        {tagOptions.map((t) => <option value={t.slug} selected={q.include[0] === t.slug}>{t.name}</option>)}
+      </select>
+    </label>
+    <label>
+      Must not have
+      <select name="exc">
+        <option value="">Nothing excluded</option>
+        {tagOptions.map((t) => <option value={t.slug} selected={q.exclude[0] === t.slug}>{t.name}</option>)}
+      </select>
+    </label>
+    <label>
+      Crunch
+      <select name="d.crunch">
+        <option value="">Any</option>
+        {[["0-2", "Little or no system"], ["3-6", "Some stats"], ["7-10", "Heavy stats"]].map(([v, l]) => (
+          <option value={v} selected={q.dials.crunch?.join("-") === v}>{l}</option>
+        ))}
+      </select>
+    </label>
+    <label>
+      Pacing
+      <select name="d.pacing">
+        <option value="">Any</option>
+        {[["0-3", "Slow burn"], ["4-7", "Balanced"], ["8-10", "Relentless"]].map(([v, l]) => (
+          <option value={v} selected={q.dials.pacing?.join("-") === v}>{l}</option>
+        ))}
+      </select>
+    </label>
+    <label>
+      Format
+      <select name="fmt">
+        <option value="">Any</option>
+        {[["audiobook", "Audiobook"], ["ku", "Kindle Unlimited"], ["print", "Print"]].map(([v, l]) => (
+          <option value={v} selected={q.formats[0] === v}>{l}</option>
+        ))}
+      </select>
+    </label>
+    <label>
+      Series
+      <select name="status">
+        {[["any", "Any"], ["complete", "Complete"], ["ongoing", "Ongoing"]].map(([v, l]) => (
+          <option value={v} selected={q.status === v}>{l}</option>
+        ))}
+      </select>
+    </label>
+    <label>
+      Hard no
+      <select name="no">
+        <option value="">None</option>
+        {[["harem", "Harem"], ["heavy_romance", "Heavy romance"], ["explicit", "Explicit content"], ["grimdark", "Grimdark"]].map(([v, l]) => (
+          <option value={v} selected={q.noes[0] === v}>{l}</option>
+        ))}
+      </select>
+    </label>
+    <label>
+      Sort
+      <select name="sort">
+        {sortOptions.map(([v, l]) => <option value={v} selected={q.sort === v}>{l}</option>)}
+      </select>
+    </label>
+    <button class="button" type="submit">Search</button>
+  </form>
+
+  {
+    !m ? (
+      <div class="status-screen">
+        <p class="label">[Archive loading]</p>
+        <p>The catalog is still being stocked.</p>
+      </div>
+    ) : total === 0 ? (
+      <div class="status-screen">
+        <p class="label">[No results]</p>
+        <p>Nothing matches every filter. Try removing one.</p>
+      </div>
+    ) : (
+      <>
+        <p class="muted">{total} book{total === 1 ? "" : "s"}</p>
+        <div class="grid">
+          {hits.map((h) => {
+            const card = cards.get(m.ids[h.i] ?? "");
+            return card ? <BookTile card={card} status={statusScreen(m, h.i)} /> : null;
+          })}
+        </div>
+        {pages > 1 && (
+          <nav class="pager" aria-label="Pages">
+            {q.page > 1 && <a href={pageUrl(q.page - 1)}>Previous</a>} Page {q.page} of {pages}{" "}
+            {q.page < pages && <a href={pageUrl(q.page + 1)}>Next</a>}
+          </nav>
+        )}
+      </>
+    )
+  }
+</Base>

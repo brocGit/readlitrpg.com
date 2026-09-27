@@ -1,0 +1,72 @@
+---
+// "Books like X" (DESIGN §9.2): the closest matches to one book, with the dials and tags they
+// share. Computed from the model per request and cached with the page. Indexed only when the source
+// book has enough data to make the list meaningful.
+import { bookCards, dialPhrase, indexOfBook, similarTo, tagName } from "@rlr/core/match";
+import Appraise from "../../components/Appraise";
+import BookTile from "../../components/BookTile.astro";
+import Base from "../../layouts/Base.astro";
+import { getMatrix, statusScreen } from "../../lib/match";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+
+const slug = Astro.params.slug ?? "";
+const m = await getMatrix();
+const i = m ? indexOfBook(m).get(slug) : undefined;
+if (!m || i === undefined) return new Response(null, { status: 404 });
+const similar = similarTo(m, i, 12);
+const cards = await bookCards(getDb(), [m.ids[i] ?? "", ...similar.map((s) => m.ids[s.i] ?? "")]);
+const source = cards.get(m.ids[i] ?? "");
+if (!source) return new Response(null, { status: 404 });
+const indexable = (m.quality[i] ?? 0) >= 60 && similar.length >= 6;
+const reason = (s: (typeof similar)[number]) => {
+  const parts = [
+    ...s.dials.slice(0, 2).map((d) => {
+      const x = m.dialVal[s.i * m.dials.length + m.dials.indexOf(d)] ?? 50;
+      return dialPhrase(d, x <= 30 ? "low" : x >= 70 ? "high" : "mid");
+    }),
+    ...s.tags.slice(0, 2).map((t) => tagName(t).toLowerCase()),
+  ];
+  return parts.length ? `Shares ${parts.join(", ")}.` : null;
+};
+const status = statusScreen(m, i);
+const shown = Object.fromEntries(
+  m.dials.map((d, k) => [
+    d,
+    m.dialVal[i * m.dials.length + k] === 255 ? null : (m.dialVal[i * m.dials.length + k] ?? 0) / 10,
+  ]),
+);
+Astro.cache.set({ tags: [`book:${m.ids[i]}`, "books-like"] });
+---
+
+<Base
+  title={`Books like ${source.title}`}
+  description={`LitRPG and progression fantasy like ${source.title}, matched on how it feels to read.`}
+  noIndex={!indexable}
+>
+  <h1>Books like {source.title}</h1>
+  <p class="muted">{source.authors.map((a) => a.name).join(", ")}{source.series && ` · ${source.series.name}`}</p>
+  {source.summary && <p class="prose">{source.summary}</p>}
+  <section class="status-screen">
+    <p class="label">[Status: {source.title}]</p>
+    <dl class="status-mini">
+      {status.map((s) => (
+        <div>
+          <dt>{s.name}</dt>
+          <dd>{s.value === null ? <span class="unknown">???</span> : <><meter min="0" max="10" value={s.value} /> {s.value} <span class="muted">· {s.label}</span></>}</dd>
+        </div>
+      ))}
+    </dl>
+    <Appraise client:idle slug={slug} shown={shown} />
+  </section>
+  <h2>The closest matches</h2>
+  {similar.length === 0 ? <p class="muted">Not enough data on this book yet.</p> : (
+    <div class="grid">
+      {similar.map((s) => {
+        const card = cards.get(m.ids[s.i] ?? "");
+        return card ? <BookTile card={card} note={reason(s)} status={statusScreen(m, s.i)} /> : null;
+      })}
+    </div>
+  )}
+  <p><a href={`/match`}>Get matches for your own taste</a></p>
+</Base>

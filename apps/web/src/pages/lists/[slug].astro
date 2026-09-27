@@ -1,0 +1,38 @@
+---
+// A living list (DESIGN §9.2): a saved search plus a short intro, always computed from the data.
+import { bookCards, findBooks, findQuerySchema, getList } from "@rlr/core/match";
+import BookTile from "../../components/BookTile.astro";
+import Base from "../../layouts/Base.astro";
+import { getMatrix, matchOptions, statusScreen } from "../../lib/match";
+import { getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+
+const list = getList(Astro.params.slug ?? "");
+if (!list) return new Response(null, { status: 404 });
+const m = await getMatrix();
+const q = findQuerySchema.parse(list.query);
+const { total, hits } = m
+  ? findBooks(m, q, null, matchOptions(await Astro.locals.settings()))
+  : { total: 0, hits: [] };
+const cards = m
+  ? await bookCards(
+      getDb(),
+      hits.map((h) => m.ids[h.i] ?? ""),
+    )
+  : new Map();
+Astro.cache.set({ tags: ["lists", `list:${list.slug}`] });
+---
+
+<Base title={list.title} description={list.intro}>
+  <h1>{list.title}</h1>
+  <p class="prose">{list.intro}</p>
+  {total === 0 || !m ? <p class="muted">No books on this list yet: it fills in as the catalog grows.</p> : (
+    <div class="grid">
+      {hits.map((h) => {
+        const card = cards.get(m.ids[h.i] ?? "");
+        return card ? <BookTile card={card} status={statusScreen(m, h.i)} /> : null;
+      })}
+    </div>
+  )}
+  <p><a href="/lists">All lists</a> · <a href={`/find?${new URLSearchParams(Object.entries({ inc: q.include.join(","), no: q.noes.join(",") }).filter(([, v]) => v)).toString()}`}>Refine this search</a></p>
+</Base>

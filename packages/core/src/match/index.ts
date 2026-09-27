@@ -1,5 +1,6 @@
 export * from "./build";
 export * from "./classes";
+export * from "./classics";
 export * from "./eval";
 export * from "./find";
 export * from "./lists";
