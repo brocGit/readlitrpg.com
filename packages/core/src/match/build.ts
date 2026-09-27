@@ -280,19 +280,29 @@ export interface ModelPointer {
   n: number;
   bytes: number;
   previous: string[];
+  /** Set by a rollback: scheduled builds leave the model alone until someone rebuilds by hand. */
+  pinned?: boolean;
 }
 
 export async function readPointer(kv: KVNamespace): Promise<ModelPointer | null> {
   return kv.get<ModelPointer>(MODEL_POINTER_KEY, { type: "json", cacheTtl: 60 });
 }
 
-/** Store a built matrix and point at it. Returns false when that version was already current. */
+/**
+ * Store a built matrix and point at it. Returns false when that version was already current, or
+ * when a rollback pinned the model and this isn't a forced (hand-started) build.
+ */
 export async function storeMatrix(
   kv: KVNamespace,
   m: FeatureMatrix,
+  opts: { force?: boolean } = {},
 ): Promise<{ stored: boolean; pointer: ModelPointer }> {
   const current = await kv.get<ModelPointer>(MODEL_POINTER_KEY, "json");
-  if (current?.version === m.version) return { stored: false, pointer: current };
+  if (current?.pinned && !opts.force) return { stored: false, pointer: current };
+  if (current?.version === m.version) {
+    if (current.pinned) await kv.put(MODEL_POINTER_KEY, JSON.stringify({ ...current, pinned: false }));
+    return { stored: false, pointer: { ...current, pinned: false } };
+  }
   const blob = encodeMatrix(m);
   await kv.put(modelKey(m.version), blob);
   const previous = current ? [current.version, ...current.previous].slice(0, KEEP_VERSIONS - 1) : [];
@@ -310,7 +320,10 @@ export async function storeMatrix(
   return { stored: true, pointer };
 }
 
-/** Roll back to the previous version (the console's undo for a bad build). */
+/**
+ * Roll back to the previous version (the console's undo for a bad build). The bad version is
+ * dropped and the pointer pinned, so the next scheduled build doesn't put it straight back.
+ */
 export async function rollbackMatrix(kv: KVNamespace): Promise<ModelPointer | null> {
   const current = await kv.get<ModelPointer>(MODEL_POINTER_KEY, "json");
   const target = current?.previous[0];
@@ -324,8 +337,10 @@ export async function rollbackMatrix(kv: KVNamespace): Promise<ModelPointer | nu
     n: m.n,
     bytes: blob.byteLength,
     previous: current.previous.slice(1),
+    pinned: true,
   };
   await kv.put(MODEL_POINTER_KEY, JSON.stringify(pointer));
+  await kv.delete(modelKey(current.version));
   return pointer;
 }
 
@@ -348,7 +363,7 @@ export async function loadMatrix(kv: KVNamespace, now = Date.now()): Promise<Fea
   return matrix;
 }
 
-/** Tests only. */
+/** Tests, and the console right after it changes the model. */
 export function resetMatrixCache() {
   cached = null;
 }

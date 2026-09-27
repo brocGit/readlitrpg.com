@@ -11,6 +11,7 @@ import {
   readPointer,
   resetMatrixCache,
   rollbackMatrix,
+  searchPublished,
   storeMatrix,
   tagsOf,
 } from "../src/match";
@@ -186,6 +187,20 @@ describe("building the model from the catalog", () => {
     await storeMatrix(kv.asKV(), next);
     expect((await readPointer(kv.asKV()))?.previous).toEqual([m.version]);
     expect((await rollbackMatrix(kv.asKV()))?.version).toBe(m.version);
+    // The rollback holds: a scheduled build doesn't restore the bad version; a forced one does.
+    expect((await storeMatrix(kv.asKV(), next)).stored).toBe(false);
+    expect((await readPointer(kv.asKV()))?.pinned).toBe(true);
+    expect((await storeMatrix(kv.asKV(), next, { force: true })).stored).toBe(true);
+    expect((await readPointer(kv.asKV()))?.pinned).toBeUndefined();
     expect((await buildMatrix(db, { includeDrafts: true })).n).toBe(5);
+  });
+
+  it("searches published books by title, series or author", async () => {
+    await published("The Crunch Tower", "Ann Writer", { crunch: 9 }, ["build-crafting"]);
+    await published("Quiet Farm", "Bo Crunchley", { crunch: 2 }, ["cozy"]);
+    const hits = await searchPublished(db, "crunch");
+    expect(hits.map((h) => h.title).sort()).toEqual(["Quiet Farm", "The Crunch Tower"]);
+    expect(hits.find((h) => h.title === "Quiet Farm")?.authors).toBe("Bo Crunchley");
+    expect(await searchPublished(db, "c")).toEqual([]);
   });
 });

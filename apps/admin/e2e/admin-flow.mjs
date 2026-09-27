@@ -2,7 +2,9 @@
 // the owner registers a passkey on the main site, is promoted to admin, signs in to the console
 // with the same passkey, changes a setting (audited), queues a job, and verifies the audit chain.
 // A reader's passkey must not open the console. Then the catalog (M1) and an editorial run driven
-// through the real `pnpm editorial` CLI with the local token (M2).
+// through the real `pnpm editorial` CLI with the local token (M2). Then discovery (M3): the owner
+// rebuilds the match model, a reader matches from a loved book, and a published quiz is played,
+// shared and retired.
 //
 // Local runs stand in for Cloudflare Access with ACCESS_DEV_EMAIL (see .dev.vars.example).
 
@@ -25,6 +27,17 @@ const check = (condition, message) => {
   if (!condition) throw new Error(`E2E check failed: ${message}`);
   console.log(`✓ ${message}`);
 };
+const sqlRows = (command) =>
+  JSON.parse(
+    execSync(
+      `npx wrangler d1 execute DB --local --persist-to ../../.wrangler/state --json --command "${command}"`,
+      {
+        cwd: adminDir,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    ),
+  )[0].results;
 const sql = (command) =>
   execSync(`npx wrangler d1 execute DB --local --persist-to ../../.wrangler/state --command "${command}"`, {
     cwd: adminDir,
@@ -273,6 +286,103 @@ try {
   });
   const missing = await fetch(`${ADMIN}/api/editorial/status`);
   check(wrong.status === 401 && missing.status === 401, "the editorial API refuses a missing or wrong token");
+
+  // Discovery (M3). A second published book in the same vein, then a fresh model.
+  const second = `E2E Hunter Rival ${stamp}`;
+  await page.goto(`${ADMIN}/catalog/new`);
+  await page.fill("#title", second);
+  await page.fill("#authors", `E2E Rival ${stamp}`);
+  await page.selectOption("#genre", "litrpg");
+  await page.fill("#tags", "system-apocalypse");
+  await page.click('button:has-text("Save book")');
+  await page.waitForSelector("text=Added.");
+  await page.click('button[value="publish"]');
+  await page.waitForSelector("text=Book is now published");
+  await page.goto(`${ADMIN}/match`);
+  await page.click('button:has-text("Rebuild now")');
+  await page.waitForSelector("text=/Built \\S+ from \\d+ books|Nothing changed/");
+  check(await page.isVisible("text=Current version"), "the owner rebuilds the match model");
+  const firstSlug = sqlRows(`SELECT slug FROM books WHERE id = '${bookId}'`)[0]?.slug;
+  await page.goto(`${ADMIN}/match?loved=${firstSlug}`);
+  check(await page.isVisible("text=Reader class:"), "a sample match runs in the console");
+
+  // The site checks for a new model at most once a minute (DESIGN §7.8).
+  let served = false;
+  for (let i = 0; i < 40 && !served; i++) {
+    const res = await fetch(`${WEB}/api/match`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: WEB },
+      body: JSON.stringify({ loved: [firstSlug] }),
+    });
+    served = res.ok && (await res.json()).loved.length > 0;
+    if (!served) await new Promise((r) => setTimeout(r, 2000));
+  }
+  check(served, "the site picks up the new model");
+
+  const visitor = await newReader(browser);
+  await visitor.page.goto(`${WEB}/match`);
+  await visitor.hydrated();
+  await visitor.page.fill('input[type="search"]', title);
+  await visitor.page.click(`.hits button:has-text("${title}")`);
+  await visitor.page.click('button:has-text("Find my next read")');
+  await visitor.page.waitForURL((u) => u.pathname === "/match/r");
+  await visitor.hydrated();
+  check(
+    await visitor.page.isVisible(`text=Because you loved ${title}`),
+    "a reader matches from a loved book and lands on a shareable result",
+  );
+  const shareUrl = visitor.page.url();
+  const card = await fetch(`${WEB}/match/card.svg?${new URL(shareUrl).search.slice(1)}`);
+  check(
+    card.status === 200 && (card.headers.get("content-type") ?? "").startsWith("image/svg+xml"),
+    "the result has a reader class card",
+  );
+  const liked = await fetch(`${WEB}/books-like/${firstSlug}`);
+  check(liked.status === 200, "the book has a books-like page");
+
+  const quizSlug = "whats-your-litrpg-class";
+  const before = await fetch(`${WEB}/quiz/${quizSlug}`);
+  const quizRow = () => page.locator("tr", { hasText: quizSlug });
+  await page.goto(`${ADMIN}/quizzes`);
+  if (await quizRow().locator('button[value="retire"]').isVisible()) {
+    await quizRow().locator('button[value="retire"]').click();
+    await page.waitForSelector("text=is retired");
+  } else check(before.status === 404, "a quiz that isn't published isn't on the site");
+  await quizRow().locator('button[value="publish"]').click();
+  await page.waitForSelector("text=is live");
+  check(true, "the owner publishes a quiz");
+  await visitor.page.goto(`${WEB}/quiz`);
+  await visitor.page.click(`a[href="/quiz/${quizSlug}"]`);
+  await visitor.hydrated();
+  for (let i = 0; i < 20 && !(await visitor.page.isVisible(".quiz-result")); i++) {
+    await visitor.page.locator(".options button").first().click();
+    await visitor.page.waitForTimeout(100);
+  }
+  await visitor.page.waitForSelector(".quiz-result h2");
+  check(await visitor.page.isVisible("text=books for you"), "a reader plays the quiz and gets a result");
+  const resultHref = await visitor.page.getAttribute('a:has-text("Share my result")', "href");
+  await visitor.page.goto(`${WEB}${resultHref}`);
+  check(await visitor.page.isVisible("text=Take the quiz"), "the result has a shareable page");
+  const quizCard = await fetch(`${WEB}${resultHref}/card.svg`);
+  check(quizCard.status === 200, "the result has a share card");
+  await visitor.page.click('a:has-text("Get matches for this result")');
+  await visitor.page.waitForURL((u) => u.pathname === "/match/quiz");
+  await visitor.hydrated();
+  check(true, "a result carries into the Match Quiz");
+  // Locally both previews share one SQLite file; let the island's preview requests finish first.
+  await visitor.page.waitForLoadState("networkidle");
+  await visitor.context.close();
+  await page.goto(`${ADMIN}/quizzes`);
+  await quizRow().locator('button[value="retire"]').click();
+  await page.waitForSelector("text=is retired");
+  const after = await fetch(`${WEB}/quiz/${quizSlug}`);
+  check(after.status === 404, "a retired quiz leaves the site");
+  await page.goto(`${ADMIN}/audit`);
+  const trail = await page.textContent("main");
+  check(
+    trail.includes("match.model_rebuild") && trail.includes("quiz.publish") && trail.includes("quiz.retire"),
+    "model rebuilds and quiz decisions are audited",
+  );
 
   check(
     problems.length === 0,

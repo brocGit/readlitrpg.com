@@ -7,7 +7,6 @@ import {
   bookCards,
   buildProfile,
   classicPool,
-  DEFAULT_MATCH_OPTIONS,
   encodeInputs,
   explain,
   type FeatureMatrix,
@@ -17,6 +16,7 @@ import {
   type MatchInputs,
   type MatchOptions,
   match,
+  matchOptionsFrom,
   nextClassics,
   profileStrength,
   readerClass,
@@ -32,17 +32,7 @@ import type { Settings } from "@rlr/core/settings";
 import { STATS } from "@rlr/core/taxonomy";
 import { env, getDb } from "./runtime";
 
-export function matchOptions(s: Settings): MatchOptions {
-  return {
-    ...DEFAULT_MATCH_OPTIONS,
-    weights: s["match.weights"],
-    excludeMin: s["tags.exclude_min"],
-    includeMin: s["tags.include_min"],
-    minDisplayScore: s["match.min_display_score"],
-    maxHeadsUps: s["match.max_headsups"],
-    bouncedPenalty: s["match.bounced_penalty"],
-  };
-}
+export const matchOptions = (s: Settings): MatchOptions => matchOptionsFrom(s);
 
 export const getMatrix = (): Promise<FeatureMatrix | null> => loadMatrix(env.CONFIG);
 

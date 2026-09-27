@@ -5,6 +5,7 @@ export * from "./eval";
 export * from "./find";
 export * from "./lists";
 export * from "./matrix";
+export * from "./options";
 export * from "./phrases";
 export * from "./present";
 export * from "./profile";

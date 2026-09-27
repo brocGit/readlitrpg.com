@@ -1,0 +1,167 @@
+---
+// The match model (DESIGN §7.8): which feature matrix the site is using, a rebuild and an undo,
+// and a sample match that ranks exactly as the site does. The hourly job rebuilds on its own.
+import {
+  bookCards,
+  buildMatrix,
+  buildProfile,
+  explain,
+  indexOfBook,
+  loadMatrix,
+  match,
+  matchOptionsFrom,
+  readerClass,
+  readPointer,
+  renderExplanation,
+  resetMatrixCache,
+  rollbackMatrix,
+  storeMatrix,
+} from "@rlr/core/match";
+import { can } from "@rlr/core/policy";
+import Console from "../layouts/Console.astro";
+import { adminActor } from "../lib/admin-session";
+import { audit, flash, readForm } from "../lib/forms";
+import { env, getDb } from "../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash("/match", "Not allowed", "error"), 303);
+  if (form.action === "rebuild") {
+    const m = await buildMatrix(db);
+    const { stored, pointer } = await storeMatrix(env.CONFIG, m, { force: true });
+    resetMatrixCache();
+    await audit(admin, Astro.locals.requestId, {
+      action: "match.model_rebuild",
+      subjectType: "match_model",
+      subjectId: pointer.version,
+      diff: { stored, books: pointer.n },
+    });
+    return Astro.redirect(
+      flash(
+        "/match",
+        stored
+          ? `Built ${pointer.version} from ${pointer.n} books.`
+          : "Nothing changed since the current model.",
+      ),
+      303,
+    );
+  }
+  if (form.action === "rollback") {
+    const pointer = await rollbackMatrix(env.CONFIG);
+    if (!pointer)
+      return Astro.redirect(flash("/match", "There is no earlier model to go back to.", "error"), 303);
+    resetMatrixCache();
+    await audit(admin, Astro.locals.requestId, {
+      action: "match.model_rollback",
+      subjectType: "match_model",
+      subjectId: pointer.version,
+    });
+    return Astro.redirect(
+      flash("/match", `Rolled back to ${pointer.version}. Scheduled builds are paused until you rebuild.`),
+      303,
+    );
+  }
+  return Astro.redirect("/match", 303);
+}
+
+const pointer = await readPointer(env.CONFIG);
+const m = pointer ? await loadMatrix(env.CONFIG) : null;
+const settings = await Astro.locals.settings();
+const lovedInput = (Astro.url.searchParams.get("loved") ?? "").slice(0, 500);
+const lovedSlugs = lovedInput
+  .split(/[\s,]+/)
+  .filter(Boolean)
+  .slice(0, 5);
+
+let sample: { title: string; percent: number; score: number; why: string; parts: string }[] = [];
+let sampleClass: string | null = null;
+let unknown: string[] = [];
+if (m && lovedSlugs.length > 0) {
+  const index = indexOfBook(m);
+  unknown = lovedSlugs.filter((s) => !index.has(s));
+  const profile = buildProfile(m, { loved: lovedSlugs.filter((s) => index.has(s)) });
+  const opts = matchOptionsFrom(settings);
+  const r = match(m, profile, opts);
+  const top = [...r.bestBets, ...r.more];
+  const cards = await bookCards(
+    db,
+    top.map((s) => m.ids[s.i] ?? ""),
+  );
+  const titleOf = (i: number) => {
+    const c = cards.get(m.ids[i] ?? "");
+    return c?.title ?? m.slugs[i];
+  };
+  sampleClass = readerClass(profile).cls.name;
+  sample = top.map((s) => {
+    const c = s.components;
+    return {
+      title: titleOf(s.i) ?? "?",
+      percent: s.percent,
+      score: s.score,
+      why: renderExplanation(explain(m, s.i, profile), titleOf).why,
+      parts: `dial ${c.dial.toFixed(2)} · stat ${c.stat.toFixed(2)} · tag ${c.tag.toFixed(2)} · sem ${c.semantic.toFixed(2)} · quality ${c.quality.toFixed(2)} · penalty ${c.penalty.toFixed(2)}`,
+    };
+  });
+}
+const when = (iso: string | null | undefined) => (iso ? iso.slice(0, 16).replace("T", " ") : "—");
+---
+
+<Console title="Match model">
+  <p class="muted">
+    The site ranks books from a compact feature matrix built from published books. The
+    <code>match.model_build</code> job rebuilds it hourly and writes only when the catalog changed.
+  </p>
+
+  {pointer ? (
+    <table>
+      <tbody>
+        <tr><th>Current version</th><td><code>{pointer.version}</code></td></tr>
+        <tr><th>Built</th><td>{when(pointer.builtAt)}</td></tr>
+        <tr><th>Books</th><td>{pointer.n}</td></tr>
+        <tr><th>Size</th><td>{Math.round(pointer.bytes / 1024)} KB</td></tr>
+        <tr><th>Earlier versions</th><td>{pointer.previous.length ? pointer.previous.join(", ") : "none"}</td></tr>
+      </tbody>
+    </table>
+  ) : (
+    <div class="status-screen"><p class="label">[No model yet]</p><p>Build one to switch on matching.</p></div>
+  )}
+  {pointer?.pinned && (
+    <p class="notice">Pinned after a rollback: scheduled builds leave this model alone until you rebuild.</p>
+  )}
+  <form method="post" class="inline">
+    <button class="button small" name="action" value="rebuild" type="submit">Rebuild now</button>
+    {pointer && pointer.previous.length > 0 && (
+      <button class="button small secondary" name="action" value="rollback" type="submit">Roll back to the previous version</button>
+    )}
+  </form>
+
+  <h2>Sample match</h2>
+  <form method="get" class="inline">
+    <label>Loved books (slugs, up to 5) <input type="text" name="loved" value={lovedInput} size="60" /></label>
+    <button class="button small secondary" type="submit">Match</button>
+  </form>
+  {unknown.length > 0 && <p class="notice error">Not in the model: {unknown.join(", ")}</p>}
+  {sampleClass && <p>Reader class: <strong>{sampleClass}</strong></p>}
+  {lovedSlugs.length > 0 && m && sample.length === 0 && <p class="muted">No matches cleared the display floor.</p>}
+  {sample.length > 0 && (
+    <table>
+      <thead><tr><th>#</th><th>Book</th><th>Match</th><th>Why</th><th>Parts</th></tr></thead>
+      <tbody>
+        {sample.map((s, i) => (
+          <tr>
+            <td>{i + 1}</td>
+            <td>{s.title}</td>
+            <td>{s.percent}% <span class="muted">({s.score.toFixed(3)})</span></td>
+            <td>{s.why}</td>
+            <td class="muted">{s.parts}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</Console>

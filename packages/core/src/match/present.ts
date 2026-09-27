@@ -141,9 +141,12 @@ export async function searchPublished(db: Db, q: string, limit = 8): Promise<Sea
       title: books.title,
       series: series.name,
       position: books.seriesPosition,
-      authors: sql<string>`(select group_concat(${authors.name}, ', ') from ${bookAuthors} join ${authors} on ${authors.id} = ${bookAuthors.authorId} where ${bookAuthors.bookId} = ${books.id})`,
+      authors:
+        sql<string>`(select group_concat(${authors.name}, ', ') from ${bookAuthors} join ${authors} on ${authors.id} = ${bookAuthors.authorId} where ${bookAuthors.bookId} = ${books.id})`.as(
+          "author_names",
+        ),
       // Exact title starts rank first, then book 1 of a series.
-      rank: sql<number>`case when ${books.titleKey} like ${`${tk}%`} then 0 else 1 end`,
+      rank: sql<number>`case when ${books.titleKey} like ${`${tk}%`} then 0 else 1 end`.as("rank"),
     })
     .from(books)
     .leftJoin(series, eq(series.id, books.seriesId))

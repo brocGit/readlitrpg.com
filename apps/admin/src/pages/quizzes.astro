@@ -1,0 +1,129 @@
+---
+// Quizzes (DESIGN §9.3, QUIZZES.md §3.5): content lives in data/quizzes/ and ships with the code;
+// whether a quiz is live is decided here and audited. Stats show how results spread in practice.
+import { can } from "@rlr/core/policy";
+import { QUIZZES, quizStats, quizStatuses, setQuizStatus } from "@rlr/core/quiz";
+import Console from "../layouts/Console.astro";
+import { adminActor } from "../lib/admin-session";
+import { flash, readForm } from "../lib/forms";
+import { getDb } from "../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash("/quizzes", "Not allowed", "error"), 303);
+  const slug = form.slug ?? "";
+  if (!QUIZZES.some((q) => q.slug === slug))
+    return Astro.redirect(flash("/quizzes", "No such quiz", "error"), 303);
+  if (form.action === "publish" || form.action === "retire") {
+    // setQuizStatus writes the audit entry.
+    await setQuizStatus(db, slug, form.action === "publish" ? "live" : "retired", admin.userId);
+    return Astro.redirect(
+      flash(
+        "/quizzes",
+        form.action === "publish"
+          ? `${slug} is live. The quiz hub shows it within five minutes.`
+          : `${slug} is retired. Its pages go away within five minutes.`,
+      ),
+      303,
+    );
+  }
+  return Astro.redirect("/quizzes", 303);
+}
+
+const [statuses, stats] = await Promise.all([quizStatuses(db), quizStats(db, 30)]);
+const bySlug = new Map<string, { outcome: string; takes: number; parties: number }[]>();
+for (const s of stats) {
+  bySlug.set(s.quizSlug, [
+    ...(bySlug.get(s.quizSlug) ?? []),
+    { outcome: s.outcomeKey, takes: Number(s.takes), parties: Number(s.parties) },
+  ]);
+}
+const preview = Astro.url.searchParams.get("preview");
+const shown = QUIZZES.find((q) => q.slug === preview);
+const fmt = (v: unknown) => (v && typeof v === "object" && Object.keys(v).length ? JSON.stringify(v) : "");
+---
+
+<Console title="Quizzes">
+  <p class="muted">
+    Quiz text lives in <code>data/quizzes/</code> and is checked for balance in CI. Publishing here puts a quiz on the
+    site; retiring takes it down. Results are shown only as totals.
+  </p>
+  <table>
+    <thead><tr><th>Quiz</th><th>Kind</th><th>On the site</th><th>Takes (30 days)</th><th>Decide</th></tr></thead>
+    <tbody>
+      {QUIZZES.map((q) => {
+        const status = statuses.get(q.slug) ?? "not published";
+        const rows = bySlug.get(q.slug) ?? [];
+        const takes = rows.reduce((n, r) => n + r.takes, 0);
+        const parties = rows.reduce((n, r) => n + r.parties, 0);
+        return (
+          <tr>
+            <td>
+              <strong>{q.title}</strong>
+              <div class="muted">{q.slug}{q.series ? ` · fan quiz: ${q.series}` : ""}</div>
+              <a href={`/quizzes?preview=${q.slug}`}>Preview</a>
+            </td>
+            <td>{q.kind}</td>
+            <td>{status}</td>
+            <td>
+              {takes}{parties > 0 && ` (${parties} party)`}
+              {rows.length > 0 && (
+                <details>
+                  <summary>Results</summary>
+                  <ul>{rows.map((r) => <li>{r.outcome}: {r.takes} ({Math.round((100 * r.takes) / Math.max(1, takes))}%)</li>)}</ul>
+                </details>
+              )}
+            </td>
+            <td>
+              <form method="post" class="inline">
+                <input type="hidden" name="slug" value={q.slug} />
+                {status === "live" ? (
+                  <button class="button small secondary" name="action" value="retire" type="submit">Retire</button>
+                ) : (
+                  <button class="button small" name="action" value="publish" type="submit">Publish</button>
+                )}
+              </form>
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+
+  {shown && (
+    <section>
+      <h2>Preview: {shown.title}</h2>
+      <p>{shown.dek}</p>
+      {shown.disclaimer && <p class="muted">{shown.disclaimer}</p>}
+      <ol>
+        {shown.questions.map((q) => (
+          <li>
+            <strong>{q.prompt}</strong>
+            <ul>
+              {q.options.map((o) => (
+                <li>
+                  {o.correct && "✓ "}{o.label} <span class="muted">{fmt(o.points)} {fmt(o.effects)}</span>
+                </li>
+              ))}
+            </ul>
+            {q.explain && <p class="muted">{q.explain}</p>}
+          </li>
+        ))}
+      </ol>
+      <h3>Results</h3>
+      <dl>
+        {shown.outcomes.map((o) => (
+          <>
+            <dt><strong>{o.name}</strong> <span class="muted">({o.key})</span></dt>
+            <dd>{o.tagline} {o.description}</dd>
+          </>
+        ))}
+      </dl>
+    </section>
+  )}
+</Console>
