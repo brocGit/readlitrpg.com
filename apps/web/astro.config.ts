@@ -60,5 +60,13 @@ export default defineConfig({
     "/tags/[slug]": { maxAge: 1800, swr: 86400 },
     "/new": { maxAge: 300, swr: 3600 },
     "/search": { maxAge: 300, swr: 3600 },
+    // Crawler files regenerate daily (DESIGN §17.2); feeds follow the release pages.
+    "/robots.txt": { maxAge: 86400, swr: 86400 },
+    "/sitemap.xml": { maxAge: 86400, swr: 86400 },
+    "/sitemaps/[name].xml": { maxAge: 86400, swr: 86400 },
+    "/feeds/releases.xml": { maxAge: 1800, swr: 3600 },
+    "/feeds/releases.ics": { maxAge: 1800, swr: 3600 },
+    "/feeds/tags/[slug].xml": { maxAge: 1800, swr: 3600 },
+    "/feeds/tags/[slug].ics": { maxAge: 1800, swr: 3600 },
   },
 });

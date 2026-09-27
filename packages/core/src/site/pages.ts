@@ -456,6 +456,8 @@ export async function bookItems(db: Db, ids: string[], opts: { now?: string } = 
 }
 
 export interface UpcomingRelease {
+  id: string;
+  updatedAt: string;
   bookSlug: string;
   title: string;
   series: { slug: string; name: string; position: number | null } | null;
@@ -467,6 +469,8 @@ export interface UpcomingRelease {
 }
 
 const releaseFields = {
+  id: as<string>(releases.id, "release_id"),
+  updatedAt: as<string>(releases.updatedAt, "release_updated_at"),
   bookSlug: books.slug,
   title: books.title,
   seriesSlug: as<string | null>(series.slug, "series_slug"),
@@ -480,6 +484,8 @@ const releaseFields = {
 };
 
 type ReleaseRow = {
+  id: string;
+  updatedAt: string;
   bookSlug: string;
   title: string;
   seriesSlug: string | null;
@@ -493,6 +499,8 @@ type ReleaseRow = {
 };
 
 const toRelease = (r: ReleaseRow): UpcomingRelease => ({
+  id: r.id,
+  updatedAt: r.updatedAt,
   bookSlug: r.bookSlug,
   title: r.title,
   series:
@@ -854,4 +862,42 @@ export async function tagLookup(db: Db, slug: string): Promise<Lookup<Omit<TagIn
       includeWhen: t.includeWhen,
     },
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Recently published books (tag feeds)
+
+export interface PublishedItem extends BookListItem {
+  publishedAt: string;
+  authors: string;
+}
+
+export async function recentlyPublished(
+  db: Db,
+  opts: { now?: string; tagSlug?: string; limit?: number } = {},
+): Promise<PublishedItem[]> {
+  const now = opts.now ?? new Date().toISOString();
+  const tagged = opts.tagSlug
+    ? inArray(
+        books.id,
+        db
+          .select({ id: bookTags.bookId })
+          .from(bookTags)
+          .innerJoin(tags, eq(tags.id, bookTags.tagId))
+          .where(and(eq(tags.slug, opts.tagSlug), gte(bookTags.score, 0.5))),
+      )
+    : undefined;
+  const rows = await db
+    .select({
+      ...listFields,
+      publishedAt: books.publishedAt,
+      authors: sql<string>`(select group_concat(a.name, ', ') from book_authors ba join authors a on a.id = ba.author_id where ba.book_id = "books"."id")`,
+    })
+    .from(books)
+    .leftJoin(series, eq(series.id, books.seriesId))
+    .leftJoin(media, coverJoin)
+    .where(and(publicBook(now), sql`${books.publishedAt} is not null`, tagged))
+    .orderBy(desc(books.publishedAt))
+    .limit(opts.limit ?? 30);
+  return rows.map((r) => ({ ...toItem(r), publishedAt: r.publishedAt ?? now, authors: r.authors ?? "" }));
 }

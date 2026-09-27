@@ -44,6 +44,13 @@ export const ROUTES = {
   "/tags/[slug]": PUBLIC,
   "/new": PUBLIC,
   "/search": PUBLIC,
+  "/robots.txt": PUBLIC,
+  "/sitemap.xml": PUBLIC,
+  "/sitemaps/[name].xml": PUBLIC,
+  "/feeds/releases.xml": PUBLIC,
+  "/feeds/releases.ics": PUBLIC,
+  "/feeds/tags/[slug].xml": PUBLIC,
+  "/feeds/tags/[slug].ics": PUBLIC,
 } satisfies RouteRegistry;
 
 /** Routes whose responses are personal and must never be cached anywhere. */

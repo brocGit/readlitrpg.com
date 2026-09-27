@@ -234,3 +234,55 @@ describe("editing release dates", () => {
     expect((await newAndUpcoming(db, { now: opts.now })).upcoming).toEqual([]);
   });
 });
+
+describe("feeds, sitemaps and robots.txt", () => {
+  it("builds RSS and a calendar with only day-precise releases, escaped and folded", async () => {
+    const { ics, releaseItem, rss } = await import("../src/site");
+    await book("Knights & Dragons <Deluxe>", {
+      releases: [
+        { kind: "ebook", date: "2026-11-03" },
+        { kind: "audio", date: "Q1 2027" },
+      ],
+    });
+    const { upcoming } = await newAndUpcoming(db, { now: opts.now });
+    expect(upcoming).toHaveLength(2);
+    const feed = rss(
+      { title: "T", link: "https://x/new", self: "https://x/feeds/releases.xml", description: "D" },
+      upcoming.map((r) => releaseItem(r, "https://x")),
+    );
+    expect(feed).toContain("Knights &amp; Dragons &lt;Deluxe&gt;: Ebook, 3 Nov 2026");
+    expect(feed).not.toContain("<Deluxe>");
+    const cal = ics("A very long calendar name ".repeat(5), upcoming, "https://x");
+    expect(cal.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+    expect(cal).toContain("DTSTART;VALUE=DATE:20261103");
+    expect(cal).toContain("DTEND;VALUE=DATE:20261104");
+    expect(cal.split("\r\n").every((l) => new TextEncoder().encode(l).length <= 75)).toBe(true);
+    expect(cal).toContain("SUMMARY:Knights & Dragons <Deluxe>: Ebook\\, 3 Nov 2026");
+  });
+
+  it("lists only public records in the sitemaps", async () => {
+    const { sitemapCounts, sitemapEntries, sitemapNames, sitemapXml } = await import("../src/site");
+    await book("Public One", { series: { name: "Pub", position: 1 } });
+    await book(
+      "Draft One",
+      { series: { name: "Drafty", position: 1 }, authors: [{ name: "Drafty Author" }] },
+      false,
+    );
+    const counts = await sitemapCounts(db, opts.now);
+    expect(counts).toEqual({ books: 1, series: 1, authors: 1, narrators: 0 });
+    expect(sitemapNames(counts)).toEqual(["pages", "tags", "books-1", "series-1", "authors-1"]);
+    const entries = await sitemapEntries(db, "books", 1, opts.now);
+    expect(entries.map((e) => e.path)).toEqual(["/books/public-one"]);
+    expect(sitemapXml(entries, "https://readlitrpg.com")).toContain(
+      "<loc>https://readlitrpg.com/books/public-one</loc>",
+    );
+  });
+
+  it("welcomes search crawlers and turns away training-only crawlers", async () => {
+    const { robotsTxt } = await import("../src/site");
+    const txt = robotsTxt("https://readlitrpg.com");
+    expect(txt).toMatch(/User-agent: GPTBot\n[\s\S]*Disallow: \/\n/);
+    expect(txt).toContain("Sitemap: https://readlitrpg.com/sitemap.xml");
+    expect(txt).not.toMatch(/User-agent: (Googlebot|OAI-SearchBot|PerplexityBot|Claude-SearchBot)\n/);
+  });
+});
