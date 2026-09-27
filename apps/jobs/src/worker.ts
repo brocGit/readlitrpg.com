@@ -29,6 +29,7 @@ import { exportBackup } from "./jobs/backup";
 import { buildQueue, checkCitations, watchdog } from "./jobs/editorial";
 import { enrichCatalog } from "./jobs/enrich";
 import { importCatalog } from "./jobs/import";
+import { buildMatchModel } from "./jobs/match";
 import { purgeExpired } from "./jobs/retention";
 import { syncTaxonomyJob } from "./jobs/taxonomy-sync";
 import type { JobHandler } from "./jobs/types";
@@ -45,6 +46,7 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "editorial.watchdog": watchdog,
   "editorial.citations": checkCitations,
   "vectors.update": updateVectors,
+  "match.model_build": buildMatchModel,
 };
 
 type QueueKind = "jobs" | "email" | "dlq";

@@ -118,6 +118,12 @@ export const SETTINGS = {
     { dial: 0.35, stat: 0.2, tag: 0.2, semantic: 0.15, quality: 0.1 },
     "Match score weights",
   ),
+  "match.bounced_penalty": def(share, 0.3, "How hard likeness to a bounced-off book pushes a match down"),
+  "match.classic_slugs": def(
+    z.array(z.string().max(120)).max(60),
+    [],
+    "Books the Match Quiz asks readers to rate first (slugs; empty = the most complete published books)",
+  ),
   "match.max_headsups": def(z.number().int().min(0).max(10), 3, "Most heads-ups shown per result"),
   "match.min_display_score": def(share, 0.6, "Lowest match score shown to readers"),
   "stats.display_min_appraisals": def(

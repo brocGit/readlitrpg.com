@@ -34,6 +34,10 @@ export const BACKUP_TABLES = [
   "editorial_queue",
   "editorial_runs",
   "editorial_proposals",
+  "quiz_takes",
+  "quiz_daily",
+  "quiz_status",
+  "appraisals",
 ] as const;
 
 /**

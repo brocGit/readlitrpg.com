@@ -68,6 +68,11 @@ export const JOBS = [
     description: "Fetch pages that research runs cite; a page naming the book confirms it",
   },
   {
+    key: "match.model_build",
+    cron: "50 * * * *",
+    description: "Rebuild the match feature matrix from published books and store it in KV",
+  },
+  {
     key: "vectors.update",
     cron: "40 * * * *",
     description: "Embed new and changed books with Workers AI; flag near-duplicates",
