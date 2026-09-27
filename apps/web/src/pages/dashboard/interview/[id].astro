@@ -1,0 +1,122 @@
+---
+import {
+  approveInterview,
+  INTERVIEW_QUESTIONS,
+  InterviewError,
+  type InterviewFormat,
+  MIN_INTERVIEW_ANSWERS,
+  saveInterviewAnswers,
+} from "@rlr/core/content";
+import { books, interviewResponses } from "@rlr/core/schema";
+import { eq } from "drizzle-orm";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { profileAccess } from "../../../lib/authors";
+import { withinLimit } from "../../../lib/match";
+import { env, getDb } from "../../../lib/runtime";
+import { renderEnv } from "../../../lib/site";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// An author interview (DESIGN §14.5): answer six or more questions in your own words; we pick the
+// order and write a headline and intro, fixing typos only; you approve before it's published.
+const id = Astro.params.id ?? "";
+const db = getDb();
+const [row] = await db.select().from(interviewResponses).where(eq(interviewResponses.id, id));
+const access = row ? await profileAccess(Astro.locals, row.authorId) : null;
+if (!row || !access) return new Response("Not found", { status: 404 });
+let message: { ok: boolean; text: string } | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const intent = String(form.get("intent") ?? "");
+  if (!(await withinLimit(env.RL_WRITE, "dash:interview", Astro.request, Astro.clientAddress)))
+    message = { ok: false, text: "Too many at once. Wait a minute." };
+  else
+    try {
+      if (intent === "approve") {
+        await approveInterview(db, id, access.actor.userId, renderEnv(), await Astro.locals.settings());
+        return Astro.redirect(`/dashboard/interview/${id}?approved=1`, 303);
+      }
+      if (intent === "edit") {
+        // Back to the questions; the answers are kept.
+        await db
+          .update(interviewResponses)
+          .set({ status: "invited", formatted: null, updatedAt: new Date().toISOString() })
+          .where(eq(interviewResponses.id, id));
+        return Astro.redirect(`/dashboard/interview/${id}`, 303);
+      }
+      const answers = Object.fromEntries(
+        INTERVIEW_QUESTIONS.map((q) => [q.key, String(form.get(q.key) ?? "")]),
+      );
+      const settings = await Astro.locals.settings();
+      const r = await saveInterviewAnswers(db, id, access.actor.userId, answers, {
+        submit: intent === "submit",
+        priority: settings["editorial.priorities"].interview_format,
+      });
+      message = {
+        ok: true,
+        text:
+          r === "submitted"
+            ? "Sent. We'll email you when it's ready for your approval, usually within a day."
+            : "Saved.",
+      };
+    } catch (e) {
+      if (!(e instanceof InterviewError)) throw e;
+      message = { ok: false, text: e.message.charAt(0).toUpperCase() + e.message.slice(1) };
+    }
+}
+const [fresh] = await db.select().from(interviewResponses).where(eq(interviewResponses.id, id));
+const [book] = await db.select({ title: books.title }).from(books).where(eq(books.id, row.bookId));
+if (!fresh) return new Response("Not found", { status: 404 });
+const f = fresh.formatted as InterviewFormat | null;
+const editable = fresh.status === "invited" || fresh.status === "answered";
+---
+
+<Base title={`Interview: ${book?.title ?? ""}`} noIndex>
+  <h1>Interview: {book?.title}</h1>
+  <DashNav authorId={row.authorId} />
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  {Astro.url.searchParams.get("approved") === "1" && <p class="notice" role="status">Approved. It's scheduled for the week before your release; we'll email you the date.</p>}
+  {
+    fresh.status === "formatted" && f ? (
+      <section>
+        <p class="lead">Here's your interview as it will appear. The answers are yours; we only fixed typos. Approve it, or go back and change your answers.</p>
+        <article class="prose">
+          <h2>{f.headline}</h2>
+          <p>{f.intro}</p>
+          {f.order.map((k) => {
+            const q = INTERVIEW_QUESTIONS.find((x) => x.key === k);
+            return q ? (
+              <>
+                <h3>{q.question}</h3>
+                <p>{f.fixes?.[k] ?? fresh.answers[k]}</p>
+              </>
+            ) : null;
+          })}
+        </article>
+        <form method="post" class="field-row">
+          <button class="button" name="intent" value="approve" type="submit">Approve</button>
+          <button class="button secondary" name="intent" value="edit" type="submit">Change my answers</button>
+        </form>
+      </section>
+    ) : editable ? (
+      <form method="post">
+        <p class="lead">Answer at least {MIN_INTERVIEW_ANSWERS} in your own words. Readers love specifics: the choices you made and why.{fresh.releaseDate && ` Your release: ${fresh.releaseDate}.`}</p>
+        {INTERVIEW_QUESTIONS.map((q) => (
+          <div class="field">
+            <label for={q.key}>{q.question}</label>
+            <textarea id={q.key} name={q.key} rows="4" maxlength="3000">{fresh.answers[q.key] ?? ""}</textarea>
+          </div>
+        ))}
+        <p>
+          <button class="button secondary" name="intent" value="save" type="submit">Save</button>
+          <button class="button" name="intent" value="submit" type="submit">Send my answers</button>
+        </p>
+      </form>
+    ) : (
+      <p>This interview is {fresh.status}. {fresh.status === "answered" ? "We're preparing it for your approval." : ""} <a href="/dashboard">Back to the dashboard</a></p>
+    )
+  }
+</Base>

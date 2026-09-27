@@ -28,6 +28,14 @@ describe("author templates", () => {
       "change_approved",
       "change_rejected",
       "drafts_ready",
+      "pitch_accepted",
+      "pitch_declined",
+      "guest_changes",
+      "guest_scheduled",
+      "guest_declined",
+      "interview_invite",
+      "interview_ready",
+      "interview_scheduled",
     ];
     for (const kind of kinds) {
       const e = renderAuthorNotice(kind, { ...base, payload: { title: "<b>Loot</b>", drafts: 2 } });

@@ -1,5 +1,6 @@
 ---
 import { dashboardBooks, profilesFor } from "@rlr/core/authors";
+import { interviewsFor } from "@rlr/core/content";
 import { authorSubmissions, books, changeNotifications } from "@rlr/core/schema";
 import { formatDate, RELEASE_LABEL } from "@rlr/core/site";
 import { and, desc, eq, inArray } from "drizzle-orm";
@@ -43,6 +44,16 @@ const changes = await db
   .where(inArray(changeNotifications.authorId, ids))
   .orderBy(desc(changeNotifications.createdAt))
   .limit(10);
+const interviews = await interviewsFor(db, ids);
+const INTERVIEW_STATUS: Record<string, string> = {
+  invited: "Answer the questions",
+  answered: "We're preparing it",
+  formatted: "Ready for your approval",
+  approved: "Approved",
+  published: "Published",
+  declined: "Declined",
+  expired: "Expired",
+};
 const q = Astro.url.searchParams;
 const first = profiles[0];
 const STATUS: Record<string, string> = {
@@ -100,6 +111,23 @@ const title = (p: unknown) =>
               <span>{title(s.payload)}</span>
               <span class="muted">{SUB_STATUS[s.status]}{s.status === "rejected" && s.reasons[0] ? `: ${s.reasons[0]}` : ""}</span>
               {s.status === "draft" && <a class="button small" href={`/dashboard/books/new?author=${s.authorId}&draft=${s.id}`}>Check and submit</a>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    interviews.length > 0 && (
+      <section>
+        <h2>Interviews</h2>
+        <p class="muted small">Readers meet you the week before your release, in your own words.</p>
+        <ul class="rows">
+          {interviews.map((i) => (
+            <li>
+              <span><a href={`/dashboard/interview/${i.id}`}>{i.title}</a></span>
+              <span class="muted">{INTERVIEW_STATUS[i.status] ?? i.status}</span>
             </li>
           ))}
         </ul>

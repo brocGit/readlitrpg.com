@@ -133,6 +133,24 @@ const recommendation: Record<string, string> = {
                     Someone else claims <a href={`/catalog/authors/${field(item.payload, "authorId")}`}>{field(item.payload, "name")}</a>, which already has members. Approve adds them as an owner (you can remove members on the profile page).
                   </p>
                 )}
+                {item.type === "guest_pitch" && (
+                  <p>
+                    <strong>{field(item.payload, "title")}</strong>: {field(item.payload, "pitch")} · <a href={`/blog/${field(item.payload, "postId")}`}>The post</a>. Approve accepts the pitch; reject declines it (the note goes to the author).
+                  </p>
+                )}
+                {item.type === "news_brief" && (
+                  <div>
+                    <p><strong>{field(item.payload, "headline")}</strong></p>
+                    <p>{field(item.payload, "body")}</p>
+                    <p class="muted">{field(item.payload, "why")}</p>
+                    <ul>
+                      {((item.payload as { sources?: { url: string }[] } | null)?.sources ?? []).map((s) => (
+                        <li><a href={s.url} rel="noopener noreferrer">{s.url}</a></li>
+                      ))}
+                    </ul>
+                    <p class="muted">Approve publishes it as a news brief citing these pages.</p>
+                  </div>
+                )}
                 {item.type === "post_review" && (
                   <p>
                     <a href={`/blog/${field(item.payload, "postId") ?? item.subjectId}`}>Read it in the editor</a>. Approve

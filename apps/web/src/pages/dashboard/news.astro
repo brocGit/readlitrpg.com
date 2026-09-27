@@ -1,0 +1,112 @@
+---
+import { ulid } from "@rlr/core";
+import { profilesFor } from "@rlr/core/authors";
+import { newsTips } from "@rlr/core/schema";
+import { desc, eq } from "drizzle-orm";
+import DashNav from "../../components/dashboard/DashNav.astro";
+import Base from "../../layouts/Base.astro";
+import { profileAccess } from "../../lib/authors";
+import { withinLimit } from "../../lib/match";
+import { env, getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+import "../../styles/dashboard.css";
+
+// Submit news (STRATEGY §6, DESIGN §14.6): verified authors send announcements. The next morning's
+// editorial run writes a brief only from a page it can cite, so include a link to your own post.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/dashboard/news", 303);
+const db = getDb();
+const profiles = await profilesFor(db, session.userId);
+if (profiles.length === 0) return Astro.redirect("/dashboard/start", 303);
+const verified = profiles.filter((p) => p.trust === "T1" || p.trust === "T2");
+let message: { ok: boolean; text: string } | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const access = await profileAccess(Astro.locals, String(form.get("author") ?? ""));
+  const subject = String(form.get("subject") ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 200);
+  const body = String(form.get("body") ?? "")
+    .trim()
+    .slice(0, 2000);
+  const url = String(form.get("url") ?? "").trim();
+  const validUrl = (() => {
+    try {
+      return url === "" || new URL(url).protocol === "https:";
+    } catch {
+      return false;
+    }
+  })();
+  if (!access || !(access.membership.trust === "T1" || access.membership.trust === "T2"))
+    message = { ok: false, text: "News submissions are for verified profiles." };
+  else if (!(await withinLimit(env.RL_WRITE, "dash:news", Astro.request, Astro.clientAddress)))
+    message = { ok: false, text: "Too many at once. Wait a minute." };
+  else if (subject.length < 8 || body.length < 20 || !validUrl)
+    message = {
+      ok: false,
+      text: "Add a headline, a few sentences and, if you can, an https link to your announcement.",
+    };
+  else {
+    await db.insert(newsTips).values({
+      id: ulid(),
+      source: "author",
+      kind: "announcement",
+      subject,
+      body,
+      sourceUrl: url || null,
+      authorId: access.membership.authorId,
+      userId: access.actor.userId,
+      status: "new",
+    });
+    message = { ok: true, text: "Thanks. The news desk looks at it tomorrow morning." };
+  }
+}
+const mine = await db
+  .select()
+  .from(newsTips)
+  .where(eq(newsTips.userId, session.userId))
+  .orderBy(desc(newsTips.createdAt))
+  .limit(10);
+const STATUS: Record<string, string> = {
+  new: "Waiting for the news desk",
+  briefed: "Written up",
+  used: "Written up",
+  rejected: "Not used",
+  queued: "Being checked",
+};
+---
+
+<Base title="Submit news" noIndex>
+  <h1>Submit news</h1>
+  <DashNav authorId={profiles[0]?.id} />
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  <p class="lead">A new series, a finished one, an audiobook deal, a sale, an award. Link to where you announced it: we only report what we can cite.</p>
+  {
+    verified.length === 0 ? (
+      <p class="muted">Verify your profile to send news. <a href={`/dashboard/verify/${profiles[0]?.id}`}>Verify now</a></p>
+    ) : (
+      <form method="post">
+        {verified.length > 1 ? (
+          <div class="field"><label for="author">As</label><select id="author" name="author">{verified.map((p) => <option value={p.id}>{p.name}</option>)}</select></div>
+        ) : (
+          <input type="hidden" name="author" value={verified[0]?.id} />
+        )}
+        <div class="field"><label for="subject">Headline</label><input id="subject" name="subject" required maxlength="200" /></div>
+        <div class="field"><label for="body">What's the news?</label><textarea id="body" name="body" rows="4" required maxlength="2000"></textarea></div>
+        <div class="field"><label for="url">Link to your announcement (https)</label><input id="url" name="url" type="url" maxlength="500" placeholder="https://" /></div>
+        <button class="button" type="submit">Send it</button>
+      </form>
+    )
+  }
+  {
+    mine.length > 0 && (
+      <section>
+        <h2>Sent</h2>
+        <ul class="rows">{mine.map((t) => <li><span>{t.subject}</span><span class="muted">{STATUS[t.status] ?? t.status}</span></li>)}</ul>
+      </section>
+    )
+  }
+</Base>

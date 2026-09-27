@@ -7,7 +7,7 @@ import type { Cover, PageOptions } from "@rlr/core/site";
 import { env } from "./runtime";
 
 export const origin = () => env.PUBLIC_ORIGIN.replace(/\/$/, "");
-const mediaOrigin = () => (env.PUBLIC_MEDIA_ORIGIN || `${origin()}/media`).replace(/\/$/, "");
+export const mediaOrigin = () => (env.PUBLIC_MEDIA_ORIGIN || `${origin()}/media`).replace(/\/$/, "");
 export const mediaUrl = (key: string) => `${mediaOrigin()}/${key}`;
 
 export const pageOptions = (s: Settings): PageOptions => ({
@@ -36,3 +36,6 @@ export const siteOgUrl = () => mediaUrl(siteOgKey());
 export const notFound = () => new Response(null, { status: 404 });
 export const movedTo = (path: string) =>
   new Response(null, { status: 301, headers: { location: path, "cache-control": "public, max-age=3600" } });
+
+/** Where links and images in posts point, for rendering an author's draft. */
+export const renderEnv = () => ({ origin: origin(), mediaOrigin: mediaOrigin() });

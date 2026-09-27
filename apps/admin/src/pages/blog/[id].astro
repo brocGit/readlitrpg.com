@@ -1,6 +1,7 @@
 ---
 import {
   claimNextSlot,
+  GuestError,
   getPost,
   lineDiff,
   listRevisions,
@@ -10,6 +11,7 @@ import {
   publishPost,
   releaseSlots,
   renderBody,
+  requestGuestChanges,
   restoreRevision,
   SlotError,
   setPostStatus,
@@ -17,7 +19,7 @@ import {
   updatePost,
   wordCount,
 } from "@rlr/core/content";
-import { postBooks, postRevisions, posts } from "@rlr/core/schema";
+import { guestSubmissions, postBooks, postRevisions, posts } from "@rlr/core/schema";
 import { eq } from "drizzle-orm";
 import Console from "../../layouts/Console.astro";
 import { postPatchFromForm, readPostForm, STATUS_LABEL, sourcesText } from "../../lib/blog";
@@ -94,6 +96,13 @@ if (Astro.request.method === "POST") {
         await log("post.restore", { revision: form.revision });
         return Astro.redirect(flash(here, "That version is back (and saved as a new revision)."), 303);
       }
+      case "changes": {
+        const note = (form.note ?? "").trim();
+        if (!note) return Astro.redirect(flash(here, "Say what should change.", "error"), 303);
+        await requestGuestChanges(db, id, note, admin.userId);
+        await log("post.request_changes", { note });
+        return Astro.redirect(flash(here, "Sent back to the author with your note."), 303);
+      }
       case "discard": {
         if (!["idea", "drafting"].includes(post.status))
           return Astro.redirect(
@@ -108,14 +117,23 @@ if (Astro.request.method === "POST") {
       }
     }
   } catch (e) {
-    if (e instanceof PostError || e instanceof SlotError)
+    if (e instanceof PostError || e instanceof SlotError || e instanceof GuestError)
       return Astro.redirect(flash(here, e.message, "error"), 303);
     throw e;
   }
   return Astro.redirect(here, 303);
 }
 
-const [segments, revisions] = await Promise.all([renderBody(db, post.bodyHtml), listRevisions(db, id, 30)]);
+const [segments, revisions, guestRows] = await Promise.all([
+  renderBody(db, post.bodyHtml),
+  listRevisions(db, id, 30),
+  db.select().from(guestSubmissions).where(eq(guestSubmissions.postId, id)),
+]);
+const guest = guestRows[0] ?? null;
+const screen = (guest?.aiScreen ?? {}) as Record<
+  string,
+  { verdict?: string; issues?: string[]; summary?: string; self_promo_mentions?: number }
+>;
 const diffWith = revisions.find((r) => r.id === Astro.url.searchParams.get("diff"));
 const diff = diffWith ? lineDiff(diffWith.bodyMd, post.bodyMd) : null;
 const site = renderEnv().origin;
@@ -130,6 +148,32 @@ const words = wordCount(post.bodyMd);
     {post.status === "published" && <> · <a href={`${site}${postPath(post)}`} rel="noopener">View on the site</a></>}
     · {words} words · <a href="/blog">All posts</a>
   </p>
+
+  {
+    guest && (
+      <section>
+        <h2>Guest submission</h2>
+        <p><strong>Pitch ({guest.pitchStatus}):</strong> {guest.pitch}</p>
+        <p class="muted">
+          Guidelines accepted {guest.guidelineAckAt?.slice(0, 10) ?? "not yet"} · license accepted {guest.licenseAckAt?.slice(0, 10) ?? "not yet"}
+        </p>
+        {Object.entries(screen).map(([stage, r]) => (
+          <p>
+            Pre-review of the {stage}: <strong>{r.verdict}</strong>
+            {r.issues?.length ? ` · issues: ${r.issues.join(", ")}` : " · no issues"}
+            {r.self_promo_mentions !== undefined && ` · ${r.self_promo_mentions} self-promotion`}. {r.summary}
+          </p>
+        ))}
+        {post.status === "in_review" && (
+          <form method="post" class="inline">
+            <input type="text" name="note" maxlength="1000" placeholder="What should change?" aria-label="Note to the author" required />
+            <button class="button small secondary" name="action" value="changes" type="submit">Request changes</button>
+          </form>
+        )}
+        <p class="muted small">Approve or reject it from the Inbox; approving gives it the next guest slot and tells the author.</p>
+      </section>
+    )
+  }
 
   <form method="post" class="editor">
     <label>Title <input name="title" value={post.title} required maxlength="200" /></label>

@@ -1,0 +1,124 @@
+---
+import { profilesFor } from "@rlr/core/authors";
+import { GUEST_GUIDELINES, GuestError, guestPostsFor, pitchGuestPost } from "@rlr/core/content";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { profileAccess } from "../../../lib/authors";
+import { withinLimit } from "../../../lib/match";
+import { env, getDb } from "../../../lib/runtime";
+import { renderEnv } from "../../../lib/site";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+
+// Write for us (DESIGN §14.3): verified authors pitch a guest post, then write it once accepted.
+const session = await Astro.locals.session();
+if (!session) return Astro.redirect("/signin?next=/dashboard/write", 303);
+const db = getDb();
+const profiles = await profilesFor(db, session.userId);
+if (profiles.length === 0) return Astro.redirect("/dashboard/start", 303);
+let error: string | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const access = await profileAccess(Astro.locals, String(form.get("author") ?? ""));
+  if (!access) error = "Pick one of your profiles.";
+  else if (!(await withinLimit(env.RL_WRITE, "dash:pitch", Astro.request, Astro.clientAddress)))
+    error = "Too many at once. Wait a minute.";
+  else
+    try {
+      const postId = await pitchGuestPost(
+        db,
+        {
+          authorId: access.membership.authorId,
+          userId: access.actor.userId,
+          trust: access.membership.trust,
+          title: String(form.get("title") ?? ""),
+          pitch: String(form.get("pitch") ?? ""),
+        },
+        renderEnv(),
+        await Astro.locals.settings(),
+      );
+      return Astro.redirect(`/dashboard/write?pitched=${postId}`, 303);
+    } catch (e) {
+      if (!(e instanceof GuestError)) throw e;
+      error = e.message.charAt(0).toUpperCase() + e.message.slice(1);
+    }
+}
+const posts = await guestPostsFor(
+  db,
+  profiles.map((p) => p.id),
+);
+const verified = profiles.filter((p) => p.trust === "T1" || p.trust === "T2");
+const STATUS: Record<string, string> = {
+  idea: "Pitch sent",
+  drafting: "Accepted: write it",
+  changes_requested: "Changes requested",
+  in_review: "In review",
+  approved: "Approved",
+  scheduled: "Scheduled",
+  published: "Published",
+  rejected: "Not this time",
+  unpublished: "Taken down",
+};
+---
+
+<Base title="Write for us" noIndex>
+  <h1>Write for us</h1>
+  <DashNav authorId={profiles[0]?.id} />
+  {Astro.url.searchParams.get("pitched") && <p class="notice" role="status">Pitch sent. We'll email you when it's decided, usually within a few days.</p>}
+  {error && <p class="notice error" role="alert">{error}</p>}
+  <p class="lead">Guest posts are about the craft of LitRPG, genre history, or other authors' books you love. Readers find them on the blog and in Patch Notes, and they appear on your author page.</p>
+  <details>
+    <summary>Guidelines</summary>
+    <ul>{GUEST_GUIDELINES.map((g) => <li>{g}</li>)}</ul>
+  </details>
+
+  {
+    posts.length > 0 && (
+      <section>
+        <h2>Your guest posts</h2>
+        <ul class="rows">
+          {posts.map((p) => (
+            <li>
+              <span>
+                {["drafting", "changes_requested"].includes(p.status) ? <a href={`/dashboard/write/${p.postId}`}>{p.title}</a> : p.status === "published" ? <a href={`/blog/${p.slug}`}>{p.title}</a> : p.title}
+                {p.note && <div class="muted small">Note from us: {p.note}</div>}
+              </span>
+              <span class="muted">{STATUS[p.status] ?? p.status}{p.status === "scheduled" && p.publishAt ? `: ${p.publishAt.slice(0, 10)}` : ""}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <section>
+    <h2>Pitch a post</h2>
+    {
+      verified.length === 0 ? (
+        <p class="muted">Verify your profile first: guest posts are for verified authors. <a href={`/dashboard/verify/${profiles[0]?.id}`}>Verify now</a></p>
+      ) : (
+        <form method="post">
+          {verified.length > 1 ? (
+            <div class="field">
+              <label for="author">As</label>
+              <select id="author" name="author">{verified.map((p) => <option value={p.id}>{p.name}</option>)}</select>
+            </div>
+          ) : (
+            <input type="hidden" name="author" value={verified[0]?.id} />
+          )}
+          <div class="field">
+            <label for="title">Working title</label>
+            <input id="title" name="title" required maxlength="200" />
+          </div>
+          <div class="field">
+            <label for="pitch">Your pitch (about three sentences: the topic, the angle, why readers care)</label>
+            <textarea id="pitch" name="pitch" rows="4" required minlength="40" maxlength="1200"></textarea>
+          </div>
+          <button class="button" type="submit">Send the pitch</button>
+        </form>
+      )
+    }
+  </section>
+</Base>

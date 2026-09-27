@@ -1,0 +1,117 @@
+---
+import {
+  GUEST_GUIDELINES,
+  GUEST_LICENSE,
+  GUEST_WORDS,
+  GuestError,
+  getPost,
+  renderBody,
+  saveGuestDraft,
+  submitGuestPost,
+  wordCount,
+} from "@rlr/core/content";
+import { guestSubmissions } from "@rlr/core/schema";
+import { eq } from "drizzle-orm";
+import PostBody from "../../../components/blog/PostBody.astro";
+import DashNav from "../../../components/dashboard/DashNav.astro";
+import Base from "../../../layouts/Base.astro";
+import { profileAccess } from "../../../lib/authors";
+import { withinLimit } from "../../../lib/match";
+import { env, getDb } from "../../../lib/runtime";
+import { renderEnv } from "../../../lib/site";
+import "../../../styles/discover.css";
+import "../../../styles/reader.css";
+import "../../../styles/dashboard.css";
+import "../../../styles/site.css";
+import "../../../styles/blog.css";
+
+// Writing an accepted guest post (DESIGN §14.3 steps 3–4): markdown with book shortcodes, a
+// preview exactly as readers will see it, and submission with the guidelines and the license.
+const postId = Astro.params.id ?? "";
+const db = getDb();
+const [sub] = await db.select().from(guestSubmissions).where(eq(guestSubmissions.postId, postId));
+const access = sub ? await profileAccess(Astro.locals, sub.authorId) : null;
+if (!sub || !access) return new Response("Not found", { status: 404 });
+let message: { ok: boolean; text: string } | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  if (!(await withinLimit(env.RL_WRITE, "dash:guest", Astro.request, Astro.clientAddress)))
+    message = { ok: false, text: "Too many saves at once. Wait a minute." };
+  else
+    try {
+      await saveGuestDraft(
+        db,
+        postId,
+        access.actor.userId,
+        {
+          title: String(form.get("title") ?? ""),
+          dek: String(form.get("dek") ?? ""),
+          bodyMd: String(form.get("body") ?? ""),
+        },
+        renderEnv(),
+      );
+      if (form.get("intent") === "submit") {
+        await submitGuestPost(
+          db,
+          postId,
+          { guidelines: form.get("guidelines") === "on", license: form.get("license") === "on" },
+          await Astro.locals.settings(),
+        );
+        return Astro.redirect("/dashboard/write?submitted=1", 303);
+      }
+      message = { ok: true, text: "Saved." };
+    } catch (e) {
+      if (!(e instanceof GuestError)) throw e;
+      message = { ok: false, text: e.message.charAt(0).toUpperCase() + e.message.slice(1) };
+    }
+}
+const post = await getPost(db, postId);
+if (!post) return new Response("Not found", { status: 404 });
+const editable = ["drafting", "changes_requested"].includes(post.status);
+const words = wordCount(post.bodyMd);
+const segments = post.bodyMd ? await renderBody(db, post.bodyHtml) : [];
+---
+
+<Base title={`Writing: ${post.title}`} noIndex>
+  <h1>{post.title}</h1>
+  <DashNav authorId={sub.authorId} />
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  {post.status === "changes_requested" && sub.note && <p class="notice" role="status">Our note: {sub.note}</p>}
+  {
+    !editable ? (
+      <p>This post is {post.status.replace("_", " ")}. <a href="/dashboard/write">Back to your posts</a></p>
+    ) : (
+      <form method="post">
+        <div class="field"><label for="title">Title</label><input id="title" name="title" value={post.title} required maxlength="200" /></div>
+        <div class="field"><label for="dek">One-line summary</label><input id="dek" name="dek" value={post.dek ?? ""} maxlength="300" /></div>
+        <div class="field">
+          <label for="body">The post (markdown: ## for headings, *italics*, **bold**, [links](https://…))</label>
+          <textarea id="body" name="body" rows="24" maxlength="40000">{post.bodyMd}</textarea>
+          <p class="muted small">
+            {words} words ({GUEST_WORDS.min}–{GUEST_WORDS.max}). A book on its own line as <code>[[book:its-page-address]]</code> (the part after /books/) becomes a live book card.
+          </p>
+        </div>
+        <details>
+          <summary>Guidelines and license</summary>
+          <ul>{GUEST_GUIDELINES.map((g) => <li>{g}</li>)}</ul>
+          <p>{GUEST_LICENSE}</p>
+        </details>
+        <label class="check"><input type="checkbox" name="guidelines" /> My post follows the guidelines.</label>
+        <label class="check"><input type="checkbox" name="license" /> I agree to the license above.</label>
+        <p>
+          <button class="button secondary" type="submit" name="intent" value="save">Save and preview</button>
+          <button class="button" type="submit" name="intent" value="submit">Submit for review</button>
+        </p>
+      </form>
+    )
+  }
+  {
+    segments.length > 0 && (
+      <section>
+        <h2>Preview</h2>
+        <PostBody segments={segments} />
+      </section>
+    )
+  }
+</Base>

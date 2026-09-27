@@ -65,7 +65,15 @@ export type AuthorNotice =
   | "claim_rejected"
   | "change_approved"
   | "change_rejected"
-  | "drafts_ready";
+  | "drafts_ready"
+  | "pitch_accepted"
+  | "pitch_declined"
+  | "guest_changes"
+  | "guest_scheduled"
+  | "guest_declined"
+  | "interview_invite"
+  | "interview_ready"
+  | "interview_scheduled";
 
 /** One short email per decision. `payload` fields are optional and escaped. */
 export function renderAuthorNotice(
@@ -194,6 +202,96 @@ export function renderAuthorNotice(
         ],
       );
     }
+    case "pitch_accepted":
+      return compose(`Your pitch is in: "${title}"`, "Write it when you're ready.", [
+        part(system("[Quest accepted]"), "[Quest accepted]"),
+        part(
+          p(
+            `We'd love to publish <strong>${escapeHtml(title)}</strong>. Write it in your dashboard, then submit it for review.`,
+          ),
+          `We'd love to publish ${title}. Write it in your dashboard, then submit it for review.`,
+        ),
+        part(
+          button(`${o.origin}/dashboard/write/${s("postId")}`, "Start writing"),
+          `Start writing: ${o.origin}/dashboard/write/${s("postId")}`,
+        ),
+      ]);
+    case "pitch_declined":
+      return compose(`About your pitch: "${title}"`, "Not this one, but pitch again any time.", [
+        part(p(`We're passing on <strong>${escapeHtml(title)}</strong>.`), `We're passing on ${title}.`),
+        ...(s("note") ? [part(p(escapeHtml(s("note"))), s("note"))] : []),
+        part(
+          p("Pitch again any time: the craft of LitRPG and other authors' books do best."),
+          "Pitch again any time.",
+        ),
+        dash,
+      ]);
+    case "guest_changes":
+      return compose(`A few changes to "${title}"`, "Edit it and submit it again.", [
+        part(
+          p(`Before we publish <strong>${escapeHtml(title)}</strong>, a few changes:`),
+          `Before we publish ${title}, a few changes:`,
+        ),
+        ...(s("note") ? [part(p(escapeHtml(s("note"))), s("note"))] : []),
+        part(
+          button(`${o.origin}/dashboard/write/${s("postId")}`, "Edit your post"),
+          `Edit it: ${o.origin}/dashboard/write/${s("postId")}`,
+        ),
+      ]);
+    case "guest_scheduled":
+    case "interview_scheduled": {
+      const when = s("publishAt").slice(0, 10);
+      return compose(`"${title}" goes live on ${when}`, "Share it when it's out.", [
+        part(system("[Scheduled]"), "[Scheduled]"),
+        part(
+          p(
+            `<strong>${escapeHtml(title)}</strong> publishes on the ReadLitRPG blog on ${escapeHtml(when)}. It will appear on your author page too.`,
+          ),
+          `${title} publishes on ${when}. It will appear on your author page too.`,
+        ),
+        dash,
+      ]);
+    }
+    case "guest_declined":
+      return compose(`About "${title}"`, "We won't publish this one.", [
+        part(p(`We won't publish <strong>${escapeHtml(title)}</strong>.`), `We won't publish ${title}.`),
+        ...(s("note") ? [part(p(escapeHtml(s("note"))), s("note"))] : []),
+        part(
+          muted("Reply to this email if you'd like to talk it through."),
+          "Reply to this email if you'd like to talk it through.",
+        ),
+      ]);
+    case "interview_invite":
+      return compose(
+        `An interview for ${s("title") || "your new book"}?`,
+        "Answer six questions; readers meet you before release.",
+        [
+          part(system("[Side quest offered]"), "[Side quest offered]"),
+          part(
+            p(
+              `Your book <strong>${escapeHtml(s("title"))}</strong> comes out on ${escapeHtml(s("releaseDate"))}. Answer at least six of our questions in your own words and we'll publish the interview the week before release.`,
+            ),
+            `${s("title")} comes out on ${s("releaseDate")}. Answer at least six questions and we'll publish the interview the week before release.`,
+          ),
+          part(
+            button(`${o.origin}/dashboard/interview/${s("interviewId")}`, "Answer the questions"),
+            `Answer: ${o.origin}/dashboard/interview/${s("interviewId")}`,
+          ),
+        ],
+      );
+    case "interview_ready":
+      return compose("Your interview is ready to approve", "Check it, then approve or change your answers.", [
+        part(
+          p(
+            `We put your answers in order and wrote a headline: <strong>${escapeHtml(s("headline"))}</strong>. We only fixed typos.`,
+          ),
+          `Headline: ${s("headline")}. We only fixed typos.`,
+        ),
+        part(
+          button(`${o.origin}/dashboard/interview/${s("interviewId")}`, "Review and approve"),
+          `Review: ${o.origin}/dashboard/interview/${s("interviewId")}`,
+        ),
+      ]);
   }
 }
 
