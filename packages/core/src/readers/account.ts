@@ -6,6 +6,11 @@ import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "../db";
 import {
   appraisals,
+  authorMembers,
+  authorNotices,
+  authorPastes,
+  authorSubmissions,
+  authors,
   bookMarks,
   books,
   dataExports,
@@ -19,9 +24,11 @@ import {
   passkeys,
   quizTakes,
   readerProfiles,
+  releaseAsks,
   savedQueries,
   sessions,
   users,
+  verificationRequests,
   verifications,
 } from "../db/schema";
 import { ulid } from "../ids";
@@ -123,6 +130,26 @@ export async function buildExport(db: Db, userId: string) {
       createdAt: k.createdAt ? new Date(k.createdAt).toISOString() : null,
     })),
     libraryImports: imports,
+    authorProfiles: await db
+      .select({
+        name: authors.name,
+        slug: authors.slug,
+        role: authorMembers.role,
+        since: authorMembers.createdAt,
+      })
+      .from(authorMembers)
+      .innerJoin(authors, eq(authors.id, authorMembers.authorId))
+      .where(eq(authorMembers.userId, userId)),
+    authorSubmissions: (
+      await db
+        .select({
+          status: authorSubmissions.status,
+          payload: authorSubmissions.payload,
+          at: authorSubmissions.createdAt,
+        })
+        .from(authorSubmissions)
+        .where(eq(authorSubmissions.userId, userId))
+    ).map((s) => ({ status: s.status, title: (s.payload as { title?: string }).title ?? null, at: s.at })),
   };
 }
 
@@ -157,6 +184,14 @@ export async function deleteAccount(
     db.delete(quizTakes).where(eq(quizTakes.userId, userId)),
     db.delete(appraisals).where(eq(appraisals.userId, userId)),
     db.update(emailSends).set({ userId: null }).where(eq(emailSends.userId, userId)),
+    // Author profiles and their books are public catalog data and stay; the person's link to them
+    // goes. Submissions stay with the profile, without the person (M6).
+    db.delete(authorMembers).where(eq(authorMembers.userId, userId)),
+    db.delete(verificationRequests).where(eq(verificationRequests.userId, userId)),
+    db.delete(authorPastes).where(eq(authorPastes.userId, userId)),
+    db.delete(authorNotices).where(eq(authorNotices.userId, userId)),
+    db.update(authorSubmissions).set({ userId: null }).where(eq(authorSubmissions.userId, userId)),
+    db.update(releaseAsks).set({ answeredBy: null }).where(eq(releaseAsks.answeredBy, userId)),
     db.delete(verifications).where(eq(verifications.identifier, user.email)),
     db.delete(sessions).where(eq(sessions.userId, userId)),
     db.delete(users).where(eq(users.id, userId)),

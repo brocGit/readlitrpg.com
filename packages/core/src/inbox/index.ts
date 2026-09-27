@@ -6,6 +6,7 @@ import { and, desc, eq, inArray, lte } from "drizzle-orm";
 import type { Db } from "../db";
 import { type INBOX_RECOMMENDATIONS, type InboxStatus, inboxItems } from "../db/schema";
 import { ulid } from "../ids";
+import type { Settings } from "../settings";
 import { nowIso } from "../time";
 
 export type InboxItem = typeof inboxItems.$inferSelect;
@@ -102,32 +103,92 @@ export async function getInboxItem(db: Db, id: string): Promise<InboxItem | null
 /**
  * Items whose default action needs no side effect: the change is already live and the item only
  * asks the owner to look (e.g. a low-confidence tag check). Their default closes the item.
- * Types with side effects register handlers as they arrive (M6–M7).
  */
 export const CLOSE_ONLY_DEFAULT_TYPES: ReadonlySet<string> = new Set(["tag_check", "scope_check"]);
 
+export interface InboxDecisionContext {
+  decidedBy: string;
+  note?: string;
+  now: Date;
+  settings: Settings;
+}
+
+/** What approving or rejecting an item of one type does (e.g. publish a listing). */
+export interface InboxHandler {
+  approve?(db: Db, item: InboxItem, ctx: InboxDecisionContext): Promise<void>;
+  reject?(db: Db, item: InboxItem, ctx: InboxDecisionContext): Promise<void>;
+}
+
+/**
+ * Decide an item: run its handler's side effect, then close it. Handlers are idempotent, so an
+ * item decided twice at once (a click racing the default) does its work once in effect.
+ */
+export async function decideWithHandler(
+  db: Db,
+  item: InboxItem,
+  decision: "approve" | "reject",
+  handlers: Record<string, InboxHandler>,
+  ctx: InboxDecisionContext,
+  status?: Exclude<InboxStatus, "open" | "snoozed">,
+): Promise<boolean> {
+  if (!OPEN_STATUSES.includes(item.status as InboxStatus)) return false;
+  await handlers[item.type]?.[decision]?.(db, item, ctx);
+  return decideInboxItem(db, item.id, {
+    status: status ?? (decision === "approve" ? "approved" : "rejected"),
+    decidedBy: ctx.decidedBy,
+    note: ctx.note,
+    reasonCode: status?.startsWith("auto_") ? "default_action" : undefined,
+  });
+}
+
 /** Run due default actions (DESIGN §7.9: every heartbeat). Returns how many items were closed. */
-export async function runInboxDefaults(db: Db, now = new Date()): Promise<number> {
+export async function runInboxDefaults(
+  db: Db,
+  now = new Date(),
+  opts: { handlers?: Record<string, InboxHandler>; settings?: Settings } = {},
+): Promise<number> {
+  const handlers = opts.handlers ?? {};
+  const types = [...new Set([...CLOSE_ONLY_DEFAULT_TYPES, ...Object.keys(handlers)])];
   const due = await db
     .select()
     .from(inboxItems)
     .where(
       and(
         eq(inboxItems.status, "open"),
-        inArray(inboxItems.type, [...CLOSE_ONLY_DEFAULT_TYPES]),
+        inArray(inboxItems.type, types),
         lte(inboxItems.defaultActionAt, now.toISOString()),
       ),
     )
     .limit(100);
   let closed = 0;
   for (const item of due) {
+    if (item.defaultAction === "none" || !item.defaultAction) continue;
+    const decision = item.defaultAction === "reject" ? "reject" : "approve";
     const status =
       item.defaultAction === "approve"
         ? "auto_approved"
         : item.defaultAction === "reject"
           ? "auto_rejected"
           : "expired";
-    if (item.defaultAction === "none") continue;
+    if (handlers[item.type] && opts.settings && item.defaultAction !== "expire") {
+      if (
+        await decideWithHandler(
+          db,
+          item,
+          decision,
+          handlers,
+          {
+            decidedBy: "system:default_action",
+            now,
+            settings: opts.settings,
+          },
+          status,
+        )
+      )
+        closed++;
+      continue;
+    }
+    if (!CLOSE_ONLY_DEFAULT_TYPES.has(item.type)) continue;
     if (
       await decideInboxItem(db, item.id, {
         status,

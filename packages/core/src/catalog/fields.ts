@@ -8,6 +8,7 @@ import { AI_USE, bookFieldSources, books, type FieldSource, HAREM, IN_SCOPE, PUB
 import { ulid } from "../ids";
 import { CONTENT_FLAGS, GENRE_SLUGS } from "../taxonomy";
 import { nowIso } from "../time";
+import { recordBookChange } from "./changes";
 import { type PreciseDate, titleKey } from "./normalize";
 import { BOOK_FIELD_CLASSES, type BookField, resolveField, type SourcedValue } from "./provenance";
 
@@ -134,7 +135,17 @@ export async function writeBookFields(
   }
   if (inserts.length === 0) return [];
   await db.insert(bookFieldSources).values(inserts);
-  return applyResolved(db, bookId, [...new Set(inserts.map((r) => r.field as BookField))], existing);
+  const diff: Record<string, { from: unknown; to: unknown }> = {};
+  const changed = await applyResolved(
+    db,
+    bookId,
+    [...new Set(inserts.map((r) => r.field as BookField))],
+    existing,
+    diff,
+  );
+  // Authors hear about changes they didn't make (§10.4).
+  await recordBookChange(db, bookId, ctx.source, changed, diff);
+  return changed;
 }
 
 /** Recompute every provenance-backed field on a book (after a merge, or a precedence change). */
@@ -148,6 +159,7 @@ async function applyResolved(
   bookId: string,
   fields: BookField[],
   sources: Map<BookField, SourcedValue[]>,
+  diff?: Record<string, { from: unknown; to: unknown }>,
 ): Promise<BookField[]> {
   const [current] = await db.select().from(books).where(eq(books.id, bookId));
   if (!current) return [];
@@ -160,6 +172,7 @@ async function applyResolved(
       if (col === "title" && (value === null || value === undefined)) continue;
       if (JSON.stringify((current as Record<string, unknown>)[col]) !== JSON.stringify(value)) {
         (patch as Record<string, unknown>)[col] = value;
+        if (diff) diff[col] = { from: (current as Record<string, unknown>)[col] ?? null, to: value ?? null };
         if (!changed.includes(field)) changed.push(field);
       }
     }

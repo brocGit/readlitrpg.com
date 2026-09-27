@@ -7,6 +7,7 @@ import type { Db } from "../db";
 import { bookScores } from "../db/schema";
 import { DIAL_KEYS, STAT_KEYS, STATS } from "../taxonomy";
 import { nowIso } from "../time";
+import { recordBookChange } from "./changes";
 
 export interface ScoreEvidence {
   aiValue: number | null;
@@ -148,6 +149,79 @@ export async function writeAiScores(
         }),
     );
   }
-  if (statements.length) await db.batch(statements as [(typeof statements)[number], ...typeof statements]);
+  if (statements.length) {
+    await db.batch(statements as [(typeof statements)[number], ...typeof statements]);
+    await recordBookChange(db, bookId, "ai", ["scores"]);
+  }
+  return statements.length;
+}
+
+/**
+ * An author's optional dial sliders (§6.6, §10.3): they nudge the AI's estimate and never decide.
+ * Authors can't set book stats (§6.7), so only dial keys are accepted.
+ */
+export async function writeAuthorDials(
+  db: Db,
+  bookId: string,
+  dials: { key: string; value: number }[],
+  minAppraisals: number,
+): Promise<number> {
+  const valid = dials.filter((d) => DIAL_KEYS.has(d.key) && d.value >= 0 && d.value <= 10);
+  if (valid.length === 0) return 0;
+  const existing = await db
+    .select()
+    .from(bookScores)
+    .where(
+      and(
+        eq(bookScores.bookId, bookId),
+        inArray(
+          bookScores.key,
+          valid.map((d) => d.key),
+        ),
+      ),
+    );
+  const byKey = new Map(existing.map((r) => [r.key, r]));
+  const now = nowIso();
+  const statements = valid.map((d) => {
+    const row = byKey.get(d.key);
+    const evidence: ScoreEvidence = {
+      aiValue: row?.aiValue ?? null,
+      aiConfidence: row?.aiConfidence ?? null,
+      authorValue: Math.round(d.value * 10) / 10,
+      crowdMean: row?.crowdMean ?? null,
+      crowdN: row?.crowdN ?? 0,
+    };
+    const locked = row?.adminLocked ?? false;
+    const resolved = locked ? { value: row?.value ?? null, confidence: 1 } : resolveScore(evidence);
+    const values = {
+      bookId,
+      key: d.key,
+      kind: "dial" as const,
+      value: resolved.value,
+      confidence: resolved.confidence,
+      aiValue: evidence.aiValue,
+      aiConfidence: evidence.aiConfidence,
+      authorValue: evidence.authorValue,
+      crowdMean: evidence.crowdMean,
+      crowdN: evidence.crowdN,
+      adminLocked: locked,
+      public: locked || isScorePublic("dial", d.key, resolved, evidence.crowdN, minAppraisals),
+      updatedAt: now,
+    };
+    return db
+      .insert(bookScores)
+      .values(values)
+      .onConflictDoUpdate({
+        target: [bookScores.bookId, bookScores.key],
+        set: {
+          value: values.value,
+          confidence: values.confidence,
+          authorValue: values.authorValue,
+          public: values.public,
+          updatedAt: now,
+        },
+      });
+  });
+  await db.batch(statements as [(typeof statements)[number], ...typeof statements]);
   return statements.length;
 }

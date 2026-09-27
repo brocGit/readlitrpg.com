@@ -4,6 +4,7 @@ import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import type { Db } from "../db";
 import { bookTags, type FieldSource, tags } from "../db/schema";
 import { nowIso } from "../time";
+import { recordBookChange } from "./changes";
 import { resolveTagScore } from "./provenance";
 
 export interface TagWrite {
@@ -99,7 +100,9 @@ export async function writeBookTags(
     );
   }
   if (statements.length) await db.batch(statements as [(typeof statements)[number], ...typeof statements]);
-  return { written: slugs.filter((s) => idBySlug.has(s)), unknown };
+  const written = slugs.filter((s) => idBySlug.has(s));
+  if (written.length) await recordBookChange(db, bookId, source, ["tags"], { tags: written });
+  return { written, unknown };
 }
 
 /**

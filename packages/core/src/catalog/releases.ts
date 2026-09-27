@@ -1,11 +1,12 @@
 // Release dates (DESIGN §9.4): one live row per book, kind and region. A new date moves the row and
 // remembers the old one, so pages can say "Delayed from …" instead of silently changing.
 
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, ne } from "drizzle-orm";
 import type { Db } from "../db";
 import { RELEASE_KINDS, releases } from "../db/schema";
 import { ulid } from "../ids";
 import { nowIso } from "../time";
+import { recordBookChange } from "./changes";
 import { parseDate } from "./normalize";
 
 export class ReleaseError extends Error {}
@@ -61,6 +62,7 @@ export async function setRelease(
       createdAt: stamp,
       updatedAt: stamp,
     });
+    await notifyAuthors(db, bookId, by, input.kind, d.date, null);
     return { id, change: "added", previousDate: null };
   }
   if (current.date === d.date && current.datePrecision === d.precision) {
@@ -96,7 +98,21 @@ export async function setRelease(
       updatedAt: stamp,
     })
     .where(eq(releases.id, current.id));
+  await notifyAuthors(db, bookId, by, input.kind, d.date, current.date);
   return { id: current.id, change: "moved", previousDate: slipped ? current.date : current.previousDate };
+}
+
+/** Dates set by the owner, an API or a run are news to the book's authors (§10.4). */
+async function notifyAuthors(
+  db: Db,
+  bookId: string,
+  by: ReleaseSource,
+  kind: string,
+  date: string | null,
+  from: string | null,
+) {
+  if (by === "author" || by === "publisher") return;
+  await recordBookChange(db, bookId, by, ["release"], { kind, from, to: date });
 }
 
 export async function cancelRelease(db: Db, bookId: string, releaseId: string): Promise<boolean> {
@@ -106,4 +122,24 @@ export async function cancelRelease(db: Db, bookId: string, releaseId: string): 
     .where(and(eq(releases.id, releaseId), eq(releases.bookId, bookId)))
     .returning({ id: releases.id });
   return rows.length === 1;
+}
+
+/**
+ * Release rollover (DESIGN §7.7): a dated release whose day has come is out. US releases roll over
+ * by New York's date, so a book out "today" in the US isn't marked released early in the evening.
+ */
+export async function rolloverReleases(db: Db, now = new Date()): Promise<number> {
+  const newYork = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(now);
+  const rows = await db
+    .update(releases)
+    .set({ status: "released", updatedAt: nowIso(now) })
+    .where(
+      and(
+        inArray(releases.status, ["scheduled", "confirmed", "slipped"]),
+        eq(releases.datePrecision, "day"),
+        lte(releases.date, newYork),
+      ),
+    )
+    .returning({ id: releases.id });
+  return rows.length;
 }

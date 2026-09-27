@@ -49,6 +49,12 @@ export const BACKUP_TABLES = [
   "suppressions",
   "email_sequences",
   "newsletter_issues",
+  // Authors (M6).
+  "author_members",
+  "verification_requests",
+  "author_submissions",
+  "change_notifications",
+  "release_asks",
   // Analytics Engine keeps 90 days; these daily totals are the long-term record.
   "page_views_daily",
   "referrers_daily",
@@ -70,4 +76,8 @@ export const BACKUP_EXCLUDED = [
   "library_import_rows",
   "data_exports",
   "email_sends",
+  // Pasted text waits only until an editorial run has turned it into drafts, and notices only
+  // until they're emailed (M6).
+  "author_pastes",
+  "author_notices",
 ] as const;

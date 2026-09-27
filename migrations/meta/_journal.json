@@ -64,6 +64,13 @@
       "when": 1790530331917,
       "tag": "0008_readers_and_email",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790536550400,
+      "tag": "0009_authors",
+      "breakpoints": true
     }
   ]
 }

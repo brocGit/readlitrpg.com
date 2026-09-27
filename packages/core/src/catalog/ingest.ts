@@ -58,6 +58,11 @@ export interface IngestContext {
   confirmation?: { source: ConfirmationSource; ref?: string; evidence?: unknown };
   fuzzyMin: number;
   crowdMinVotes: number;
+  /**
+   * The first author is this profile, not whichever profile shares the name: an author submitting
+   * their own book (M6) must never attach it to a namesake.
+   */
+  pinnedAuthorId?: string;
 }
 
 export interface IngestResult {
@@ -82,7 +87,11 @@ export async function ingestBook(db: Db, input: BookInput, ctx: IngestContext): 
 
   // Authors and series.
   const authorIds: string[] = [];
-  for (const a of input.authors) {
+  for (const [i, a] of input.authors.entries()) {
+    if (i === 0 && ctx.pinnedAuthorId) {
+      authorIds.push(ctx.pinnedAuthorId);
+      continue;
+    }
     const r = await findOrCreateAuthor(db, a.name, ctx.origin);
     if (r.warning) warnings.push(r.warning);
     if (!authorIds.includes(r.id)) authorIds.push(r.id);
