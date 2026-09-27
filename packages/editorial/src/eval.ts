@@ -3,7 +3,7 @@
 // The gate protects what readers rely on most: exclusion filters never get worse.
 
 import { type ClassifyProposal, validateProposal } from "@rlr/core/editorial";
-import { DIALS, FACETS, getTag, TAGS } from "@rlr/core/taxonomy";
+import { crunchLevelFromDial, DIALS, FACETS, getTag, romanceLevelFromDial, TAGS } from "@rlr/core/taxonomy";
 import { z } from "zod";
 
 export const goldenEntrySchema = z.object({
@@ -61,6 +61,16 @@ export function lintGolden(entries: GoldenEntry[]): string[] {
       if (!dialKeys.has(key)) problems.push(`${e.id}: unknown dial ${key}`);
     if (e.labels.harem !== "none" && e.labels.romance_level === 0)
       problems.push(`${e.id}: harem with romance 0`);
+    const crunch = e.labels.dials.crunch;
+    if (crunch !== undefined && crunchLevelFromDial(crunch) !== e.labels.crunch_level) {
+      problems.push(`${e.id}: crunch dial ${crunch} disagrees with crunch_level ${e.labels.crunch_level}`);
+    }
+    const romance = e.labels.dials.romance;
+    if (romance !== undefined && romanceLevelFromDial(romance) !== e.labels.romance_level) {
+      problems.push(
+        `${e.id}: romance dial ${romance} disagrees with romance_level ${e.labels.romance_level}`,
+      );
+    }
   }
   return problems;
 }

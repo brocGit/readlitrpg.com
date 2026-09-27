@@ -168,7 +168,38 @@ export function applyResolutions(
     }
     e.labels.tags.sort();
     e.labels.content_flags.sort();
+    snapLevelDials(e);
     return e;
   });
   return { golden, open };
+}
+
+const CRUNCH_BUCKETS: Record<number, [number, number]> = { 0: [0, 1], 1: [2, 4], 2: [5, 7], 3: [8, 10] };
+const ROMANCE_BUCKETS: Record<number, [number, number]> = {
+  0: [0, 0],
+  1: [1, 2],
+  2: [3, 5],
+  3: [6, 8],
+  4: [9, 10],
+};
+
+/**
+ * Averaged dials can land outside the bucket of an agreed or adjudicated level. The level wins,
+ * and the dial moves to the nearest value inside its bucket, so levels and dials never disagree.
+ */
+export function snapLevelDials(e: GoldenEntry): void {
+  const pairs: [string, number, Record<number, [number, number]>][] = [
+    ["crunch", e.labels.crunch_level, CRUNCH_BUCKETS],
+    ["romance", e.labels.romance_level, ROMANCE_BUCKETS],
+  ];
+  for (const [key, level, buckets] of pairs) {
+    const v = e.labels.dials[key];
+    const bucket = buckets[level];
+    if (v === undefined || !bucket) continue;
+    const [lo, hi] = bucket;
+    if (v >= lo && v <= hi) continue;
+    const snapped = v < lo ? lo : hi;
+    e.labels.dials[key] = snapped;
+    e.evidence = { ...e.evidence, [`dial:${key}`]: `set to ${snapped} to agree with ${key}_level ${level}` };
+  }
 }
