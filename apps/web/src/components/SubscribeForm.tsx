@@ -99,7 +99,8 @@ export default function SubscribeForm({
       </button>
     );
 
-  const who = className ? `your ${className} reading list` : "your reading list";
+  // "your The Party Main reading list" reads badly: drop the article.
+  const who = className ? `your ${className.replace(/^the\s+/i, "")} reading list` : "your reading list";
   return (
     <form class="subscribe-form" onSubmit={submit}>
       <div class="field">

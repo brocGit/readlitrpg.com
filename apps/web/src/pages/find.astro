@@ -141,7 +141,7 @@ Astro.cache.set({ tags: ["find"] });
           </nav>
         )}
         {filtered && (
-          <SaveMatch client:visible kind="find" params={saveParams.toString()} siteKey={turnstileSiteKey()} defaultName={q.include[0] ? `New ${q.include[0]}` : "My search"} />
+          <SaveMatch client:idle kind="find" params={saveParams.toString()} siteKey={turnstileSiteKey()} defaultName={q.include[0] ? `New ${q.include[0]}` : "My search"} />
         )}
       </>
     )

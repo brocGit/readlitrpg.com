@@ -121,7 +121,9 @@ async function signUpWithPasskey({ page, hydrated }, email) {
   const link = (logs.match(/http:\/\/localhost:\d+\/signin\/confirm\S+/g) ?? []).at(-1);
   await page.goto(link);
   await page.click('button:has-text("Yes, sign me in")');
-  await page.waitForURL((u) => u.pathname === "/account");
+  // New readers land on onboarding (M5), returning ones on their account; passkeys are added there.
+  await page.waitForURL((u) => u.pathname === "/welcome" || u.pathname === "/account");
+  await page.goto(`${WEB}/account`);
   await hydrated();
   await page.click('button:has-text("Add a passkey")');
   await page.waitForSelector("li:has-text('added')");

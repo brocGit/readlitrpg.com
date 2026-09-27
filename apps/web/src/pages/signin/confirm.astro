@@ -10,7 +10,7 @@ const newUserNext = safeRedirectPath(Astro.url.searchParams.get("new"), next);
 const masked = (Astro.url.searchParams.get("e") ?? "").slice(0, 120);
 const valid = /^[A-Za-z0-9_-]{16,256}$/.test(token);
 
-Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Referrer-Policy", "same-origin");
 Astro.response.headers.set("Cache-Control", "private, no-store");
 ---
 

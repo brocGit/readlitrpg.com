@@ -7,7 +7,11 @@ import "@rlr/ui/base.css";
 interface Props {
   title: string;
   description?: string;
-  /** Pages that carry one-time tokens in the URL must not leak them via Referer. */
+  /**
+   * Pages that carry one-time tokens in the URL must not leak them to other sites via Referer.
+   * "same-origin", not "no-referrer": the latter makes browsers send `Origin: null` on the page's own
+   * form posts, which the origin check refuses.
+   */
   noReferrer?: boolean;
   /** Personal or parameter pages (shared results, searches) stay out of search engines. */
   noIndex?: boolean;
@@ -41,7 +45,7 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
-    {noReferrer && <meta name="referrer" content="no-referrer" />}
+    {noReferrer && <meta name="referrer" content="same-origin" />}
     {noIndex && <meta name="robots" content="noindex, follow" />}
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />

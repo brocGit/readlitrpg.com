@@ -59,7 +59,7 @@ jobs:
         run: pnpm audit --prod --audit-level high
 
   e2e:
-    name: Browser sign-in flows
+    name: Browser flows
     needs: check
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -81,7 +81,7 @@ jobs:
           (cd apps/web && pnpm exec astro preview --port 4321 &)
           sleep 8
           (cd apps/admin && pnpm exec astro preview --port 4322 &)
-          (cd apps/jobs && pnpm exec wrangler dev --persist-to ../../.wrangler/state --port 8788 --inspector-port 9231 > /tmp/jobs.log 2>&1 &)
+          (cd apps/jobs && pnpm exec wrangler dev --test-scheduled --persist-to ../../.wrangler/state --port 8788 --inspector-port 9231 > /tmp/jobs.log 2>&1 &)
           for i in $(seq 1 60); do
             curl -sf http://localhost:4321/healthz && curl -sf http://localhost:4322/healthz && exit 0
             sleep 1
@@ -96,3 +96,10 @@ jobs:
         env:
           CHROMIUM_PATH: /usr/bin/google-chrome
           E2E_JOBS: "1"
+      # After the console run, so there are published books to mark and follow.
+      - name: Reader journey (subscribe, onboarding, follows, email, export, delete)
+        run: pnpm --filter @rlr/web run e2e:reader
+        env:
+          CHROMIUM_PATH: /usr/bin/google-chrome
+          E2E_JOBS: "1"
+          E2E_JOBS_URL: http://localhost:8788

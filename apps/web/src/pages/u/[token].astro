@@ -23,7 +23,7 @@ if (Astro.request.method === "POST" && userId) {
     return new Response("Unsubscribed", { status: 200, headers: { "content-type": "text/plain" } });
 }
 Astro.response.headers.set("Cache-Control", "private, no-store");
-Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Referrer-Policy", "same-origin");
 ---
 
 <Base title="Unsubscribe" noIndex noReferrer>

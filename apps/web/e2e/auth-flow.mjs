@@ -80,9 +80,14 @@ try {
   );
 
   await page.click('button:has-text("Yes, sign me in")');
-  await page.waitForURL((u) => u.pathname === "/account");
-  check(await page.isVisible("text=New character created"), "new readers land on the welcome screen");
+  await page.waitForURL((u) => u.pathname === "/welcome");
+  check(await page.isVisible("text=New character created"), "new readers land on onboarding");
+  check(
+    await page.isVisible("text=How should we learn your taste?"),
+    "onboarding offers ways to learn their taste",
+  );
 
+  await page.goto(`${BASE}/account`);
   await hydrated();
   await page.click('button:has-text("Add a passkey")');
   await page.waitForSelector("li:has-text('added')");

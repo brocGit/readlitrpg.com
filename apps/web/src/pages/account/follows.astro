@@ -23,7 +23,7 @@ const TYPE_LABEL: Record<string, string> = {
   book: "Book",
   publisher: "Publisher",
 };
-Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Referrer-Policy", "same-origin");
 ---
 
 <Base title="Following" noIndex noReferrer>

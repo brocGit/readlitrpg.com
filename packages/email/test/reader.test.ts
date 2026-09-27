@@ -35,6 +35,9 @@ describe("reader templates", () => {
     expect(listOnly.subject).toContain("Tank reading list");
     expect(listOnly.text).toContain("Just the list");
     expect(listOnly.text).toContain("https://readlitrpg.com/subscribe/confirm?t=x");
+    expect(renderConfirm({ url: "https://x", className: "The Party Main", listOnly: false }).subject).toBe(
+      "Confirm to get your Party Main reading list",
+    );
     const weekly = renderConfirm({ url: "https://readlitrpg.com/subscribe/confirm?t=x", listOnly: false });
     expect(weekly.subject).toBe("Confirm your ReadLitRPG subscription");
     expect(weekly.text).toContain("Patch Notes");

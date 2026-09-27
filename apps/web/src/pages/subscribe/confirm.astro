@@ -8,7 +8,7 @@ const t = Astro.url.searchParams.get("t") ?? "";
 const p = Astro.url.searchParams.get("p") ?? "";
 const valid = /^[A-Za-z0-9_-]{20,100}$/.test(t);
 const linkError = Astro.url.searchParams.get("error") === "link";
-Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Referrer-Policy", "same-origin");
 Astro.response.headers.set("Cache-Control", "private, no-store");
 ---
 

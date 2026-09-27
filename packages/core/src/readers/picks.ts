@@ -75,7 +75,10 @@ export async function picksFor(
       .slice(0, opts.limit);
   } else {
     const r = match(m, p, opts.options);
-    chosen = [...r.bestBets, ...r.more].slice(0, opts.limit);
+    const all = [...r.bestBets, ...r.more];
+    // Real matches only; with none (a thin profile or catalog), the three best rather than nothing.
+    const matches = all.filter((s) => s.isMatch);
+    chosen = (matches.length ? matches : all.slice(0, 3)).slice(0, opts.limit);
   }
   if (chosen.length === 0) return [];
   const cards = await bookCards(db, [

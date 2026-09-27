@@ -11,7 +11,8 @@
     "cf-typegen": "wrangler types",
     "typecheck": "astro sync && tsc -p tsconfig.json",
     "test": "vitest run",
-    "e2e": "node e2e/auth-flow.mjs"
+    "e2e": "node e2e/auth-flow.mjs",
+    "e2e:reader": "node e2e/reader-flow.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "14.3.3",

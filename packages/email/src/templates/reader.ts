@@ -113,17 +113,20 @@ function compose(opts: {
 
 const block = (html: string, text: string) => ({ html, text });
 
+/** "your The Party Main reading list" reads badly: drop a leading article after "your". */
+export const yourClass = (className: string) => className.replace(/^the\s+/i, "");
+
 // ---------------------------------------------------------------------------------------------
 // E0: confirm the subscription (double opt-in)
 
 export function renderConfirm(o: { url: string; className?: string | null; listOnly: boolean }): Rendered {
   const subject = o.className
-    ? `Confirm to get your ${o.className} reading list`
+    ? `Confirm to get your ${yourClass(o.className)} reading list`
     : "Confirm your ReadLitRPG subscription";
   const what = o.className
     ? o.listOnly
-      ? `Confirm and we'll send your ${o.className} reading list. Just the list: no weekly email.`
-      : `Confirm and we'll send your ${o.className} reading list, then a weekly email of new matches for your taste.`
+      ? `Confirm and we'll send your ${yourClass(o.className)} reading list. Just the list: no weekly email.`
+      : `Confirm and we'll send your ${yourClass(o.className)} reading list, then a weekly email of new matches for your taste.`
     : "Confirm and we'll send Patch Notes, a weekly email of new LitRPG matches for your taste.";
   return compose({
     subject,
@@ -155,7 +158,9 @@ export function renderWelcome1(o: {
   const who = o.className ?? "you";
   const total = o.best.length + o.more.length;
   return compose({
-    subject: o.className ? `Your ${o.className} reading list is here` : "Your reading list is here",
+    subject: o.className
+      ? `Your ${yourClass(o.className)} reading list is here`
+      : "Your reading list is here",
     preheader: `${total} books picked for your profile, not just your class.`,
     footer: o.footer,
     footerText: "ReadLitRPG: a free discovery engine for LitRPG and progression fantasy.",
