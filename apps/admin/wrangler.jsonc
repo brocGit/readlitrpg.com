@@ -14,6 +14,8 @@
   "vars": {
     "ENVIRONMENT": "production",
     "PUBLIC_ORIGIN": "https://admin.readlitrpg.com",
+    // The public site, for links in posts and previews.
+    "SITE_ORIGIN": "https://readlitrpg.com",
     "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com",
     "RP_ID": "readlitrpg.com",
     "ACCESS_TEAM_DOMAIN": "https://readlitrpg.cloudflareaccess.com",

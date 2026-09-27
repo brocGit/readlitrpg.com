@@ -1,6 +1,7 @@
 # Copy to .dev.vars for local development. Never commit .dev.vars.
 ENVIRONMENT=local
 PUBLIC_ORIGIN=http://localhost:4322
+SITE_ORIGIN=http://localhost:4321
 PUBLIC_MEDIA_ORIGIN=http://localhost:4321/media
 RP_ID=localhost
 ADMIN_AUTH_SECRET=local-dev-only-admin-secret-not-for-production-00

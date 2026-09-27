@@ -1,0 +1,267 @@
+---
+import {
+  claimNextSlot,
+  getPost,
+  lineDiff,
+  listRevisions,
+  POST_TYPE_LABEL,
+  PostError,
+  postPath,
+  publishPost,
+  releaseSlots,
+  renderBody,
+  restoreRevision,
+  SlotError,
+  setPostStatus,
+  slotKindFor,
+  updatePost,
+  wordCount,
+} from "@rlr/core/content";
+import { postBooks, postRevisions, posts } from "@rlr/core/schema";
+import { eq } from "drizzle-orm";
+import Console from "../../layouts/Console.astro";
+import { postPatchFromForm, readPostForm, STATUS_LABEL, sourcesText } from "../../lib/blog";
+import { audit, flash } from "../../lib/forms";
+import { getDb, renderEnv } from "../../lib/runtime";
+
+// The editor (DESIGN §14.7): markdown with shortcodes, a server-rendered preview, revisions with
+// a diff and restore, and publishing now, at a time, or in the next calendar slot.
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const id = Astro.params.id ?? "";
+const here = `/blog/${id}`;
+const post = await getPost(db, id);
+if (!post) return Astro.redirect(flash("/blog", "No such post.", "error"), 303);
+
+if (Astro.request.method === "POST") {
+  const form = await readPostForm(Astro.request);
+  const log = (action: string, diff?: unknown) =>
+    audit(admin, Astro.locals.requestId, { action, subjectType: "post", subjectId: id, diff });
+  const settings = await Astro.locals.settings();
+  try {
+    switch (form.action) {
+      case "save": {
+        await updatePost(db, id, postPatchFromForm(form), renderEnv(), admin.userId);
+        return Astro.redirect(flash(here, "Saved."), 303);
+      }
+      case "publish": {
+        await updatePost(db, id, postPatchFromForm(form), renderEnv(), admin.userId);
+        if (!(await publishPost(db, id)))
+          return Astro.redirect(flash(here, "It's already published.", "error"), 303);
+        await releaseSlots(db, id);
+        await log("post.publish", {
+          from: post.status,
+          undo: { kind: "post_status", postId: id, to: "unpublished" },
+        });
+        return Astro.redirect(flash(here, "Published."), 303);
+      }
+      case "schedule": {
+        const at = new Date(`${form.at ?? ""}:00Z`);
+        if (Number.isNaN(at.getTime()) || at.getTime() < Date.now())
+          return Astro.redirect(flash(here, "Pick a time in the future (UTC).", "error"), 303);
+        await updatePost(db, id, postPatchFromForm(form), renderEnv(), admin.userId);
+        await releaseSlots(db, id);
+        await setPostStatus(db, id, "scheduled", { publishAt: at.toISOString() });
+        await log("post.schedule", { at: at.toISOString(), from: post.status });
+        return Astro.redirect(
+          flash(here, `Scheduled for ${at.toISOString().slice(0, 16).replace("T", " ")} UTC.`),
+          303,
+        );
+      }
+      case "slot": {
+        const kind = slotKindFor(post.type) ?? "editorial";
+        await updatePost(db, id, postPatchFromForm(form), renderEnv(), admin.userId);
+        const at = await claimNextSlot(db, id, kind, settings);
+        await setPostStatus(db, id, "scheduled", { publishAt: at });
+        await log("post.schedule", { at, slot: kind, from: post.status });
+        return Astro.redirect(
+          flash(here, `In the next ${kind} slot: ${at.slice(0, 16).replace("T", " ")} UTC.`),
+          303,
+        );
+      }
+      case "unpublish": {
+        await setPostStatus(db, id, "unpublished");
+        await releaseSlots(db, id);
+        await log("post.unpublish", {
+          from: post.status,
+          undo: { kind: "post_status", postId: id, to: post.status },
+        });
+        return Astro.redirect(flash(here, "Unpublished. The page is gone within half an hour."), 303);
+      }
+      case "restore": {
+        await restoreRevision(db, id, form.revision ?? "", renderEnv(), admin.userId);
+        await log("post.restore", { revision: form.revision });
+        return Astro.redirect(flash(here, "That version is back (and saved as a new revision)."), 303);
+      }
+      case "discard": {
+        if (!["idea", "drafting"].includes(post.status))
+          return Astro.redirect(
+            flash(here, "Only drafts can be discarded. Unpublish it instead.", "error"),
+            303,
+          );
+        await db.delete(postBooks).where(eq(postBooks.postId, id));
+        await db.delete(postRevisions).where(eq(postRevisions.postId, id));
+        await db.delete(posts).where(eq(posts.id, id));
+        await log("post.discard", { title: post.title });
+        return Astro.redirect(flash("/blog", "Draft discarded."), 303);
+      }
+    }
+  } catch (e) {
+    if (e instanceof PostError || e instanceof SlotError)
+      return Astro.redirect(flash(here, e.message, "error"), 303);
+    throw e;
+  }
+  return Astro.redirect(here, 303);
+}
+
+const [segments, revisions] = await Promise.all([renderBody(db, post.bodyHtml), listRevisions(db, id, 30)]);
+const diffWith = revisions.find((r) => r.id === Astro.url.searchParams.get("diff"));
+const diff = diffWith ? lineDiff(diffWith.bodyMd, post.bodyMd) : null;
+const site = renderEnv().origin;
+const slotted = slotKindFor(post.type);
+const words = wordCount(post.bodyMd);
+---
+
+<Console title={post.title}>
+  <p>
+    {POST_TYPE_LABEL[post.type]} · <strong>{STATUS_LABEL[post.status]}</strong>
+    {post.status === "scheduled" && post.publishAt && <> for {post.publishAt.slice(0, 16).replace("T", " ")} UTC</>}
+    {post.status === "published" && <> · <a href={`${site}${postPath(post)}`} rel="noopener">View on the site</a></>}
+    · {words} words · <a href="/blog">All posts</a>
+  </p>
+
+  <form method="post" class="editor">
+    <label>Title <input name="title" value={post.title} required maxlength="200" /></label>
+    <label>Dek (one-line summary) <input name="dek" value={post.dek ?? ""} maxlength="300" /></label>
+    <label>
+      Body (markdown)
+      <textarea name="body" rows="22">{post.bodyMd}</textarea>
+    </label>
+    <p class="muted small">
+      Shortcodes: <code>[[book:slug-or-id]]</code> alone on a line is a live book card, inside a sentence a link;
+      <code>[[series:…]]</code>, <code>[[author:…]]</code>, <code>[[releases tag="dungeon-core" month="2026-11"]]</code>,
+      <code>[[newsletter-signup]]</code>.
+    </p>
+    <details>
+      <summary>Byline, sources, SEO and labels</summary>
+      <label>Byline <input name="byline" value={post.bylineName ?? ""} maxlength="120" /></label>
+      <label>Sources (one per line: <code>https://… | title</code>; required for news)
+        <textarea name="sources" rows="3">{sourcesText(post.sources)}</textarea>
+      </label>
+      <label>SEO title <input name="seo_title" value={post.seoTitle ?? ""} maxlength="120" /></label>
+      <label>SEO description <input name="seo_description" value={post.seoDescription ?? ""} maxlength="300" /></label>
+      <label>Canonical URL (if first published elsewhere) <input name="canonical" value={post.canonicalUrl ?? ""} maxlength="500" /></label>
+      <label>How it was made <input name="disclosure" value={post.disclosure ?? ""} maxlength="200" /></label>
+      <label>AI involvement
+        <select name="ai">
+          {["none", "assisted", "generated"].map((a) => <option value={a} selected={post.aiInvolvement === a}>{a}</option>)}
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" name="noindex" checked={post.noindex} /> Keep out of search engines</label>
+    </details>
+    <p>
+      <button class="button" name="action" value="save" type="submit">Save</button>
+      {post.status !== "published" && <button class="button secondary" name="action" value="publish" type="submit">Save and publish now</button>}
+      {post.status !== "published" && slotted && <button class="button secondary" name="action" value="slot" type="submit">Save and take the next {slotted} slot</button>}
+      {post.status === "published" && <button class="button secondary" name="action" value="unpublish" type="submit" formnovalidate>Unpublish</button>}
+    </p>
+    {
+      post.status !== "published" && (
+        <p class="inline">
+          <label>Publish at (UTC) <input type="datetime-local" name="at" /></label>
+          <button class="button small secondary" name="action" value="schedule" type="submit">Schedule</button>
+        </p>
+      )
+    }
+  </form>
+
+  <section>
+    <h2>Preview</h2>
+    <div class="preview">
+      {
+        segments.map((s) =>
+          s.kind === "html" ? (
+            <div set:html={s.html} />
+          ) : s.kind === "book" ? (
+            <p class="card">Book card: <a href={`${site}/books/${s.book.slug}`} rel="noopener">{s.book.title}</a></p>
+          ) : s.kind === "releases" ? (
+            <p class="card">Release list: {s.title}: {s.releases.length} releases</p>
+          ) : s.kind === "newsletter" ? (
+            <p class="card">Patch Notes signup box</p>
+          ) : (
+            <p class="card">{s.kind}: {s.name}</p>
+          ),
+        )
+      }
+    </div>
+    <p class="muted small">Shortcodes that point at nothing public show nothing on the site.</p>
+  </section>
+
+  <section>
+    <h2>Revisions</h2>
+    {
+      diff && diffWith && (
+        <div class="diff">
+          <p>Changes since {diffWith.createdAt.slice(0, 16).replace("T", " ")}:</p>
+          <pre>{diff.filter((d) => d.op !== "same").map((d) => `${d.op === "add" ? "+ " : "- "}${d.line}`).join("\n") || "(no changes to the body)"}</pre>
+        </div>
+      )
+    }
+    <table>
+      <tbody>
+        {
+          revisions.map((r) => (
+            <tr>
+              <td>{r.createdAt.slice(0, 16).replace("T", " ")}</td>
+              <td>{r.title}</td>
+              <td><a href={`${here}?diff=${r.id}`}>Compare with now</a></td>
+              <td>
+                <form method="post" class="inline">
+                  <input type="hidden" name="revision" value={r.id} />
+                  <button class="button small secondary" name="action" value="restore" type="submit">Restore</button>
+                </form>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </section>
+
+  {
+    ["idea", "drafting"].includes(post.status) && (
+      <form method="post">
+        <button class="button small secondary" name="action" value="discard" type="submit">Discard this draft</button>
+      </form>
+    )
+  }
+</Console>
+
+<style>
+  .editor label {
+    display: block;
+    margin-bottom: var(--space-3);
+  }
+  .editor input:not([type="checkbox"]),
+  .editor textarea,
+  .editor select {
+    display: block;
+    width: 100%;
+    font: inherit;
+  }
+  .editor textarea {
+    font-family: var(--font-system);
+    font-size: 0.9rem;
+  }
+  .preview {
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    padding: var(--space-4);
+    max-width: 44rem;
+  }
+  .card {
+    border: 1px dashed var(--color-line);
+    padding: var(--space-2);
+  }
+</style>

@@ -1,0 +1,100 @@
+---
+import { createPost, POST_TYPE_LABEL, PostError, postPath } from "@rlr/core/content";
+import { POST_STATUSES, POST_TYPES, posts } from "@rlr/core/schema";
+import { and, desc, eq, type SQL } from "drizzle-orm";
+import Console from "../../layouts/Console.astro";
+import { STATUS_LABEL } from "../../lib/blog";
+import { audit, flash, readForm } from "../../lib/forms";
+import { getDb, renderEnv } from "../../lib/runtime";
+
+// Every post (DESIGN §8.5 Blog): filter by status and type, start a new one.
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  const type = form.type === "ai_editorial" ? "ai_editorial" : form.type === "news" ? "news" : "owner";
+  try {
+    const post = await createPost(
+      db,
+      {
+        type,
+        title: form.title ?? "",
+        createdBy: admin.userId,
+        bylineName: type === "owner" ? "ReadLitRPG" : null,
+      },
+      renderEnv(),
+    );
+    await audit(admin, Astro.locals.requestId, {
+      action: "post.create",
+      subjectType: "post",
+      subjectId: post.id,
+      diff: { type, title: post.title },
+    });
+    return Astro.redirect(`/blog/${post.id}`, 303);
+  } catch (e) {
+    if (e instanceof PostError) return Astro.redirect(flash("/blog", e.message, "error"), 303);
+    throw e;
+  }
+}
+
+const status = POST_STATUSES.find((s) => s === Astro.url.searchParams.get("status"));
+const type = POST_TYPES.find((t) => t === Astro.url.searchParams.get("type"));
+const where: SQL[] = [];
+if (status) where.push(eq(posts.status, status));
+if (type) where.push(eq(posts.type, type));
+const rows = await db
+  .select({
+    id: posts.id,
+    title: posts.title,
+    type: posts.type,
+    slug: posts.slug,
+    genKey: posts.genKey,
+    status: posts.status,
+    publishAt: posts.publishAt,
+    publishedAt: posts.publishedAt,
+    updatedAt: posts.updatedAt,
+  })
+  .from(posts)
+  .where(where.length ? and(...where) : undefined)
+  .orderBy(desc(posts.updatedAt))
+  .limit(100);
+const site = renderEnv().origin;
+---
+
+<Console title="Blog">
+  <p>
+    <a href="/blog/calendar">Editorial calendar</a> ·
+    Filter: <a href="/blog">all</a>
+    {["in_review", "approved", "scheduled", "published", "drafting"].map((s) => <> · <a href={`/blog?status=${s}`}>{STATUS_LABEL[s]}</a></>)}
+  </p>
+  <form method="post" class="inline">
+    <input name="title" required maxlength="200" placeholder="Title of a new post" aria-label="Title" />
+    <select name="type" aria-label="Type">
+      <option value="owner">Post by you</option>
+      <option value="ai_editorial">Guide</option>
+      <option value="news">News brief</option>
+    </select>
+    <button class="button small" type="submit">Start writing</button>
+  </form>
+  <table>
+    <thead><tr><th>Post</th><th>Type</th><th>Status</th><th>When</th></tr></thead>
+    <tbody>
+      {
+        rows.map((p) => (
+          <tr>
+            <td>
+              <a href={`/blog/${p.id}`}>{p.title}</a>
+              {p.status === "published" && <> · <a href={`${site}${postPath(p)}`} rel="noopener">view</a></>}
+            </td>
+            <td>{POST_TYPE_LABEL[p.type]}</td>
+            <td>{STATUS_LABEL[p.status]}</td>
+            <td class="muted">{(p.status === "published" ? p.publishedAt : p.status === "scheduled" ? p.publishAt : p.updatedAt)?.slice(0, 16).replace("T", " ")}</td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+  {rows.length === 0 && <p class="muted">No posts yet.</p>}
+</Console>

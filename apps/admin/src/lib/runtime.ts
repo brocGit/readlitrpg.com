@@ -31,3 +31,9 @@ export function getAuth(): AdminAuth {
 }
 
 export { env };
+
+/** Where links and images in rendered posts point: the public site, not the console. */
+export const renderEnv = () => ({
+  origin: (env.SITE_ORIGIN || "https://readlitrpg.com").replace(/\/$/, ""),
+  mediaOrigin: env.PUBLIC_MEDIA_ORIGIN.replace(/\/$/, ""),
+});

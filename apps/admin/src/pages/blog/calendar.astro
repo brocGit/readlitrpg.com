@@ -1,0 +1,89 @@
+---
+import { calendarEntries, moveToSlot, SlotError } from "@rlr/core/content";
+import { posts, SLOT_KINDS } from "@rlr/core/schema";
+import { desc, eq } from "drizzle-orm";
+import Console from "../../layouts/Console.astro";
+import { audit, flash, readForm } from "../../lib/forms";
+import { getDb } from "../../lib/runtime";
+
+// The editorial calendar (DESIGN §14.2): which approved post goes out on which day. Approved guest
+// posts, interviews and guides take the next open slot of their kind; move one by picking a date.
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const settings = await Astro.locals.settings();
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  const kind = SLOT_KINDS.find((k) => k === form.kind);
+  if (!kind) return Astro.redirect(flash("/blog/calendar", "Pick a slot kind.", "error"), 303);
+  try {
+    const at = await moveToSlot(db, form.post ?? "", kind, form.date ?? "", settings);
+    await db
+      .update(posts)
+      .set({ status: "scheduled" })
+      .where(eq(posts.id, form.post ?? ""));
+    await audit(admin, Astro.locals.requestId, {
+      action: "post.schedule",
+      subjectType: "post",
+      subjectId: form.post,
+      diff: { at, slot: kind, moved: true },
+    });
+    return Astro.redirect(flash("/blog/calendar", `Moved to ${form.date}.`), 303);
+  } catch (e) {
+    if (e instanceof SlotError) return Astro.redirect(flash("/blog/calendar", e.message, "error"), 303);
+    throw e;
+  }
+}
+
+const today = new Date().toISOString().slice(0, 10);
+const entries = await calendarEntries(db, today, 42);
+const days = Array.from(
+  { length: 42 },
+  (_, i) => new Date(Date.parse(`${today}T00:00:00Z`) + i * 86_400_000),
+);
+const WEEKDAY = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+const calendar = settings["blog.calendar"];
+const waiting = await db
+  .select({ id: posts.id, title: posts.title, type: posts.type })
+  .from(posts)
+  .where(eq(posts.status, "approved"))
+  .orderBy(desc(posts.updatedAt))
+  .limit(50);
+---
+
+<Console title="Editorial calendar">
+  <p class="muted">
+    Slots by weekday come from the <code>blog.calendar</code> setting; posts go out at
+    {settings["blog.publish_hour_utc"]}:00 UTC. Roundups, "Today in LitRPG" and news publish when they're built.
+  </p>
+  <table>
+    <thead><tr><th>Day</th><th>Slots</th><th>Scheduled</th></tr></thead>
+    <tbody>
+      {
+        days.map((d) => {
+          const date = d.toISOString().slice(0, 10);
+          const kinds = calendar[WEEKDAY[d.getUTCDay()] ?? "sun"] ?? [];
+          const here = entries.filter((e) => e.date === date);
+          return kinds.length || here.length ? (
+            <tr>
+              <td>{d.toUTCString().slice(0, 11)}</td>
+              <td class="muted">{kinds.join(", ") || "—"}</td>
+              <td>{here.map((e) => <div>{e.kind}: {e.postId ? <a href={`/blog/${e.postId}`}>{e.title}</a> : "—"}</div>)}</td>
+            </tr>
+          ) : null;
+        })
+      }
+    </tbody>
+  </table>
+  <h2>Move a post</h2>
+  <form method="post" class="inline">
+    <select name="post" aria-label="Post" required>
+      {entries.filter((e) => e.postId).map((e) => <option value={e.postId ?? ""}>{e.title} ({e.date})</option>)}
+      {waiting.map((p) => <option value={p.id}>{p.title} (approved, not scheduled)</option>)}
+    </select>
+    <select name="kind" aria-label="Slot">{SLOT_KINDS.map((k) => <option value={k}>{k}</option>)}</select>
+    <input type="date" name="date" required aria-label="Date" />
+    <button class="button small" type="submit">Move</button>
+  </form>
+</Console>

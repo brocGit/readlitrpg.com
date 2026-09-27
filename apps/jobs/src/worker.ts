@@ -5,11 +5,13 @@
 
 import { createLogger, type Logger, maskEmail, ulid } from "@rlr/core";
 import { AUTHOR_INBOX_HANDLERS } from "@rlr/core/authors";
+import { publishDuePosts } from "@rlr/core/content";
 import { createDb, type Db } from "@rlr/core/db";
 import { openInboxItem, runInboxDefaults } from "@rlr/core/inbox";
 import { publishDueQuizzes } from "@rlr/core/quiz";
 import { isSuppressed } from "@rlr/core/readers";
 import {
+  enqueueJob,
   finishJobRun,
   HEARTBEAT_KV_KEY,
   isJobKey,
@@ -112,6 +114,16 @@ export default {
       if (published.length) log.info("quiz.auto_published", { quizzes: published });
     } catch (error) {
       log.error("heartbeat.inbox_defaults_failed", { error });
+    }
+    // Scheduled posts go live on the tick after their time (DESIGN §14.2), then get their cards.
+    try {
+      const posts = await publishDuePosts(db, now);
+      if (posts.length) {
+        log.info("posts.published", { posts });
+        await enqueueJob(db, env.Q_JOBS, "og.render");
+      }
+    } catch (error) {
+      log.error("heartbeat.posts_failed", { error });
     }
     if (result.dispatched.length || result.failed.length || defaults)
       log.info("heartbeat", { ...result, defaults });
