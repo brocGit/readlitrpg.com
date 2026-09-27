@@ -76,6 +76,15 @@ function common(opts: CommonOptions, db: Db) {
               .select({ state: users.state })
               .from(users)
               .where(eq(users.id, session.userId));
+            // A newsletter-only reader (M5) who signs in has proved the address: they get a full
+            // account. Admin sign-in never sees one: admins are active users.
+            if (user?.state === "subscriber") {
+              await db
+                .update(users)
+                .set({ state: "active", emailVerified: true })
+                .where(eq(users.id, session.userId));
+              return;
+            }
             if (user?.state !== "active") throw new APIError("FORBIDDEN", { message: "Account unavailable" });
           },
         },

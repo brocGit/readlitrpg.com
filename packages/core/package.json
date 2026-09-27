@@ -19,6 +19,7 @@
     "./policy": "./src/policy/index.ts",
     "./quiz": "./src/quiz/index.ts",
     "./ratelimit": "./src/ratelimit/index.ts",
+    "./readers": "./src/readers/index.ts",
     "./scheduler": "./src/scheduler/index.ts",
     "./schema": "./src/db/schema/index.ts",
     "./security": "./src/security/index.ts",

@@ -89,6 +89,20 @@ describe("web auth: magic link", () => {
     expect(await db.select().from(users)).toHaveLength(0);
   });
 
+  it("a newsletter-only subscriber who signs in becomes a full account", async () => {
+    await db
+      .insert(users)
+      .values({ id: "01SUBSCRIBER0000000000000", email: "sub@example.com", state: "subscriber" });
+    const auth = webAuth();
+    await requestLink(auth, "sub@example.com");
+    const verify = await auth.handler(
+      new Request(new URL(sent[0]?.url ?? ""), { headers: { origin: BASE } }),
+    );
+    expect(verify.headers.get("set-cookie") ?? "").toContain("session_token=");
+    const [user] = await db.select().from(users).where(eq(users.email, "sub@example.com"));
+    expect(user).toMatchObject({ id: "01SUBSCRIBER0000000000000", state: "active", emailVerified: true });
+  });
+
   it("restricted accounts can't start sessions", async () => {
     const auth = webAuth();
     await requestLink(auth, "bad@example.com");

@@ -57,6 +57,13 @@
       "when": 1790495227453,
       "tag": "0007_traffic_rollups",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1790530331917,
+      "tag": "0008_readers_and_email",
+      "breakpoints": true
     }
   ]
 }

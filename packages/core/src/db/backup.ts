@@ -38,6 +38,17 @@ export const BACKUP_TABLES = [
   "quiz_daily",
   "quiz_status",
   "appraisals",
+  // Readers and email (M5). Suppressions are hashes and must survive any restore.
+  "reader_profiles",
+  "follows",
+  "book_marks",
+  "saved_queries",
+  "feed_tokens",
+  "library_imports",
+  "email_consents",
+  "suppressions",
+  "email_sequences",
+  "newsletter_issues",
   // Analytics Engine keeps 90 days; these daily totals are the long-term record.
   "page_views_daily",
   "referrers_daily",
@@ -54,4 +65,9 @@ export const BACKUP_EXCLUDED = [
   "rate_counters",
   "book_similar",
   "book_embeddings",
+  // Short-lived: import rows are deleted when the import finishes, exports expire in days, and
+  // the send log is kept 90 days for deliverability only.
+  "library_import_rows",
+  "data_exports",
+  "email_sends",
 ] as const;
