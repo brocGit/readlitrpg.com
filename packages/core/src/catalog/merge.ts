@@ -165,17 +165,15 @@ export async function mergeBooks(
       .update(books)
       .set({ confirmedAt: winner.confirmedAt ?? loser.confirmedAt, updatedAt: now })
       .where(eq(books.id, winnerId)),
-    db
-      .insert(catalogMerges)
-      .values({
-        id: mergeId,
-        entityType: "book",
-        winnerId,
-        loserId,
-        moved,
-        mergedBy: actorId,
-        mergedAt: now,
-      }),
+    db.insert(catalogMerges).values({
+      id: mergeId,
+      entityType: "book",
+      winnerId,
+      loserId,
+      moved,
+      mergedBy: actorId,
+      mergedAt: now,
+    }),
   ];
   for (const batch of chunks(statements, 40))
     await db.batch(batch as [(typeof batch)[number], ...typeof batch]);
@@ -189,7 +187,7 @@ export async function unmergeBooks(db: Db, mergeId: string, actorId: string): Pr
     .select()
     .from(catalogMerges)
     .where(and(eq(catalogMerges.id, mergeId), isNull(catalogMerges.undoneAt)));
-  if (!merge || merge.entityType !== "book") throw new MergeError("merge not found or already undone");
+  if (merge?.entityType !== "book") throw new MergeError("merge not found or already undone");
   const { winnerId, loserId } = merge;
   const moved = merge.moved as Moved;
   const now = nowIso();
