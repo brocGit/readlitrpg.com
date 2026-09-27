@@ -1,0 +1,153 @@
+---
+// Editorial runs at a glance (DESIGN §7.1, §8.5): what is queued, what runs did, and what waits for
+// the owner. Held proposals are applied or discarded here, or from the inbox.
+import {
+  applyHeldProposal,
+  buildEditorialQueue,
+  discardHeldProposal,
+  lastSucceededRun,
+  listRuns,
+  ProposalDecisionError,
+  queueDepth,
+} from "@rlr/core/editorial";
+import { can } from "@rlr/core/policy";
+import Console from "../../layouts/Console.astro";
+import { adminActor } from "../../lib/admin-session";
+import {
+  proposalSummary,
+  proposalsByStatus,
+  recentProposals,
+  safeBack,
+  subjectHref,
+} from "../../lib/editorial-console";
+import { audit, flash, readForm } from "../../lib/forms";
+import { getDb } from "../../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  const back = safeBack(form.back, "/editorial");
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash(back, "Not allowed", "error"), 303);
+  const settings = await Astro.locals.settings();
+  try {
+    if (form.action === "apply") {
+      await applyHeldProposal(db, form.proposal ?? "", admin.userId, settings);
+      return Astro.redirect(flash(back, "Applied."), 303);
+    }
+    if (form.action === "discard") {
+      await discardHeldProposal(db, form.proposal ?? "", admin.userId);
+      return Astro.redirect(flash(back, "Discarded."), 303);
+    }
+    if (form.action === "build") {
+      const added = await buildEditorialQueue(db, settings);
+      await audit(admin, Astro.locals.requestId, { action: "editorial.queue_build", diff: added });
+      return Astro.redirect(
+        flash(
+          back,
+          `Queued ${added.classify} to classify, ${added.dedupe} duplicate questions, ${added.research} to research.`,
+        ),
+        303,
+      );
+    }
+  } catch (error) {
+    if (error instanceof ProposalDecisionError)
+      return Astro.redirect(flash(back, error.message, "error"), 303);
+    throw error;
+  }
+  return Astro.redirect(back, 303);
+}
+
+const [depth, runs, held, recent, lastGood] = await Promise.all([
+  queueDepth(db),
+  listRuns(db, 20),
+  proposalsByStatus(db, ["held"], 100),
+  recentProposals(db, 40),
+  lastSucceededRun(db),
+]);
+const settings = await Astro.locals.settings();
+const when = (iso: string | null) => (iso ? iso.slice(0, 16).replace("T", " ") : "—");
+---
+
+<Console title="Editorial">
+  <p class="muted">
+    Editorial runs are Claude sessions that take work from this queue and send back proposals; the server checks every
+    proposal and the publish policy decides what is applied. Last successful run: {when(lastGood?.finishedAt ?? null)}.
+    {!settings["flags.editorial_api"] && <strong> The editorial API is switched off (Settings → flags.editorial_api).</strong>}
+  </p>
+
+  <h2>Queue</h2>
+  {depth.length === 0 ? (
+    <div class="status-screen"><p class="label">[Queue empty]</p><p>No work is waiting for a run.</p></div>
+  ) : (
+    <table>
+      <thead><tr><th>Kind</th><th>Status</th><th>Items</th><th>Oldest</th></tr></thead>
+      <tbody>{depth.map((d) => <tr><td>{d.kind}</td><td>{d.status}</td><td>{d.n}</td><td>{when(d.oldest)}</td></tr>)}</tbody>
+    </table>
+  )}
+  <form method="post" class="inline">
+    <button class="button small secondary" name="action" value="build" type="submit">Look for new work now</button>
+  </form>
+
+  <h2>Waiting for you ({held.length})</h2>
+  {held.length === 0 ? <p class="muted">Nothing held.</p> : (
+    <table>
+      <thead><tr><th>Proposal</th><th>Why it waits</th><th>Decide</th></tr></thead>
+      <tbody>
+        {held.map((p) => (
+          <tr>
+            <td>
+              <strong>{p.kind}</strong> {proposalSummary(p)}
+              {subjectHref(p) && <div><a href={subjectHref(p) ?? "#"}>the {p.subjectType}</a></div>}
+              <details><summary>Proposal</summary><pre>{JSON.stringify(p.payload, null, 2)}</pre></details>
+            </td>
+            <td>{(p.reasons ?? []).join("; ")}</td>
+            <td>
+              <form method="post" class="inline">
+                <input type="hidden" name="proposal" value={p.id} />
+                <button class="button small" name="action" value="apply" type="submit">Apply</button>
+                <button class="button small secondary" name="action" value="discard" type="submit">Discard</button>
+              </form>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+
+  <h2>Runs</h2>
+  {runs.length === 0 ? <p class="muted">No runs yet. See docs/runbooks/editorial-runs.md to set them up.</p> : (
+    <table>
+      <thead><tr><th>Run</th><th>Status</th><th>Started</th><th>Claimed</th><th>Accepted</th><th>Rejected</th><th>Held</th></tr></thead>
+      <tbody>
+        {runs.map((r) => (
+          <tr>
+            <td><a href={`/editorial/runs/${r.id}`}>{r.kind}{r.label ? ` · ${r.label}` : ""}</a>{r.circuitOpen && <span class="muted"> (on hold)</span>}</td>
+            <td>{r.status}</td><td>{when(r.startedAt)}</td><td>{r.itemsClaimed}</td>
+            <td>{r.proposalsAccepted}</td><td>{r.proposalsRejected}</td><td>{r.proposalsHeld}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+
+  <h2>Recent proposals</h2>
+  {recent.length === 0 ? <p class="muted">None yet.</p> : (
+    <table>
+      <thead><tr><th>When</th><th>Kind</th><th>Outcome</th><th>Said</th></tr></thead>
+      <tbody>
+        {recent.map((p) => (
+          <tr>
+            <td>{when(p.createdAt)}</td>
+            <td>{subjectHref(p) ? <a href={subjectHref(p) ?? "#"}>{p.kind}</a> : p.kind}</td>
+            <td>{p.status}{p.reasons?.length ? <div class="muted">{p.reasons.slice(0, 3).join("; ")}</div> : null}</td>
+            <td>{proposalSummary(p)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</Console>

@@ -1,11 +1,15 @@
 // End-to-end owner console test against both previews (web on 4321, admin on 4322):
 // the owner registers a passkey on the main site, is promoted to admin, signs in to the console
 // with the same passkey, changes a setting (audited), queues a job, and verifies the audit chain.
-// A reader's passkey must not open the console.
+// A reader's passkey must not open the console. Then the catalog (M1) and an editorial run driven
+// through the real `pnpm editorial` CLI with the local token (M2).
 //
 // Local runs stand in for Cloudflare Access with ACCESS_DEV_EMAIL (see .dev.vars.example).
 
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { chromium } from "playwright-core";
 
 const WEB = process.env.E2E_WEB_URL ?? "http://localhost:4321";
@@ -14,6 +18,7 @@ const OWNER = process.env.E2E_OWNER_EMAIL ?? "owner@example.com";
 const CHROMIUM = process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium";
 const webDir = new URL("../../web/", import.meta.url);
 const adminDir = new URL("..", import.meta.url);
+const repoRoot = new URL("../../../", import.meta.url);
 
 const problems = [];
 const check = (condition, message) => {
@@ -209,6 +214,65 @@ try {
   await page.click('button:has-text("Check and import")');
   await page.waitForSelector("text=Nothing was imported");
   check(await page.isVisible("text=Row 2:"), "a bad file is refused with row numbers, and nothing is stored");
+
+  // Editorial runs (M2): the owner queues the book, a run claims it through the CLI and pushes a
+  // classification, and the book shows it. The API refuses a missing or wrong token.
+  await page.goto(bookUrl);
+  await page.click('button:has-text("Classify next")');
+  await page.waitForSelector("text=Queued for the next editorial run");
+  check(true, "the owner queues a book for classification");
+  const state = mkdtempSync(join(tmpdir(), "rlr-e2e-editorial-"));
+  const cliEnv = { ...process.env, EDITORIAL_STATE_DIR: state, EDITORIAL_API_URL: ADMIN };
+  delete cliEnv.EDITORIAL_TOKEN;
+  const editorial = (args) =>
+    execFileSync("pnpm", ["-s", "editorial", ...args], { cwd: repoRoot, env: cliEnv, encoding: "utf8" });
+  editorial(["start", "--env", "local", "--label", "e2e"]);
+  const workFile = join(state, "work.json");
+  editorial(["pull", "--kind", "classify", "--limit", "200", "--out", workFile]);
+  const work = JSON.parse(readFileSync(workFile, "utf8"));
+  const bookId = bookUrl.split("/").pop();
+  check(
+    work.items.some((i) => i.input.book.id === bookId),
+    "a run claims it through `pnpm editorial pull`",
+  );
+  const proposals = work.items.map((i) => ({
+    kind: "classify",
+    item_id: i.item_id,
+    book_id: i.input.book.id,
+    in_scope: "yes",
+    primary_genre: "litrpg",
+    tags: [{ slug: "system-apocalypse", confidence: "high", evidence: "Set by the E2E run." }],
+    crunch_level: { value: 2, confidence: "medium" },
+    romance_level: { value: 0, confidence: "medium" },
+    harem: { value: "none", confidence: "high" },
+    known_work: "no",
+    dials: { pacing: { value: 8, confidence: "medium" }, crunch: { value: 6, confidence: "medium" } },
+    stats: {},
+    content_flags: [],
+    summary: "An end-to-end summary written by the test run.",
+    hook: "A hook from the test run.",
+    anomalies: [],
+  }));
+  const proposalsFile = join(state, "proposals.json");
+  writeFileSync(proposalsFile, JSON.stringify(proposals));
+  const pushed = editorial(["push", proposalsFile]);
+  check(
+    /accepted/.test(pushed) && !/rejected/.test(pushed),
+    "the classification passes validation and policy",
+  );
+  editorial(["finish", "--notes", "e2e"]);
+  await page.goto(bookUrl);
+  check(
+    await page.isVisible("text=An end-to-end summary written by the test run."),
+    "the book page shows the run's classification",
+  );
+  await page.goto(`${ADMIN}/editorial`);
+  check(await page.isVisible("text=e2e"), "the console lists the run");
+  const wrong = await fetch(`${ADMIN}/api/editorial/status`, {
+    headers: { authorization: "Bearer not-the-right-editorial-token" },
+  });
+  const missing = await fetch(`${ADMIN}/api/editorial/status`);
+  check(wrong.status === 401 && missing.status === 401, "the editorial API refuses a missing or wrong token");
 
   check(
     problems.length === 0,

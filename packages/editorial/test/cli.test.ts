@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { classifyBrief, template } from "../src/brief";
-import { main, readProposals, validateAll } from "../src/cli";
+import { main, readProposals, repoRoot, skillVersions, validateAll } from "../src/cli";
 import { ConfigError, clientConfig, LOCAL_TOKEN } from "../src/client";
 
 let dir: string;
@@ -82,6 +82,10 @@ describe("proposal files", () => {
     expect(validateAll([classify("q1", "b1")])).toEqual([]);
   });
 
+  it("reads the editorial skill versions a run follows", () => {
+    expect(skillVersions(repoRoot())).toMatchObject({ run: "1", classify: "1", research: "1" });
+  });
+
   it("prints a brief with every active tag, dial and stat", () => {
     const text = classifyBrief();
     expect(text).toContain("`system-apocalypse`");
@@ -124,6 +128,7 @@ describe("a whole run through the CLI", () => {
     }) as unknown as typeof fetch;
 
     expect(await main(["start", "--env", "local", "--label", "test"], fakeFetch)).toBe(0);
+    expect(calls[0]?.body).toMatchObject({ kind: "manual", label: "test", skills: { classify: "1" } });
     expect(logs.join("\n")).toMatch(/differs from the server/);
     await expect(main(["start"], fakeFetch)).rejects.toThrow(/still open/);
 

@@ -11,10 +11,12 @@ import {
   resolveField,
   type SourcedValue,
   setVisibility,
+  suggestTagsForBook,
   unmergeBooks,
   writeBookFields,
   writeBookTags,
 } from "@rlr/core/catalog";
+import { enqueue } from "@rlr/core/editorial";
 import { can } from "@rlr/core/policy";
 import { enqueueJob } from "@rlr/core/scheduler";
 import { books } from "@rlr/core/schema";
@@ -22,6 +24,12 @@ import { eq } from "drizzle-orm";
 import Console from "../../../layouts/Console.astro";
 import { adminActor } from "../../../lib/admin-session";
 import { OVERRIDABLE } from "../../../lib/catalog";
+import {
+  bookProposals,
+  bookScoreRows,
+  openQueueItemsFor,
+  proposalSummary,
+} from "../../../lib/editorial-console";
 import { audit, flash, readForm } from "../../../lib/forms";
 import { env, getDb } from "../../../lib/runtime";
 
@@ -86,6 +94,16 @@ if (Astro.request.method === "POST") {
         await log("catalog.tag_lock", { slug, on });
         return Astro.redirect(flash(here, `${slug} ${on ? "added" : "removed"} and locked.`), 303);
       }
+      case "classify": {
+        // Jump the queue: the owner asked for it (DESIGN §7.13 priorities).
+        const priority = (await Astro.locals.settings())["editorial.priorities"].classify + 10;
+        const added = await enqueue(db, [{ kind: "classify", subjectType: "book", subjectId: id, priority }]);
+        await log("editorial.enqueue", { kind: "classify", added });
+        return Astro.redirect(
+          flash(here, added ? "Queued for the next editorial run." : "It's already waiting for a run."),
+          303,
+        );
+      }
       case "merge": {
         const target = await findBookRef(db, form.into ?? "");
         if (!target) return Astro.redirect(flash(here, "No book with that id or slug.", "error"), 303);
@@ -122,6 +140,13 @@ for (const p of detail.provenance) {
     { value: p.value, source: p.source, confidence: p.confidence, createdAt: p.createdAt, id: p.id },
   ]);
 }
+const settings = await Astro.locals.settings();
+const [suggestions, scores, proposals, queued] = await Promise.all([
+  suggestTagsForBook(db, id, settings["tags.display_min"], 12),
+  bookScoreRows(db, id),
+  bookProposals(db, id, 10),
+  openQueueItemsFor(db, id),
+]);
 const winner = (field: BookField) => resolveField(field, sourcesByField.get(field) ?? []).source ?? "default";
 const show = (v: unknown) =>
   v === null || v === undefined || v === "" ? "—" : Array.isArray(v) ? v.join(", ") || "none" : String(v);
@@ -194,6 +219,59 @@ const fieldRows: [BookField, unknown][] = [
     <button class="button small secondary" name="on" value="0" type="submit">Remove and lock</button>
   </form>
 
+  {suggestions.length > 0 && (
+    <>
+      <h3>Suggested tags</h3>
+      <p class="muted">From the series' other books, the author's other books, and words in the blurb. No AI involved.</p>
+      <ul class="suggestions">
+        {suggestions.map((sug) => (
+          <li>
+            <form method="post" class="inline">
+              <input type="hidden" name="action" value="tag" />
+              <input type="hidden" name="slug" value={sug.slug} />
+              <button class="button small secondary" name="on" value="1" type="submit">Add {sug.name}</button>
+            </form>
+            <span class="muted">{sug.score.toFixed(2)} · {sug.reasons.join("; ")}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  )}
+
+  <h2>Editorial runs</h2>
+  <p>
+    {book.classifiedAt ? `Classified ${book.classifiedAt.slice(0, 10)}.` : "Not classified yet."}
+    {queued.length > 0 && ` Waiting for a run: ${queued.map((q) => `${q.kind} (${q.status})`).join(", ")}.`}
+  </p>
+  {book.summaryAi && <p><strong>Summary:</strong> {book.summaryAi}</p>}
+  {book.hookAi && <p><strong>Hook:</strong> {book.hookAi}</p>}
+  <form method="post" class="inline">
+    <button class="button small secondary" name="action" value="classify" type="submit">{book.classifiedAt ? "Classify again" : "Classify next"}</button>
+  </form>
+  {scores.length > 0 && (
+    <table>
+      <thead><tr><th>Dial or stat</th><th>Value</th><th>Confidence</th><th>Shown</th><th>Evidence</th></tr></thead>
+      <tbody>
+        {scores.map((sc) => (
+          <tr>
+            <td>{sc.kind} <code>{sc.key}</code></td>
+            <td>{sc.value ?? "unknown"}{sc.adminLocked ? " 🔒" : ""}</td>
+            <td>{sc.confidence?.toFixed(2) ?? "—"}</td>
+            <td>{sc.public ? "yes" : "no"}</td>
+            <td class="muted">{[sc.aiValue != null && `AI ${sc.aiValue}`, sc.authorValue != null && `author ${sc.authorValue}`, sc.crowdN > 0 && `${sc.crowdN} readers`].filter(Boolean).join(" · ")}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+  {proposals.length > 0 && (
+    <ul>
+      {proposals.map((pr) => (
+        <li>{pr.createdAt.slice(0, 10)} · <a href={`/editorial/runs/${pr.runId}`}>{pr.kind}</a> · {pr.status} · {proposalSummary(pr)}</li>
+      ))}
+    </ul>
+  )}
+
   <h2>Editions and links</h2>
   <table>
     <thead><tr><th>Format</th><th>Identifiers</th><th>Publisher</th><th>Narrators</th><th>KU</th></tr></thead>
@@ -258,5 +336,16 @@ const fieldRows: [BookField, unknown][] = [
   }
   .override {
     margin-top: var(--space-3);
+  }
+  .suggestions {
+    list-style: none;
+    padding: 0;
+  }
+  .suggestions li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
   }
 </style>

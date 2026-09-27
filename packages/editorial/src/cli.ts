@@ -7,7 +7,7 @@
 //   status    queue depth and recent runs        brief     the vocabulary for a kind of work
 //   eval-input / eval   score classifications against the golden set (§7.14)
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { PROPOSAL_SCHEMA_VERSION, PUSH_BATCH_MAX, validateProposal } from "@rlr/core/editorial";
@@ -63,6 +63,21 @@ function readRun(): RunState {
 }
 
 class UsageError extends Error {}
+
+/** "Skill version: N" from each editorial skill, recorded on the run for evals (DESIGN §7.14). */
+export function skillVersions(root = ROOT): Record<string, string> {
+  const dir = join(root, ".claude", "skills");
+  const out: Record<string, string> = {};
+  if (!existsSync(dir)) return out;
+  for (const name of readdirSync(dir)) {
+    if (!name.startsWith("editorial-")) continue;
+    const file = join(dir, name, "SKILL.md");
+    if (!existsSync(file)) continue;
+    const version = /^Skill version: *(\S+)/m.exec(readFileSync(file, "utf8"))?.[1];
+    if (version) out[name.replace(/^editorial-/, "")] = version.slice(0, 40);
+  }
+  return out;
+}
 
 /** Proposals from a file: a JSON array, {"proposals": [...]}, or one JSON object per line. */
 export function readProposals(path: string): unknown[] {
@@ -138,7 +153,7 @@ export async function main(argv: string[], fetchImpl: typeof fetch = fetch): Pro
       const kind = values.kind ?? "manual";
       const res = await client(env).post<{ run_id: string; taxonomy_hash: string; schema_version: number }>(
         "/api/editorial/runs",
-        { kind, label: values.label },
+        { kind, label: values.label, skills: skillVersions() },
       );
       writeJson(runFile(), {
         run_id: res.run_id,

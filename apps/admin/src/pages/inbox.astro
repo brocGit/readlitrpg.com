@@ -42,6 +42,16 @@ if (Astro.request.method === "POST") {
 const items = await listOpenInbox(db, 200);
 const isPair = (p: unknown): p is { bookId: string; otherId: string; reason: string } =>
   typeof p === "object" && p !== null && "bookId" in p && "otherId" in p;
+const field = (p: unknown, key: string): string | null => {
+  const v = typeof p === "object" && p !== null ? (p as Record<string, unknown>)[key] : null;
+  return typeof v === "string" ? v : null;
+};
+const recommendation: Record<string, string> = {
+  approve: "Recommends: approve",
+  reject: "Recommends: reject",
+  edit: "Recommends: edit, then approve",
+  escalate: "Needs your judgment",
+};
 ---
 
 <Console title="Inbox">
@@ -64,6 +74,22 @@ const isPair = (p: unknown): p is { bookId: string; otherId: string; reason: str
                 <strong>{item.title}</strong>
                 <div class="muted">{item.type}{item.subjectType ? ` · ${item.subjectType} ${item.subjectId ?? ""}` : ""}</div>
                 {item.aiSummary && <p>{item.aiSummary}</p>}
+                {item.aiRecommendation && <p class="muted">{recommendation[item.aiRecommendation]}</p>}
+                {item.type === "classification_review" && field(item.payload, "proposalId") && (
+                  <form method="post" action="/editorial" class="inline">
+                    <input type="hidden" name="proposal" value={field(item.payload, "proposalId") ?? ""} />
+                    <input type="hidden" name="back" value="/inbox" />
+                    <button class="button small" name="action" value="apply" type="submit">Apply the classification</button>
+                    <button class="button small secondary" name="action" value="discard" type="submit">Discard it</button>
+                    {field(item.payload, "bookId") && <a href={`/catalog/books/${field(item.payload, "bookId")}`}>the book</a>}
+                  </form>
+                )}
+                {item.type === "editorial_run_held" && field(item.payload, "runId") && (
+                  <p><a href={`/editorial/runs/${field(item.payload, "runId")}`}>Review the run's held proposals</a></p>
+                )}
+                {(item.type === "seed_check" || item.type === "scope_check") && field(item.payload, "bookId") && (
+                  <p><a href={`/catalog/books/${field(item.payload, "bookId")}`}>Open the book</a> to hide it, fix it, or override the field.</p>
+                )}
                 {item.type === "possible_duplicate" && isPair(item.payload) && (
                   <p>
                     Compare <a href={`/catalog/books/${item.payload.bookId}`}>this book</a> with{" "}

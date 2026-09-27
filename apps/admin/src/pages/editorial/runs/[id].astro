@@ -1,0 +1,57 @@
+---
+import { getRun } from "@rlr/core/editorial";
+import Console from "../../../layouts/Console.astro";
+import { proposalSummary, runProposals, subjectHref } from "../../../lib/editorial-console";
+import { flash } from "../../../lib/forms";
+import { getDb } from "../../../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const run = await getRun(db, Astro.params.id ?? "");
+if (!run) return Astro.redirect(flash("/editorial", "No such run.", "error"), 303);
+const proposals = await runProposals(db, run.id);
+const here = `/editorial/runs/${run.id}`;
+const when = (iso: string | null) => (iso ? iso.slice(0, 16).replace("T", " ") : "—");
+---
+
+<Console title={`Run ${run.kind}${run.label ? ` · ${run.label}` : ""}`}>
+  <p class="muted">
+    {run.status} · started {when(run.startedAt)} · finished {when(run.finishedAt)} · {run.itemsClaimed} claimed ·
+    {run.proposalsAccepted} accepted · {run.proposalsRejected} rejected · {run.proposalsHeld} held
+  </p>
+  {run.circuitOpen && (
+    <p class="notice error">
+      This run tripped the circuit breaker: too many of its proposals failed validation, so the rest wait for you below.
+    </p>
+  )}
+  {run.notes && <p>Notes from the run: {run.notes}</p>}
+  {run.skills != null && <p class="muted">Skills: <code>{JSON.stringify(run.skills)}</code></p>}
+
+  <table>
+    <thead><tr><th>When</th><th>Proposal</th><th>Outcome</th><th></th></tr></thead>
+    <tbody>
+      {proposals.map((p) => (
+        <tr>
+          <td>{when(p.createdAt)}</td>
+          <td>
+            <strong>{p.kind}</strong> {proposalSummary(p)}
+            {subjectHref(p) && <div><a href={subjectHref(p) ?? "#"}>the {p.subjectType}</a></div>}
+            <details><summary>Proposal</summary><pre>{JSON.stringify(p.payload, null, 2)}</pre></details>
+          </td>
+          <td>{p.status}{p.reasons?.length ? <div class="muted">{p.reasons.join("; ")}</div> : null}</td>
+          <td>
+            {p.status === "held" && (
+              <form method="post" action="/editorial" class="inline">
+                <input type="hidden" name="proposal" value={p.id} />
+                <input type="hidden" name="back" value={here} />
+                <button class="button small" name="action" value="apply" type="submit">Apply</button>
+                <button class="button small secondary" name="action" value="discard" type="submit">Discard</button>
+              </form>
+            )}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</Console>
