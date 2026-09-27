@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v1.6: M0 (foundations) built; spike results folded in ([§20](#20-build-plan-and-milestones)) |
+| **Status** | v1.7: M0 (foundations) and M1 (catalog core and seed) built ([§20](#20-build-plan-and-milestones)) |
 | **Owner** | Site owner (sole admin) |
 | **Last updated** | 2026-09-26 |
 | **Companion docs** | [`STRATEGY.md`](./STRATEGY.md) (the three-layer strategy and flywheel) · [`TAXONOMY.md`](./TAXONOMY.md) (tags, dials, book stats) · [`QUIZZES.md`](./QUIZZES.md) (quiz drafts, lead-gen funnel, onboarding) |
@@ -480,7 +480,7 @@ Pipeline (GitHub Actions):
 
 | Table | Purpose | Key columns |
 |---|---|---|
-| `books` | One row per work (a numbered entry in a series, or a standalone) | `id, slug, title, subtitle, series_id, series_position (REAL, so 2.5 novellas work), blurb_author (licensed text from the author), summary_ai (our original 2–3 sentence summary), cover_media_id, page_count, word_count_est, language, visibility (draft/pending/published/hidden/removed), pub_status (announced/preorder/released/delayed/cancelled), embargo_until, is_ai_generated (enum: human/ai_assisted/ai_generated/unknown), content_flags (JSON), crunch_level (0–3), romance_level (0–4), harem (none/implied/harem/reverse_harem), tone (JSON), primary_genre, created_by, claimed (bool), classification_version, updated_at` |
+| `books` | One row per work (a numbered entry in a series, or a standalone) | `id, slug, title, title_key (matching key, §7.4), subtitle, series_id, series_position (REAL, so 2.5 novellas work), blurb_author (licensed text from the author), summary_ai (our original 2–3 sentence summary), cover_media_id, page_count, word_count_est, language, visibility (draft/pending/published/hidden/removed), pub_status (announced/preorder/released/delayed/cancelled/unknown), first_published + first_published_precision, embargo_until, is_ai_generated (enum: human/ai_assisted/ai_generated/unknown), content_flags (JSON), crunch_level (0–3), romance_level (0–4), harem (none/implied/harem/reverse_harem/unknown), primary_genre, in_scope (yes/borderline/no/unknown), origin (ai_seed/admin/author/import/reader/api), confirmed_at (the publication gate, §7.15), enrich_status + enriched_at (§7.3 step 3), created_by, claimed (bool), classification_version, redirect_to (merges), published_at, created_at, updated_at`. Tone lives in `book_tags` (the tone facet), not a column |
 | `book_authors` | Many-to-many; supports co-authors | `book_id, author_id, role (author/coauthor/with), position` |
 | `series` | Named series | `id, slug, name, status (ongoing/complete/hiatus/no_recent_releases — computed plus author-asserted), expected_length, universe_id` |
 | `universes` | Optional grouping of series (shared worlds) | `id, slug, name` |
@@ -495,7 +495,10 @@ Pipeline (GitHub Actions):
 | `book_field_sources` | Provenance log for every scalar field | `id, book_id, field, value (JSON), source (author/admin/ai/api/crowd/import), source_ref, confidence, created_at` |
 | `media` | Every stored image/file | `id, bucket, key (random), mime, bytes, width, height, sha256, uploaded_by, purpose (cover/author_photo/blog/ad), status (pending/approved/rejected)` |
 | `book_similar` | Precomputed neighbors for "books like X" | `book_id, similar_id, score, reason (JSON: closest dials, shared tags)` |
-| `book_scores` | Taste dials (§6.6) and book stats (§6.7) | `book_id, key, kind (dial/stat), value (REAL 0–10), confidence, ai_value, author_value (dials only), crowd_mean, crowd_n, admin_locked, public (bool, per display rules), updated_at` |
+| `book_scores` | Taste dials (§6.6) and book stats (§6.7) | `book_id, key, kind (dial/stat), value (REAL 0–10), confidence, ai_value, ai_confidence, author_value (dials only), crowd_mean, crowd_n, admin_locked, public (bool, per display rules), updated_at` |
+| `catalog_confirmations` | Independent evidence for the publication gate (§7.15) | `id, subject_type (book/series/author), subject_id, source (openlibrary/google_books/creators_api/research/author_claim/owner_check/publisher_feed), source_ref, evidence (JSON), created_by, created_at`. Unique per subject, source and reference |
+| `catalog_merges` | Every merge and the rows it moved, so it can be undone (§7.4) | `id, entity_type, winner_id, loser_id, moved (JSON), merged_by, merged_at, undone_at, undone_by` |
+| `catalog_imports`, `catalog_import_rows` | Bulk imports processed in chunks by a job (§7.15) | imports: `id, kind (csv/seed/ol_dump), filename, status, field_source, origin, total, processed, created, matched, flagged, failed, created_by`; rows: `import_id, row_num, payload (JSON), status, result (JSON)` |
 
 ### 5.3 People, accounts and access
 
@@ -589,7 +592,7 @@ These are named here so Phase 1 IDs and relations line up with them.
 
 ## 6. Taxonomy and book metadata
 
-The taxonomy is the core asset that nobody else has built. Amazon can say a book is "Fantasy, 742 pages". We say "Dungeon Core, monster-evolution, base-building, heavy stats, no harem, low romance, dark humor". The full starter vocabulary is in [`TAXONOMY.md`](./TAXONOMY.md). M1 converts it into `data/taxonomy.yaml`, which seeds the `tags` table.
+The taxonomy is the core asset that nobody else has built. Amazon can say a book is "Fantasy, 742 pages". We say "Dungeon Core, monster-evolution, base-building, heavy stats, no harem, low romance, dark humor". The full starter vocabulary is explained in [`TAXONOMY.md`](./TAXONOMY.md). The machine-readable source is `data/taxonomy.yaml` (built in M1): `pnpm taxonomy` validates it, cross-checks it against TAXONOMY.md (CI fails if they drift), and generates a typed module. The hourly `taxonomy.sync` job loads changes into the `tags` table.
 
 ### 6.1 Facets
 
@@ -873,10 +876,10 @@ The most expensive data-quality failure is duplicate books and authors, so match
 
 1. **Exact:** same ASIN, Audible ASIN or ISBN-13 → same edition.
 2. **Strong:** same normalized author and normalized title (ignoring the series suffix and "Book N"), or same series with the same position → same book, with a new edition added if needed.
-3. **Fuzzy:** trigram similarity ≥ 0.85 on title within the same author, **or** embedding cosine ≥ 0.92 with author overlap → **candidate**. The next editorial run returns `{same_work | different_work | unsure}`. `unsure` goes to the Inbox ("Possible duplicate", side-by-side view, one-click merge).
+3. **Fuzzy:** within the same author, title-key trigram similarity ≥ `catalog.fuzzy_title_min` (0.6), **or** one title contained in the other ("Founding" vs "The Land: Founding"), **or** (from M2) embedding cosine ≥ 0.92 with author overlap → **candidate**. A missing volume number only matches volume 1, so "Delve" and "Delve 2" are never candidates. Candidates open a "Possible duplicate" Inbox item linking both books; merging is one click on the book page. From M2 an editorial run pre-judges them `{same_work | different_work | unsure}`. (M1 measured real title pairs: a one-letter typo in a 15-character title scores about 0.7, so the originally planned 0.85 caught almost nothing.)
 4. **Authors:** a pen name is a separate profile unless the author links them. Only admin can merge authors.
 
-Merges are reversible. Merged IDs keep a `redirect_to`, URLs 301 to the survivor, and the audit log stores both records.
+Merges are reversible. Merged IDs keep a `redirect_to`, URLs 301 to the survivor, and `catalog_merges` records every moved row (editions, links, releases, provenance, confirmations, tags, co-authors) so **Undo** restores both books exactly. Both actions are audited.
 
 ### 7.5 Classification in editorial runs
 
@@ -1156,7 +1159,8 @@ Full schedule: [Appendix B](#appendix-b-job-schedule).
   - a cited source from the research agent;
   - an author claim;
   - an owner spot-check.
-- **Candidates pool.** Unconfirmed seeds stay private. They still drive outreach ("We think you wrote *X*. Claim it and fix anything we got wrong.").
+- **Candidates pool.** Unconfirmed seeds stay private (`visibility = draft`, `confirmed_at` null). They still drive outreach ("We think you wrote *X*. Claim it and fix anything we got wrong.").
+- **Built in M1.** Seed files live in `data/seed/*.json` (format in `data/seed/README.md`); a test validates every file against the taxonomy and ingests all of them. The owner uploads them in the console (Catalog → Import). The `catalog.enrich` job then looks each book up in Open Library (and Google Books when a key is set); a match records the confirmation and the owner's "Publish all confirmed" button does the rest.
 - **Accuracy sampling.** Before launch, and monthly after, an independent audit pass (an editorial run with web search) re-verifies 50 random published records against cited sources. More than 2% wrong means tighten the gate and re-verify. No owner spot-checking is required.
 - **Cost.** No API fees: the seed list and its verification are produced in editorial runs, spread over the pre-launch weeks.
 
@@ -2502,7 +2506,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | Milestone | Scope | Est. |
 |---|---|---|
 | **M0: Foundations** ✅ built | Monorepo, Workers (`web`/`admin`/`jobs`), D1 + Drizzle + migrations, R2, Queues, CI/CD with staging/prod, Better Auth (magic link + passkey), Access on admin, security headers/CSP, policy module + route registry test, settings table + KV cache, heartbeat scheduler, audit log. **Spikes:** caching mechanism, CSP approach, Images binding. *Status:* everything is built and tested locally in workerd; caching (§4.6) and CSP (§15.5) are decided. Waiting on the Cloudflare account: first deploy, the Access application, staging resources, and the Images binding spike (moved to M4's media pipeline, where `imageService: "cloudflare-binding"` is one line in the adapter config) | 1.5–2 wks |
-| **M1: Catalog core and seed** | Books, editions, releases, series, authors, narrators, links, tags and **dials** schema. Taxonomy seed. Provenance and precedence. Admin quick-add and CSV import. Entity resolution. Open Library/Google Books enrichment. Open Library dump import and AI seed import into the candidates pool (§7.15) | 2 wks |
+| **M1: Catalog core and seed** ✅ built | Books, editions, releases, series, authors, narrators, links, tags and **dials** schema. Taxonomy seed. Provenance and precedence. Admin quick-add and CSV import. Entity resolution. Open Library/Google Books enrichment. Open Library dump import and AI seed import into the candidates pool (§7.15). *Status:* all built and tested (unit, and in the browser against workerd). The first AI seed is 101 series / 142 books in `data/seed/`, kept deliberately smaller than the 500–800 target: only authors and titles known with confidence. The rest comes from M2's research runs (which cite sources) and the Open Library dump extract, run once the dumps can be downloaded | 2 wks |
 | **M2: Editorial pipeline** | `editorial_queue`, the editorial API (Access service token + scoped token), the `pnpm editorial pull/push` CLI, proposal schemas and server-side validation, publish policy engine, and skills for classify, dedupe, moderation and image review. Deterministic tag suggestions, Workers AI embeddings, eval harness + golden set (tags and dials), watchdog. Seed verification and the publication gate. **Scheduled routines** set up in the cloud environment | 2 wks |
 | **M3: Match engine and discovery** | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, result pages, share cards, Party up, plus the launch set of fun quizzes (drafted in `data/quizzes/`) | 4 wks |
 | **M4: Public site** | Home (match-first), book/series/author/narrator/tag pages, New & upcoming (curated), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics | 1.5–2 wks |
@@ -2688,6 +2692,9 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `pricing.suggest` | monthly, 1st | → inbox |
 | `taxonomy.drift` | monthly, 2nd | → inbox |
 | `cost.report` | daily 06:00 | Email and Cloudflare spend, plus editorial backlog |
+| `taxonomy.sync` | hourly :07 | Load `data/taxonomy.yaml` into `tags` when its hash changed (built in M1) |
+| `catalog.enrich` | every 15 min | Open Library / Google Books lookups, `enrich.batch_size` books per run, paced; a match confirms the book (built in M1) |
+| `catalog.import` | every 5 min, plus immediately on upload | Ingest the next `import.chunk_size` rows of a queued import; queues its own continuation until done (built in M1) |
 | `restore.drill_reminder` | quarterly | → inbox |
 
 ### Appendix C: Key settings (defaults)
@@ -2715,6 +2722,9 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `ads.target_cpm_cents.newsletter` / `.web` | 200 / 400 |
 | `ads.price_floor_cents` | 1000 |
 | `email.daily_cap` | 50000 (raise with warmup) |
+| `catalog.fuzzy_title_min` | 0.6 |
+| `enrich.batch_size` / `enrich.retry_days` | 25 / 30 |
+| `import.chunk_size` | 20 rows per job run (D1 allows 1,000 queries per invocation) |
 | `email.circuit.complaint_rate` / `.bounce_rate` | 0.0008 / 0.04 |
 | `email.direct_affiliate_links` | false |
 | `blog.auto_publish_roundups` | false for the first 4 weeks, then true |
@@ -2730,7 +2740,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 |---|---|
 | `web` | Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (to validate), `PUBLIC_*` site config |
 | `admin` | Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `RP_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Secrets: `ADMIN_AUTH_SECRET`, `EDITORIAL_TOKEN_HASH`, `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
-| `jobs` | Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `SES_REGION`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `CF_API_TOKEN` (Analytics Engine read; cache purges run inside the Worker), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY`, `DISCORD_ALERT_WEBHOOK` (optional) |
+| `jobs` | Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `SES_REGION`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `CF_API_TOKEN` (Analytics Engine read; cache purges run inside the Worker), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY` (optional: without it, enrichment uses Open Library only), `DISCORD_ALERT_WEBHOOK` (optional) |
 | Cloud environment (editorial runs) | `EDITORIAL_TOKEN`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; network allowlist: readlitrpg.com plus web search |
 | CI (GitHub environments) | `CLOUDFLARE_API_TOKEN` (Workers + D1 edit, one account), `CLOUDFLARE_ACCOUNT_ID`, off-platform backup credentials |
 

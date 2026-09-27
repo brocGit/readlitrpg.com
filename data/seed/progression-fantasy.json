@@ -1,0 +1,576 @@
+{
+  "format": "readlitrpg-seed",
+  "version": 1,
+  "generated_by": "Claude, from model knowledge (M1 seed, 2026-09-27). Unverified until confirmed; see DESIGN §7.15.",
+  "entries": [
+    {
+      "name": "Cradle",
+      "authors": [
+        "Will Wight"
+      ],
+      "status": "complete",
+      "genre": "progression-fantasy",
+      "tags": [
+        "cultivation",
+        "male-mc",
+        "weak-to-strong",
+        "cultivation-realms",
+        "ranks-tiers",
+        "training-arcs",
+        "tournament",
+        "found-family",
+        "party-focused",
+        "serious-epic",
+        "humorous"
+      ],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Unsouled",
+          "year": 2016
+        },
+        {
+          "position": 2,
+          "title": "Soulsmith",
+          "year": 2016
+        },
+        {
+          "position": 3,
+          "title": "Blackflame",
+          "year": 2017
+        },
+        {
+          "position": 4,
+          "title": "Skysworn",
+          "year": 2017
+        },
+        {
+          "position": 5,
+          "title": "Ghostwater",
+          "year": 2018
+        },
+        {
+          "position": 6,
+          "title": "Underlord",
+          "year": 2019
+        },
+        {
+          "position": 7,
+          "title": "Uncrowned",
+          "year": 2019
+        },
+        {
+          "position": 8,
+          "title": "Wintersteel",
+          "year": 2020
+        },
+        {
+          "position": 9,
+          "title": "Bloodline",
+          "year": 2020
+        },
+        {
+          "position": 10,
+          "title": "Reaper",
+          "year": 2021
+        },
+        {
+          "position": 11,
+          "title": "Dreadgod",
+          "year": 2022
+        },
+        {
+          "position": 12,
+          "title": "Waybound",
+          "year": 2023
+        }
+      ]
+    },
+    {
+      "name": "Traveler's Gate",
+      "authors": [
+        "Will Wight"
+      ],
+      "status": "complete",
+      "genre": "progression-fantasy",
+      "in_scope": "borderline",
+      "tags": [
+        "male-mc",
+        "young-mc",
+        "weak-to-strong",
+        "exploration"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "House of Blades",
+          "year": 2013
+        }
+      ]
+    },
+    {
+      "name": "The Last Horizon",
+      "authors": [
+        "Will Wight"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "space",
+        "male-mc",
+        "party-focused",
+        "found-family",
+        "humorous"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Captain",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "name": "Mother of Learning",
+      "authors": [
+        "Domagoj Kurmaić"
+      ],
+      "status": "complete",
+      "genre": "progression-fantasy",
+      "tags": [
+        "time-loop",
+        "academy",
+        "male-mc",
+        "clever-mc",
+        "class-mage",
+        "training-arcs",
+        "exploration",
+        "serious-epic"
+      ],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Mother of Learning: Arc 1"
+        },
+        {
+          "position": 2,
+          "title": "Mother of Learning: Arc 2"
+        },
+        {
+          "position": 3,
+          "title": "Mother of Learning: Arc 3"
+        },
+        {
+          "position": 4,
+          "title": "Mother of Learning: Arc 4"
+        }
+      ]
+    },
+    {
+      "name": "Arcane Ascension",
+      "authors": [
+        "Andrew Rowe"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "tower-climbing",
+        "academy",
+        "male-mc",
+        "clever-mc",
+        "crafting",
+        "mana-core",
+        "party-focused",
+        "system-mystery"
+      ],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Sufficiently Advanced Magic",
+          "year": 2017
+        },
+        {
+          "position": 2,
+          "title": "On the Shoulders of Titans",
+          "year": 2018
+        },
+        {
+          "position": 3,
+          "title": "The Torch That Ignites the Stars",
+          "year": 2020
+        }
+      ]
+    },
+    {
+      "name": "Weapons & Wielders",
+      "authors": [
+        "Andrew Rowe"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "male-mc",
+        "clever-mc",
+        "party-focused",
+        "crafting"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 1,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Soulbound",
+          "year": 2020
+        }
+      ]
+    },
+    {
+      "name": "Mage Errant",
+      "authors": [
+        "John Bierce"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "academy",
+        "male-mc",
+        "class-mage",
+        "party-focused",
+        "found-family",
+        "lgbtq-characters",
+        "exploration"
+      ],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Hidden Academy",
+          "year": 2019
+        }
+      ]
+    },
+    {
+      "name": "Warformed: Stormweaver",
+      "authors": [
+        "Bryce O'Connor",
+        "Luke Chmilenko"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "academy",
+        "male-mc",
+        "ranks-tiers",
+        "tournament",
+        "training-arcs",
+        "weak-to-strong"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 1,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Iron Prince",
+          "year": 2021
+        }
+      ]
+    },
+    {
+      "name": "Frith Chronicles",
+      "authors": [
+        "Shami Stovall"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "male-mc",
+        "monster-taming",
+        "companions-progression",
+        "young-mc",
+        "questing"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Knightmare Arcanist",
+          "year": 2019
+        }
+      ]
+    },
+    {
+      "name": "Beware of Chicken",
+      "authors": [
+        "Casualfarmer"
+      ],
+      "genre": "cultivation",
+      "tags": [
+        "isekai",
+        "reincarnation",
+        "male-mc",
+        "farming",
+        "cozy",
+        "humorous",
+        "slice-of-life",
+        "found-family",
+        "animal-companion",
+        "satire"
+      ],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "romance": 2,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Beware of Chicken"
+        },
+        {
+          "position": 2,
+          "title": "Beware of Chicken 2"
+        },
+        {
+          "position": 3,
+          "title": "Beware of Chicken 3"
+        }
+      ]
+    },
+    {
+      "name": "A Thousand Li",
+      "authors": [
+        "Tao Wong"
+      ],
+      "genre": "cultivation",
+      "tags": [
+        "male-mc",
+        "cultivation-realms",
+        "weak-to-strong",
+        "training-arcs",
+        "serious-epic"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "A Thousand Li: The First Step"
+        }
+      ]
+    },
+    {
+      "name": "Street Cultivation",
+      "authors": [
+        "Sarah Lin"
+      ],
+      "genre": "cultivation",
+      "tags": [
+        "modern-earth",
+        "male-mc",
+        "cultivation-realms",
+        "weak-to-strong"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Street Cultivation"
+        }
+      ]
+    },
+    {
+      "name": "The Brightest Shadow",
+      "authors": [
+        "Sarah Lin"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "multiple-pov",
+        "serious-epic",
+        "politics"
+      ],
+      "tag_confidence": "low",
+      "crunch": 0,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Brightest Shadow"
+        }
+      ]
+    },
+    {
+      "name": "Forge of Destiny",
+      "authors": [
+        "Yrsillar"
+      ],
+      "genre": "cultivation",
+      "tags": [
+        "female-mc",
+        "cultivation-realms",
+        "academy",
+        "politics",
+        "lgbtq-characters"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Forge of Destiny"
+        }
+      ]
+    },
+    {
+      "name": "The Beginning After the End",
+      "authors": [
+        "TurtleMe"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "reincarnation",
+        "isekai",
+        "male-mc",
+        "mana-core",
+        "academy",
+        "op-mc",
+        "animal-companion"
+      ],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Early Years",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "name": "Super Supportive",
+      "authors": [
+        "Sleyca"
+      ],
+      "genre": "superhero-progression",
+      "tags": [
+        "modern-earth",
+        "male-mc",
+        "academy",
+        "found-family",
+        "support-class-mc",
+        "ranks-tiers",
+        "lgbtq-characters"
+      ],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Super Supportive"
+        }
+      ]
+    },
+    {
+      "name": "The Perfect Run",
+      "authors": [
+        "Maxime J. Durand"
+      ],
+      "status": "complete",
+      "genre": "superhero-progression",
+      "tags": [
+        "time-loop",
+        "modern-earth",
+        "post-apocalyptic",
+        "male-mc",
+        "op-mc",
+        "humorous",
+        "clever-mc"
+      ],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Perfect Run"
+        }
+      ]
+    },
+    {
+      "name": "Vainqueur the Dragon",
+      "authors": [
+        "Maxime J. Durand"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "nonhuman-mc",
+        "villain-mc",
+        "humorous",
+        "satire",
+        "classes",
+        "levels"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Vainqueur the Dragon"
+        }
+      ]
+    },
+    {
+      "name": "Super Powereds",
+      "authors": [
+        "Drew Hayes"
+      ],
+      "status": "complete",
+      "genre": "superhero-progression",
+      "tags": [
+        "academy",
+        "multiple-pov",
+        "modern-earth",
+        "found-family",
+        "training-arcs"
+      ],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Super Powereds: Year 1",
+          "year": 2012
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,437 @@
+{
+  "format": "readlitrpg-seed",
+  "version": 1,
+  "generated_by": "Claude, from model knowledge (M1 seed, 2026-09-27). Unverified until confirmed; see DESIGN §7.15. English editions; titles may differ between publishers.",
+  "entries": [
+    {
+      "name": "Sword Art Online",
+      "authors": ["Reki Kawahara"],
+      "genre": "litrpg",
+      "tags": ["vrmmo", "trapped-in-game", "male-mc", "gamer-mc", "levels", "skills", "young-mc"],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "romance": 3,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Sword Art Online 1: Aincrad" }]
+    },
+    {
+      "name": "Log Horizon",
+      "authors": ["Mamare Touno"],
+      "genre": "litrpg",
+      "tags": ["trapped-in-game", "vrmmo", "male-mc", "clever-mc", "gamer-mc", "politics", "guild-building", "party-focused"],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Log Horizon, Vol. 1: The Beginning of Another World", "confidence": "medium" }]
+    },
+    {
+      "name": "Overlord",
+      "authors": ["Kugane Maruyama"],
+      "genre": "litrpg",
+      "tags": ["trapped-in-game", "isekai", "nonhuman-mc", "villain-mc", "op-mc", "class-necromancer", "kingdom-building", "multiple-pov", "dark-humor"],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Overlord, Vol. 1: The Undead King" }]
+    },
+    {
+      "name": "So I'm a Spider, So What?",
+      "authors": ["Okina Baba"],
+      "genre": "litrpg",
+      "tags": ["reincarnation", "isekai", "monster-mc", "nonhuman-mc", "female-mc", "race-evolution", "skills", "stats", "humorous"],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "romance": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "So I'm a Spider, So What?, Vol. 1" }]
+    },
+    {
+      "name": "That Time I Got Reincarnated as a Slime",
+      "authors": ["Fuse"],
+      "genre": "litrpg",
+      "tags": ["reincarnation", "isekai", "monster-mc", "nonhuman-mc", "skill-absorption", "kingdom-building", "op-mc", "lighthearted"],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "That Time I Got Reincarnated as a Slime, Vol. 1" }]
+    },
+    {
+      "name": "The Rising of the Shield Hero",
+      "authors": ["Aneko Yusagi"],
+      "genre": "litrpg",
+      "tags": ["isekai", "male-mc", "class-tank", "levels", "classes", "party-focused", "weak-to-strong"],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "The Rising of the Shield Hero Volume 01" }]
+    },
+    {
+      "name": "Mushoku Tensei: Jobless Reincarnation",
+      "authors": ["Rifujin na Magonote"],
+      "genre": "progression-fantasy",
+      "tags": ["reincarnation", "isekai", "male-mc", "class-mage", "training-arcs", "young-mc"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Mushoku Tensei: Jobless Reincarnation Vol. 1" }]
+    },
+    {
+      "name": "Solo Leveling",
+      "authors": ["Chugong"],
+      "status": "complete",
+      "genre": "litrpg",
+      "tags": ["gates-and-hunters", "modern-earth", "hidden-system", "male-mc", "solo-mc", "weak-to-strong", "levels", "stats", "summoning", "necromancy"],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Solo Leveling, Vol. 1" }]
+    },
+    {
+      "name": "Omniscient Reader's Viewpoint",
+      "authors": ["singNsong"],
+      "status": "complete",
+      "genre": "litrpg",
+      "tags": ["system-apocalypse", "modern-earth", "male-mc", "clever-mc", "party-focused", "found-family", "mythology", "serious-epic"],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Omniscient Reader's Viewpoint, Vol. 1" }]
+    },
+    {
+      "name": "The Legendary Moonlight Sculptor",
+      "authors": ["Nam Heesung"],
+      "status": "complete",
+      "genre": "litrpg",
+      "tags": ["vrmmo", "male-mc", "gamer-mc", "crafting", "business", "humorous", "levels", "skills"],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "The Legendary Moonlight Sculptor" }]
+    },
+    {
+      "name": "Overgeared",
+      "authors": ["Park Saenal"],
+      "genre": "litrpg",
+      "tags": ["vrmmo", "male-mc", "class-crafter", "crafting", "weak-to-strong", "guild-building", "humorous", "levels"],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Overgeared" }]
+    },
+    {
+      "name": "Trash of the Count's Family",
+      "authors": ["Yu Ryeo Han"],
+      "genre": "progression-fantasy",
+      "tags": ["reincarnation", "male-mc", "clever-mc", "humorous", "found-family", "animal-companion"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "medium",
+      "books": [{ "position": 1, "title": "Trash of the Count's Family" }]
+    },
+    {
+      "name": "The Novel's Extra",
+      "authors": ["Jee Gab Song"],
+      "genre": "progression-fantasy",
+      "tags": ["reincarnation", "academy", "male-mc", "clever-mc"],
+      "tag_confidence": "medium",
+      "crunch": 1,
+      "confidence": "medium",
+      "books": [{ "position": 1, "title": "The Novel's Extra" }]
+    },
+    {
+      "name": "Second Life Ranker",
+      "authors": ["Sadoyeon"],
+      "genre": "litrpg",
+      "tags": ["tower-climbing", "male-mc", "revenge", "op-mc", "skills"],
+      "tag_confidence": "medium",
+      "crunch": 1,
+      "confidence": "medium",
+      "books": [{ "position": 1, "title": "Second Life Ranker" }]
+    },
+    {
+      "name": "Coiling Dragon",
+      "authors": ["I Eat Tomatoes"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "weak-to-strong", "class-mage", "serious-epic"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Coiling Dragon" }]
+    },
+    {
+      "name": "Desolate Era",
+      "authors": ["I Eat Tomatoes"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "weak-to-strong", "serious-epic"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Desolate Era" }]
+    },
+    {
+      "name": "Stellar Transformations",
+      "authors": ["I Eat Tomatoes"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "weak-to-strong"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Stellar Transformations" }]
+    },
+    {
+      "name": "Swallowed Star",
+      "authors": ["I Eat Tomatoes"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["post-apocalyptic", "space", "male-mc", "cultivation-realms", "weak-to-strong"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Swallowed Star" }]
+    },
+    {
+      "name": "I Shall Seal the Heavens",
+      "authors": ["Er Gen"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "humorous", "serious-epic"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "I Shall Seal the Heavens" }]
+    },
+    {
+      "name": "A Will Eternal",
+      "authors": ["Er Gen"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "humorous", "alchemy"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "A Will Eternal" }]
+    },
+    {
+      "name": "Renegade Immortal",
+      "authors": ["Er Gen"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "revenge", "grimdark"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Renegade Immortal" }]
+    },
+    {
+      "name": "Reverend Insanity",
+      "authors": ["Gu Zhen Ren"],
+      "genre": "cultivation",
+      "tags": ["regression", "male-mc", "villain-mc", "clever-mc", "cultivation-realms", "grimdark"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "romance": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Reverend Insanity" }]
+    },
+    {
+      "name": "Lord of the Mysteries",
+      "authors": ["Cuttlefish That Loves Diving"],
+      "status": "complete",
+      "genre": "progression-fantasy",
+      "tags": ["isekai", "male-mc", "clever-mc", "ranks-tiers", "system-mystery", "horror", "mythology"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Lord of the Mysteries" }]
+    },
+    {
+      "name": "Battle Through the Heavens",
+      "authors": ["Tian Can Tu Dou"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "weak-to-strong", "alchemy", "face-slapping"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Battle Through the Heavens" }]
+    },
+    {
+      "name": "The Great Ruler",
+      "authors": ["Tian Can Tu Dou"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "face-slapping"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "The Great Ruler" }]
+    },
+    {
+      "name": "Martial World",
+      "authors": ["Cocooned Cow"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "weak-to-strong", "face-slapping"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Martial World" }]
+    },
+    {
+      "name": "Against the Gods",
+      "authors": ["Mars Gravity"],
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "face-slapping", "revenge", "op-mc"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "romance": 3,
+      "harem": "harem",
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Against the Gods" }]
+    },
+    {
+      "name": "Library of Heaven's Path",
+      "authors": ["Heng Sao Tian Ya"],
+      "genre": "cultivation",
+      "tags": ["male-mc", "teaching", "cheat-ability", "humorous", "face-slapping"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Library of Heaven's Path" }]
+    },
+    {
+      "name": "The Legendary Mechanic",
+      "authors": ["Qi Peijia"],
+      "status": "complete",
+      "genre": "litrpg",
+      "tags": ["trapped-in-game", "npc-mc", "space", "male-mc", "crafting", "clever-mc", "gamer-mc", "humorous"],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "The Legendary Mechanic" }]
+    },
+    {
+      "name": "Release That Witch",
+      "authors": ["Er Mu"],
+      "status": "complete",
+      "genre": "adjacent-fantasy",
+      "in_scope": "borderline",
+      "tags": ["isekai", "male-mc", "kingdom-building", "clever-mc", "war", "politics"],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Release That Witch" }]
+    },
+    {
+      "name": "Emperor's Domination",
+      "authors": ["Yan Bi Xiao Sheng"],
+      "genre": "cultivation",
+      "tags": ["male-mc", "op-mc", "cultivation-realms", "face-slapping"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Emperor's Domination" }]
+    },
+    {
+      "name": "Tales of Demons and Gods",
+      "authors": ["Mad Snail"],
+      "genre": "cultivation",
+      "tags": ["regression", "male-mc", "cultivation-realms", "young-mc"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Tales of Demons and Gods" }]
+    },
+    {
+      "name": "Perfect World",
+      "authors": ["Chen Dong"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "weak-to-strong", "serious-epic"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Perfect World" }]
+    },
+    {
+      "name": "Shrouding the Heavens",
+      "authors": ["Chen Dong"],
+      "status": "complete",
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "serious-epic"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Shrouding the Heavens" }]
+    },
+    {
+      "name": "Soul Land",
+      "authors": ["Tang Jia San Shao"],
+      "genre": "cultivation",
+      "tags": ["reincarnation", "male-mc", "academy", "cultivation-realms", "young-mc"],
+      "tag_confidence": "medium",
+      "crunch": 0,
+      "confidence": "high",
+      "books": [{ "position": 1, "title": "Soul Land" }]
+    },
+    {
+      "name": "The Way of the Shaman",
+      "authors": ["Vasily Mahanenko"],
+      "genre": "litrpg",
+      "tags": ["vrmmo", "trapped-in-game", "male-mc", "class-summoner", "crafting", "levels", "skills", "stats"],
+      "tag_confidence": "high",
+      "crunch": 3,
+      "confidence": "high",
+      "books": [
+        { "position": 1, "title": "Survival Quest" },
+        { "position": 2, "title": "The Kartoss Gambit" },
+        { "position": 3, "title": "The Secret of the Dark Forest", "confidence": "medium" }
+      ]
+    },
+    {
+      "name": "Level Up",
+      "authors": ["Dan Sugralinov"],
+      "genre": "litrpg",
+      "tags": ["modern-earth", "hidden-system", "male-mc", "older-mc", "stats", "levels", "skills"],
+      "tag_confidence": "medium",
+      "crunch": 3,
+      "confidence": "medium",
+      "books": [{ "position": 1, "title": "Re-Start" }]
+    },
+    {
+      "name": "Disgardium",
+      "authors": ["Dan Sugralinov"],
+      "genre": "litrpg",
+      "tags": ["vrmmo", "male-mc", "young-mc", "levels", "skills", "stats"],
+      "tag_confidence": "medium",
+      "crunch": 3,
+      "confidence": "medium",
+      "books": [{ "position": 1, "title": "Class-A Threat" }]
+    },
+    {
+      "name": "Perimeter Defense",
+      "authors": ["Michael Atamanov"],
+      "genre": "litrpg",
+      "tags": ["vrmmo", "male-mc", "older-mc", "space", "levels", "skills"],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [{ "position": 1, "title": "Perimeter Defense" }]
+    },
+    {
+      "name": "Dragon Heart",
+      "authors": ["Kirill Klevanski"],
+      "genre": "cultivation",
+      "tags": ["male-mc", "cultivation-realms", "levels", "hidden-system"],
+      "tag_confidence": "low",
+      "crunch": 1,
+      "confidence": "medium",
+      "books": [{ "position": 1, "title": "Dragon Heart" }]
+    }
+  ]
+}

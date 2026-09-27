@@ -2,7 +2,7 @@
 
 A free discovery engine, book database and marketing network for LitRPG, progression fantasy, GameLit and cultivation fiction. Tell it three books you loved and it finds your next read. A release calendar grows in behind it.
 
-**Status:** M0 (foundations) is built: three Cloudflare Workers, the database schema and migrations, passwordless sign-in (email links and passkeys), the owner console behind Cloudflare Access, the job scheduler, the audit log and CI. It runs locally; going live needs the Cloudflare account ([runbook](docs/runbooks/cloudflare-setup.md)). M1 (catalog core and seed) is next.
+**Status:** M0 (foundations) and M1 (catalog core and seed) are built: three Cloudflare Workers, passwordless sign-in, the owner console behind Cloudflare Access, the job scheduler, the audit log, CI, and the catalog (taxonomy, provenance, duplicate detection, Open Library and Google Books lookups, CSV and seed imports, merges) with a first seed of 101 series. It runs locally; going live needs the Cloudflare account ([runbook](docs/runbooks/cloudflare-setup.md)). M2 (the editorial pipeline) is next.
 
 ## Documents
 

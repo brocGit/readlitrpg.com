@@ -221,7 +221,7 @@ describe("processing imports in chunks", () => {
       .where(eq(catalogImportRows.importId, id))
       .orderBy(catalogImportRows.rowNum);
     expect(rows.map((r) => r.status)).toEqual(["error", "done"]);
-    expect((rows[0]?.result as { error: string }).error).toMatch(/no letters or numbers/);
+    expect((rows[0]?.result as { error?: string } | undefined)?.error).toMatch(/no letters or numbers/);
     const [job] = await db.select().from(catalogImports);
     expect(job).toMatchObject({ status: "done", failed: 1, created: 1 });
   });

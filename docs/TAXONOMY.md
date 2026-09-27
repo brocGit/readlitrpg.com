@@ -8,7 +8,7 @@ This is the controlled vocabulary the classifier chooses from and readers filter
 - **Scope of the classifier.** It tags only what the text supports. When a facet can't be judged, it returns `unknown` instead of guessing.
 - **Derived facets are never AI-tagged.** KU, audio, series length and the rest in §11 are computed from structured data.
 - **Where the examples come from.** Book titles in the "e.g." column show what the tag means to readers. The owner's golden eval set (`data/eval/`) is the real reference.
-- **Converting to seed data.** M1 converts this file into `data/taxonomy.yaml`. Each tag becomes `slug`, `name`, `facet`, `definition`, `include_when`, `exclude_when`, `synonyms` and `parent`.
+- **Machine-readable source.** `data/taxonomy.yaml` holds the same vocabulary for the code (plus search synonyms). Change both together: `pnpm taxonomy` fails if their slugs, dials, stats or content flags differ.
 
 ---
 

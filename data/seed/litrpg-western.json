@@ -1,0 +1,1225 @@
+{
+  "format": "readlitrpg-seed",
+  "version": 1,
+  "generated_by": "Claude, from model knowledge (M1 seed, 2026-09-27). Unverified until confirmed; see DESIGN §7.15.",
+  "entries": [
+    {
+      "name": "Dungeon Crawler Carl",
+      "authors": [
+        "Matt Dinniman"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "dungeon-crawler",
+        "system-apocalypse",
+        "modern-earth",
+        "male-mc",
+        "snarky-system",
+        "party-focused",
+        "animal-companion",
+        "loot",
+        "levels",
+        "skills",
+        "humorous",
+        "dark-humor",
+        "satire"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Dungeon Crawler Carl",
+          "year": 2020
+        },
+        {
+          "position": 2,
+          "title": "Carl's Doomsday Scenario",
+          "year": 2021
+        },
+        {
+          "position": 3,
+          "title": "The Dungeon Anarchist's Cookbook",
+          "year": 2021
+        },
+        {
+          "position": 4,
+          "title": "The Gate of the Feral Gods",
+          "year": 2021
+        },
+        {
+          "position": 5,
+          "title": "The Butcher's Masquerade",
+          "year": 2022
+        },
+        {
+          "position": 6,
+          "title": "The Eye of the Bedlam Bride",
+          "year": 2023
+        },
+        {
+          "position": 7,
+          "title": "This Inevitable Ruin",
+          "year": 2024
+        }
+      ]
+    },
+    {
+      "name": "The Primal Hunter",
+      "authors": [
+        "Zogarth"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "system-apocalypse",
+        "tutorial-world",
+        "male-mc",
+        "solo-mc",
+        "class-ranger",
+        "alchemy",
+        "levels",
+        "skills",
+        "stats",
+        "classes",
+        "titles-achievements",
+        "bloodline",
+        "system-integration",
+        "serious-epic"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "romance": 0,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Primal Hunter",
+          "year": 2022
+        },
+        {
+          "position": 2,
+          "title": "The Primal Hunter 2"
+        },
+        {
+          "position": 3,
+          "title": "The Primal Hunter 3"
+        }
+      ]
+    },
+    {
+      "name": "Defiance of the Fall",
+      "authors": [
+        "TheFirstDefier"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "cultivation",
+        "system-apocalypse",
+        "tutorial-world",
+        "male-mc",
+        "solo-mc",
+        "cultivation-realms",
+        "skills",
+        "levels",
+        "titles-achievements",
+        "system-integration",
+        "serious-epic"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Defiance of the Fall"
+        },
+        {
+          "position": 2,
+          "title": "Defiance of the Fall 2"
+        },
+        {
+          "position": 3,
+          "title": "Defiance of the Fall 3"
+        }
+      ]
+    },
+    {
+      "name": "He Who Fights with Monsters",
+      "authors": [
+        "Shirtaloon"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "party-focused",
+        "ranks-tiers",
+        "skills",
+        "loot",
+        "found-family",
+        "humorous",
+        "serious-epic",
+        "multiple-pov"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "romance": 2,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "He Who Fights with Monsters"
+        },
+        {
+          "position": 2,
+          "title": "He Who Fights with Monsters 2"
+        },
+        {
+          "position": 3,
+          "title": "He Who Fights with Monsters 3"
+        }
+      ]
+    },
+    {
+      "name": "Azarinth Healer",
+      "authors": [
+        "Rhaegar"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "female-mc",
+        "class-healer",
+        "classes",
+        "skills",
+        "levels",
+        "weak-to-strong",
+        "training-arcs"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Azarinth Healer"
+        }
+      ]
+    },
+    {
+      "name": "The Wandering Inn",
+      "authors": [
+        "pirateaba"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "female-mc",
+        "multiple-pov",
+        "business",
+        "cooking",
+        "classes",
+        "levels",
+        "skills",
+        "slice-of-life",
+        "found-family",
+        "serious-epic"
+      ],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Wandering Inn: Volume 1"
+        }
+      ]
+    },
+    {
+      "name": "Chrysalis",
+      "authors": [
+        "RinoZ"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "reincarnation",
+        "nonhuman-mc",
+        "monster-mc",
+        "race-evolution",
+        "skills",
+        "levels",
+        "base-building",
+        "humorous"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "romance": 0,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Chrysalis"
+        }
+      ]
+    },
+    {
+      "name": "Delve",
+      "authors": [
+        "SenescentSoul"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "clever-mc",
+        "build-crafting",
+        "stats",
+        "skills",
+        "levels",
+        "exploration",
+        "solo-mc"
+      ],
+      "tag_confidence": "high",
+      "crunch": 3,
+      "romance": 0,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Delve"
+        }
+      ]
+    },
+    {
+      "name": "Mark of the Fool",
+      "authors": [
+        "J.M. Clarke"
+      ],
+      "status": "ongoing",
+      "genre": "progression-fantasy",
+      "tags": [
+        "academy",
+        "male-mc",
+        "weak-to-strong",
+        "clever-mc",
+        "class-mage",
+        "training-arcs",
+        "found-family",
+        "politics"
+      ],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "romance": 2,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Mark of the Fool"
+        },
+        {
+          "position": 2,
+          "title": "Mark of the Fool 2"
+        }
+      ]
+    },
+    {
+      "name": "The Land",
+      "authors": [
+        "Aleron Kong"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "settlement-building",
+        "kingdom-building",
+        "crafting",
+        "stats",
+        "levels",
+        "skills",
+        "humorous"
+      ],
+      "tag_confidence": "high",
+      "crunch": 3,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Land: Founding",
+          "year": 2015
+        },
+        {
+          "position": 2,
+          "title": "The Land: Forging",
+          "year": 2016
+        },
+        {
+          "position": 3,
+          "title": "The Land: Alliances",
+          "year": 2016
+        }
+      ]
+    },
+    {
+      "name": "System Apocalypse",
+      "authors": [
+        "Tao Wong"
+      ],
+      "status": "ongoing",
+      "genre": "litrpg",
+      "tags": [
+        "system-apocalypse",
+        "modern-earth",
+        "male-mc",
+        "levels",
+        "classes",
+        "skills",
+        "stats",
+        "loot",
+        "system-integration",
+        "survival",
+        "grimdark"
+      ],
+      "tag_confidence": "high",
+      "crunch": 3,
+      "romance": 1,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Life in the North",
+          "year": 2017
+        },
+        {
+          "position": 2,
+          "title": "Redeemer of the Dead",
+          "year": 2017
+        },
+        {
+          "position": 3,
+          "title": "The Cost of Survival",
+          "year": 2017
+        }
+      ]
+    },
+    {
+      "name": "Adventures on Brad",
+      "authors": [
+        "Tao Wong"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "class-healer",
+        "support-class-mc",
+        "classes",
+        "levels",
+        "lighthearted"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "A Healer's Gift"
+        }
+      ]
+    },
+    {
+      "name": "The Divine Dungeon",
+      "authors": [
+        "Dakota Krout"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "dungeon-core",
+        "nonhuman-mc",
+        "base-building",
+        "cultivation-realms",
+        "humorous"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Dungeon Born",
+          "year": 2016
+        },
+        {
+          "position": 2,
+          "title": "Dungeon Madness",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "name": "The Completionist Chronicles",
+      "authors": [
+        "Dakota Krout"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "vrmmo",
+        "male-mc",
+        "class-mage",
+        "build-crafting",
+        "stats",
+        "skills",
+        "levels",
+        "questing",
+        "humorous",
+        "party-focused"
+      ],
+      "tag_confidence": "high",
+      "crunch": 3,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Ritualist",
+          "year": 2018
+        },
+        {
+          "position": 2,
+          "title": "Regenerator",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "name": "Awaken Online",
+      "authors": [
+        "Travis Bagwell"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "vrmmo",
+        "male-mc",
+        "villain-mc",
+        "class-necromancer",
+        "necromancy",
+        "levels",
+        "skills",
+        "kingdom-building"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Catharsis",
+          "year": 2016
+        },
+        {
+          "position": 2,
+          "title": "Precipice",
+          "year": 2017
+        }
+      ]
+    },
+    {
+      "name": "Ascend Online",
+      "authors": [
+        "Luke Chmilenko"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "vrmmo",
+        "male-mc",
+        "party-focused",
+        "levels",
+        "skills",
+        "classes",
+        "questing"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Ascend Online",
+          "year": 2016
+        }
+      ]
+    },
+    {
+      "name": "Threadbare",
+      "authors": [
+        "Andrew Seiple"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "nonhuman-mc",
+        "classes",
+        "levels",
+        "skills",
+        "found-family",
+        "heroic",
+        "lighthearted"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Stuffed",
+          "year": 2017
+        }
+      ]
+    },
+    {
+      "name": "Viridian Gate Online",
+      "authors": [
+        "James Hunter"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "vrmmo",
+        "trapped-in-game",
+        "male-mc",
+        "levels",
+        "skills",
+        "classes",
+        "war"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Cataclysm"
+        }
+      ]
+    },
+    {
+      "name": "The Mayor of Noobtown",
+      "authors": [
+        "Ryan Rimmel"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "settlement-building",
+        "humorous",
+        "levels",
+        "classes",
+        "lighthearted"
+      ],
+      "tag_confidence": "high",
+      "crunch": 2,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Mayor of Noobtown"
+        }
+      ]
+    },
+    {
+      "name": "The Legend of Randidly Ghosthound",
+      "authors": [
+        "Puddles4263"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "system-apocalypse",
+        "male-mc",
+        "skills",
+        "levels",
+        "stats",
+        "training-arcs",
+        "op-mc"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 3,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Legend of Randidly Ghosthound"
+        }
+      ]
+    },
+    {
+      "name": "Heretical Fishing",
+      "authors": [
+        "Haylock Jobson"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "cozy",
+        "humorous",
+        "skills",
+        "levels",
+        "lighthearted"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Heretical Fishing"
+        }
+      ]
+    },
+    {
+      "name": "Beneath the Dragoneye Moons",
+      "authors": [
+        "Selkie Myth"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "reincarnation",
+        "female-mc",
+        "class-healer",
+        "classes",
+        "levels",
+        "skills",
+        "war",
+        "military"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Beneath the Dragoneye Moons"
+        }
+      ]
+    },
+    {
+      "name": "Salvos",
+      "authors": [
+        "MelasD"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "nonhuman-mc",
+        "monster-mc",
+        "female-mc",
+        "race-evolution",
+        "skills",
+        "levels",
+        "questing"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Salvos"
+        }
+      ]
+    },
+    {
+      "name": "Tree of Aeons",
+      "authors": [
+        "spaceinvader"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "reincarnation",
+        "nonhuman-mc",
+        "base-building",
+        "settlement-building",
+        "cozy",
+        "lighthearted"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Tree of Aeons"
+        }
+      ]
+    },
+    {
+      "name": "Blue Core",
+      "authors": [
+        "InadvisablyCompelled"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "dungeon-core",
+        "nonhuman-mc",
+        "female-mc",
+        "base-building",
+        "lgbtq-romance"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "romance": 3,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Blue Core"
+        }
+      ]
+    },
+    {
+      "name": "Paranoid Mage",
+      "authors": [
+        "InadvisablyCompelled"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "modern-earth",
+        "male-mc",
+        "class-mage",
+        "clever-mc",
+        "training-arcs"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 1,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Paranoid Mage"
+        }
+      ]
+    },
+    {
+      "name": "Everybody Loves Large Chests",
+      "authors": [
+        "Neven Iliev"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "nonhuman-mc",
+        "monster-mc",
+        "race-evolution",
+        "dark-humor",
+        "humorous"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Morningwood"
+        }
+      ]
+    },
+    {
+      "name": "Metaworld Chronicles",
+      "authors": [
+        "Wutosama"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "female-mc",
+        "academy",
+        "classes",
+        "skills",
+        "politics"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Metaworld Chronicles"
+        }
+      ]
+    },
+    {
+      "name": "The Runesmith",
+      "authors": [
+        "Kuropon"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "reincarnation",
+        "male-mc",
+        "crafting",
+        "clever-mc",
+        "skills"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "The Runesmith"
+        }
+      ]
+    },
+    {
+      "name": "The New World",
+      "authors": [
+        "Monsoon117"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "vrmmo",
+        "trapped-in-game",
+        "male-mc",
+        "levels",
+        "skills",
+        "loot",
+        "revenge"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "The New World"
+        }
+      ]
+    },
+    {
+      "name": "Path of Ascension",
+      "authors": [
+        "C. Mantis"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "cultivation",
+        "male-mc",
+        "academy",
+        "ranks-tiers",
+        "skills",
+        "tournament",
+        "build-crafting"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Path of Ascension"
+        }
+      ]
+    },
+    {
+      "name": "Spells, Swords, & Stealth",
+      "authors": [
+        "Drew Hayes"
+      ],
+      "genre": "gamelit",
+      "tags": [
+        "npc-mc",
+        "party-focused",
+        "humorous",
+        "questing",
+        "lighthearted"
+      ],
+      "tag_confidence": "high",
+      "crunch": 1,
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Spells, Swords, & Stealth",
+          "year": 2014
+        }
+      ]
+    },
+    {
+      "name": "Life Reset",
+      "authors": [
+        "Shemer Kuznits"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "vrmmo",
+        "male-mc",
+        "nonhuman-mc",
+        "kingdom-building",
+        "settlement-building",
+        "levels",
+        "skills"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Life Reset"
+        }
+      ]
+    },
+    {
+      "name": "UnderVerse",
+      "authors": [
+        "Jez Cajiao"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "class-mage",
+        "levels",
+        "skills",
+        "kingdom-building",
+        "dark-humor"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Brightblade"
+        }
+      ]
+    },
+    {
+      "name": "Ten Realms",
+      "authors": [
+        "Michael Chatfield"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "crafting",
+        "settlement-building",
+        "levels",
+        "skills",
+        "war"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Ten Realms"
+        }
+      ]
+    },
+    {
+      "name": "Red Mage",
+      "authors": [
+        "Xander Boyce"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "class-mage",
+        "classes",
+        "levels",
+        "skills"
+      ],
+      "tag_confidence": "low",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Red Mage: Advent"
+        }
+      ]
+    },
+    {
+      "name": "Rogue Dungeon",
+      "authors": [
+        "James Hunter",
+        "eden Hudson"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "dungeon-core",
+        "male-mc",
+        "nonhuman-mc",
+        "base-building",
+        "humorous"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Rogue Dungeon"
+        }
+      ]
+    },
+    {
+      "name": "Legend of the Arch Magus",
+      "authors": [
+        "Michael Sisa"
+      ],
+      "genre": "progression-fantasy",
+      "tags": [
+        "isekai",
+        "reincarnation",
+        "male-mc",
+        "class-mage",
+        "op-mc",
+        "academy"
+      ],
+      "tag_confidence": "low",
+      "crunch": 1,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Legend of the Arch Magus"
+        }
+      ]
+    },
+    {
+      "name": "The Good Guys",
+      "authors": [
+        "Eric Ugland"
+      ],
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "humorous",
+        "levels",
+        "skills",
+        "questing"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Sneaky Sneaky",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "name": "Ready Player One",
+      "authors": [
+        "Ernest Cline"
+      ],
+      "status": "complete",
+      "genre": "gamelit",
+      "tags": [
+        "vrmmo",
+        "male-mc",
+        "gamer-mc",
+        "cyberpunk",
+        "questing",
+        "young-mc"
+      ],
+      "tag_confidence": "high",
+      "crunch": 0,
+      "romance": 2,
+      "harem": "none",
+      "confidence": "high",
+      "books": [
+        {
+          "position": 1,
+          "title": "Ready Player One",
+          "year": 2011
+        },
+        {
+          "position": 2,
+          "title": "Ready Player Two",
+          "year": 2020
+        }
+      ]
+    },
+    {
+      "name": "Worth the Candle",
+      "authors": [
+        "Alexander Wales"
+      ],
+      "status": "complete",
+      "genre": "litrpg",
+      "tags": [
+        "isekai",
+        "male-mc",
+        "party-focused",
+        "clever-mc",
+        "system-mystery",
+        "philosophical",
+        "young-mc"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 2,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "Worth the Candle"
+        }
+      ]
+    },
+    {
+      "name": "This Used to Be About Dungeons",
+      "authors": [
+        "Alexander Wales"
+      ],
+      "genre": "gamelit",
+      "tags": [
+        "slice-of-life",
+        "cozy",
+        "party-focused",
+        "male-mc"
+      ],
+      "tag_confidence": "medium",
+      "crunch": 1,
+      "confidence": "medium",
+      "books": [
+        {
+          "position": 1,
+          "title": "This Used to Be About Dungeons"
+        }
+      ]
+    }
+  ]
+}
