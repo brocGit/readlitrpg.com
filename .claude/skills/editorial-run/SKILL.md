@@ -38,15 +38,18 @@ pnpm editorial push <proposals.json>
 pnpm editorial finish --notes "what you did, anything odd"
 ```
 
-- **Work in priority order.** Moderation and image review first, then classification, then
-  dedupe, then authors' pasted book lists (`import_extract`), then research. `status` shows what
-  is waiting.
+- **Work in priority order.** The morning news scan (`news_scan`, one a day) first: news is daily.
+  Then moderation and image review, guest pitch and post reviews (`guest_review`), then
+  classification, interview formatting (`interview_format`), dedupe, authors' pasted book lists
+  (`import_extract`), research, and last a guide draft (`post_draft`, at most one a week).
+  `status` shows what is waiting.
 - **Pull a batch you can finish.** Claims expire after 3 hours and the work goes back to the queue.
   About 40 classifications, 50 dedupe questions or 15 research items per pull is a good size.
   Pull again when you're done.
 - **Follow the skill for each kind:** `editorial-classify`, `editorial-dedupe`,
   `editorial-research`, `editorial-moderate`, `editorial-image-review`,
-  `editorial-import-extract`. Run
+  `editorial-import-extract`, `editorial-news-scan`, `editorial-post-draft`,
+  `editorial-guest-review`, `editorial-interview-format`. Run
   `pnpm editorial brief <kind>` and read it first: it prints the live vocabulary and the exact
   answer format.
 - **Write proposals to a file** (a JSON array) under `.editorial/`, run `validate`, fix everything

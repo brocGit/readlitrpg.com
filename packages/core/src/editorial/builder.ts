@@ -1,9 +1,9 @@
 // Filling the editorial queue (DESIGN §7.1 step 1, §7.13). Runs on a schedule in the jobs Worker.
 // It only records *what* needs doing; the payload is built fresh when a run claims the item.
 
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import type { Db } from "../db";
-import { books, editorialQueue, inboxItems } from "../db/schema";
+import { books, bookTags, editorialQueue, inboxItems, tags } from "../db/schema";
 import type { Settings } from "../settings";
 import { addHours } from "../time";
 import { enqueue } from "./queue";
@@ -15,6 +15,8 @@ export interface BuildResult {
   classify: number;
   dedupe: number;
   research: number;
+  newsScan: number;
+  postDraft: number;
 }
 
 export async function buildEditorialQueue(
@@ -98,5 +100,62 @@ export async function buildEditorialQueue(
     })),
   );
 
-  return { classify, dedupe, research };
+  // News (M7, §14.6): one scan a day, claimed by the morning run.
+  const today = now.toISOString().slice(0, 10);
+  const [scanned] = await db
+    .select({ id: editorialQueue.id })
+    .from(editorialQueue)
+    .where(and(eq(editorialQueue.kind, "news_scan"), eq(editorialQueue.subjectId, today)))
+    .limit(1);
+  const newsScan = scanned
+    ? 0
+    : await enqueue(db, [
+        { kind: "news_scan", subjectType: "news_day", subjectId: today, priority: priorities.news_scan },
+      ]);
+
+  // Guides (§14.1): at most one draft a week, on the genre or premise with the most books and no
+  // guide yet. The owner can veto it for three days; then it takes the next guide slot.
+  let postDraft = 0;
+  const [recentDraft] = await db
+    .select({ id: editorialQueue.id })
+    .from(editorialQueue)
+    .where(
+      and(
+        eq(editorialQueue.kind, "post_draft"),
+        sql`${editorialQueue.createdAt} > ${addHours(now.toISOString(), -6 * 24)}`,
+      ),
+    )
+    .limit(1);
+  if (!recentDraft) {
+    const [topic] = await db
+      .select({ slug: tags.slug, n: sql<number>`count(*)`.as("n") })
+      .from(bookTags)
+      .innerJoin(tags, eq(tags.id, bookTags.tagId))
+      .innerJoin(books, eq(books.id, bookTags.bookId))
+      .where(
+        and(
+          inArray(tags.facet, ["genre", "premise", "progression", "activity"]),
+          eq(books.visibility, "published"),
+          isNull(books.redirectTo),
+          sql`${bookTags.score} >= 0.6`,
+          sql`not exists (select 1 from posts p where p.gen_key = 'guide:tag:' || ${tags.slug})`,
+          sql`not exists (select 1 from editorial_queue q where q.kind = 'post_draft' and q.subject_id = ${tags.slug})`,
+        ),
+      )
+      .groupBy(tags.slug)
+      .having(sql`count(*) >= 10`)
+      .orderBy(sql`n desc`)
+      .limit(1);
+    if (topic)
+      postDraft = await enqueue(db, [
+        {
+          kind: "post_draft",
+          subjectType: "guide_tag",
+          subjectId: topic.slug,
+          priority: priorities.post_draft,
+        },
+      ]);
+  }
+
+  return { classify, dedupe, research, newsScan, postDraft };
 }

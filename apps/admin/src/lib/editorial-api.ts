@@ -121,9 +121,14 @@ export async function handlePull(db: Db, settings: Settings, body: z.infer<typeo
   };
 }
 
-export async function handlePush(db: Db, settings: Settings, body: z.infer<typeof pushRequestSchema>) {
+export async function handlePush(
+  db: Db,
+  settings: Settings,
+  body: z.infer<typeof pushRequestSchema>,
+  renderEnv?: { origin: string; mediaOrigin: string },
+) {
   await runningRun(db, body.run_id);
-  const outcomes = await pushProposals({ db, runId: body.run_id, settings }, body.proposals);
+  const outcomes = await pushProposals({ db, runId: body.run_id, settings, renderEnv }, body.proposals);
   const run = await getRun(db, body.run_id);
   return {
     outcomes,

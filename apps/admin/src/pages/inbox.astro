@@ -5,7 +5,7 @@ import { can } from "@rlr/core/policy";
 import Console from "../layouts/Console.astro";
 import { adminActor } from "../lib/admin-session";
 import { audit, flash, readForm } from "../lib/forms";
-import { getDb } from "../lib/runtime";
+import { getDb, renderEnv } from "../lib/runtime";
 
 const admin = await Astro.locals.admin();
 if (!admin) return Astro.redirect("/signin", 303);
@@ -28,6 +28,7 @@ if (Astro.request.method === "POST") {
           note: form.note || undefined,
           now: new Date(),
           settings: await Astro.locals.settings(),
+          renderEnv: renderEnv(),
         })
       : await decideInboxItem(db, item.id, { status, decidedBy: admin.userId, note: form.note || undefined });
   if (changed) {

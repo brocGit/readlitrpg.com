@@ -17,6 +17,7 @@ import {
   series,
   tags,
 } from "../db/schema";
+import { guestReviewInput, interviewInput, newsScanInput, postDraftInput } from "./content-payloads";
 import type { QueueItem } from "./queue";
 
 export interface BookBrief {
@@ -242,6 +243,25 @@ export async function buildWorkItems(
         break;
       case "import_extract": {
         const input = await pasteInput(db, item.subjectId);
+        if (!input) {
+          gone.push(item.id);
+          continue;
+        }
+        work.push({ ...base, input });
+        break;
+      }
+      case "news_scan":
+      case "post_draft":
+      case "guest_review":
+      case "interview_format": {
+        const input =
+          item.kind === "news_scan"
+            ? await newsScanInput(db, item.subjectId)
+            : item.kind === "post_draft"
+              ? await postDraftInput(db, item.subjectId)
+              : item.kind === "guest_review"
+                ? await guestReviewInput(db, item.subjectType, item.subjectId)
+                : await interviewInput(db, item.subjectId);
         if (!input) {
           gone.push(item.id);
           continue;

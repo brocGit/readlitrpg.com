@@ -111,6 +111,8 @@ export interface InboxDecisionContext {
   note?: string;
   now: Date;
   settings: Settings;
+  /** Where links in posts a decision publishes point (M7). */
+  renderEnv?: { origin: string; mediaOrigin: string };
 }
 
 /** What approving or rejecting an item of one type does (e.g. publish a listing). */
@@ -145,7 +147,11 @@ export async function decideWithHandler(
 export async function runInboxDefaults(
   db: Db,
   now = new Date(),
-  opts: { handlers?: Record<string, InboxHandler>; settings?: Settings } = {},
+  opts: {
+    handlers?: Record<string, InboxHandler>;
+    settings?: Settings;
+    renderEnv?: InboxDecisionContext["renderEnv"];
+  } = {},
 ): Promise<number> {
   const handlers = opts.handlers ?? {};
   const types = [...new Set([...CLOSE_ONLY_DEFAULT_TYPES, ...Object.keys(handlers)])];
@@ -181,6 +187,7 @@ export async function runInboxDefaults(
             decidedBy: "system:default_action",
             now,
             settings: opts.settings,
+            renderEnv: opts.renderEnv,
           },
           status,
         )

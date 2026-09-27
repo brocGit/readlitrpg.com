@@ -45,8 +45,23 @@ export const SETTINGS = {
       classify: z.number().int().min(0).max(100),
       dedupe: z.number().int().min(0).max(100),
       research: z.number().int().min(0).max(100),
+      // M7 content kinds; defaults so overrides saved before M7 still parse.
+      news_scan: z.number().int().min(0).max(100).default(90),
+      guest_review: z.number().int().min(0).max(100).default(75),
+      interview_format: z.number().int().min(0).max(100).default(65),
+      post_draft: z.number().int().min(0).max(100).default(30),
     }),
-    { moderate: 80, image_review: 80, classify: 60, dedupe: 55, research: 50 },
+    {
+      moderate: 80,
+      image_review: 80,
+      classify: 60,
+      dedupe: 55,
+      research: 50,
+      news_scan: 90,
+      guest_review: 75,
+      interview_format: 65,
+      post_draft: 30,
+    },
     "Queue priority per kind of work (higher is claimed first)",
   ),
   "editorial.queue_batch": def(
@@ -210,6 +225,11 @@ export const SETTINGS = {
   ),
   "blog.publish_hour_utc": def(z.number().int().min(0).max(23), 13, "Hour (UTC) slotted posts go live"),
   "blog.ai_draft_veto_hours": def(hours, 72, "Hours an AI-drafted post waits for a veto before it publishes"),
+  "news.auto_publish_briefs": def(
+    z.boolean(),
+    true,
+    "Publish a news brief once its cited page is checked; off sends every brief to the inbox",
+  ),
   "news.daily_min_items": def(
     z.number().int().min(0).max(50),
     3,

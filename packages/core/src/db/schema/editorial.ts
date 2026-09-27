@@ -7,7 +7,11 @@ import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqli
 
 const isoNow = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 
-/** Kinds of work. Later milestones add news_scan, brief_review, feed_summary, draft, quiz, audit. */
+/**
+ * Kinds of work. M7 adds the content kinds: news_scan (the morning news search, with sources),
+ * post_draft (a guide from our data), guest_review (a guest pitch or post's pre-review) and
+ * interview_format (ordering an author's answers). Later: feed_summary, quiz, audit.
+ */
 export const EDITORIAL_KINDS = [
   "classify",
   "dedupe",
@@ -15,6 +19,10 @@ export const EDITORIAL_KINDS = [
   "moderate",
   "image_review",
   "import_extract",
+  "news_scan",
+  "post_draft",
+  "guest_review",
+  "interview_format",
 ] as const;
 export type EditorialKind = (typeof EDITORIAL_KINDS)[number];
 

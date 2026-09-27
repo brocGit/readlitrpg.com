@@ -159,6 +159,17 @@ export const JOBS = [
     description: "Turn new announcements, date changes, cancellations and completed series into news tips",
   },
   {
+    key: "news.briefs",
+    cron: "*/10 * * * *",
+    description:
+      "Check the pages cited by the morning run's news briefs, then publish or send them to the inbox",
+  },
+  {
+    key: "interviews.invite",
+    cron: "53 13 * * *",
+    description: "Invite verified authors with a release 21–35 days out to answer interview questions",
+  },
+  {
     key: "news.daily_roundup",
     cron: "30 10 * * *",
     description: 'Build and publish "Today in LitRPG", then post it to Bluesky and Mastodon if set up',

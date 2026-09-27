@@ -26,6 +26,13 @@ import { decideClassification, type InboxPlan } from "../policy/publish";
 import type { Settings } from "../settings";
 import { crunchLevelFromDial, romanceLevelFromDial } from "../taxonomy";
 import { addHours, nowIso } from "../time";
+import {
+  DEFAULT_RENDER_ENV,
+  handleGuestReview,
+  handleInterviewFormat,
+  handleNewsScan,
+  handlePostDraft,
+} from "./content";
 import { claimedByRun, closeItem, type QueueItem } from "./queue";
 import { type EditorialRun, getRun, recordOutcomes } from "./runs";
 import {
@@ -64,6 +71,8 @@ export interface PushContext {
   db: Db;
   runId: string;
   settings: Settings;
+  /** Where links in posts a proposal creates point (the public site). */
+  renderEnv?: { origin: string; mediaOrigin: string };
 }
 
 const MAX_STORED_PAYLOAD = 20_000;
@@ -108,7 +117,7 @@ export async function pushProposals(ctx: PushContext, raws: unknown[]): Promise<
       };
     } else {
       proposal = validation.proposal;
-      handled = await handle(db, proposal, item, run, settings);
+      handled = await handle(db, proposal, item, run, settings, ctx.renderEnv ?? DEFAULT_RENDER_ENV);
     }
 
     const proposalId = ulid();
@@ -163,6 +172,7 @@ async function handle(
   item: QueueItem,
   run: EditorialRun | null,
   settings: Settings,
+  renderEnv: { origin: string; mediaOrigin: string },
 ): Promise<Handled> {
   switch (p.kind) {
     case "classify":
@@ -176,6 +186,14 @@ async function handle(
       return handleModeration(db, p, item);
     case "import_extract":
       return handleImportExtract(db, p, item);
+    case "news_scan":
+      return handleNewsScan(db, p, item);
+    case "post_draft":
+      return handlePostDraft(db, p, item, settings, renderEnv);
+    case "guest_review":
+      return handleGuestReview(db, p, item, settings);
+    case "interview_format":
+      return handleInterviewFormat(db, p, item);
   }
 }
 
@@ -227,20 +245,19 @@ async function handleImportExtract(db: Db, p: ImportExtractProposal, item: Queue
     });
   }
   const now = nowIso();
-  if (drafts.length)
-    await db.insert(authorSubmissions).values(
-      drafts.map((payload) => ({
-        id: ulid(),
-        authorId: paste.authorId,
-        userId: paste.userId,
-        source: "paste" as const,
-        status: "draft" as const,
-        payload,
-        pasteId: paste.id,
-        createdAt: now,
-        updatedAt: now,
-      })),
-    );
+  const rows = drafts.map((payload) => ({
+    id: ulid(),
+    authorId: paste.authorId,
+    userId: paste.userId,
+    source: "paste" as const,
+    status: "draft" as const,
+    payload,
+    pasteId: paste.id,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  // Nine bound parameters a row: stay under D1's 100 per statement.
+  for (let i = 0; i < rows.length; i += 10) await db.insert(authorSubmissions).values(rows.slice(i, i + 10));
   await db
     .update(authorPastes)
     .set({ status: "extracted", drafts: drafts.length, extractedAt: now })

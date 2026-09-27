@@ -177,6 +177,15 @@ export const AUTHOR_NOTICE_KINDS = [
   "change_approved",
   "change_rejected",
   "drafts_ready",
+  // M7: guest posts and interviews (§14.3, §14.5).
+  "pitch_accepted",
+  "pitch_declined",
+  "guest_changes",
+  "guest_scheduled",
+  "guest_declined",
+  "interview_invite",
+  "interview_ready",
+  "interview_scheduled",
 ] as const;
 export type AuthorNoticeKind = (typeof AUTHOR_NOTICE_KINDS)[number];
 

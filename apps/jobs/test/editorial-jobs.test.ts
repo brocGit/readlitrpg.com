@@ -38,7 +38,7 @@ describe("editorial.queue", () => {
     expect(await buildQueue(ctx)).toBe(2);
     expect(await buildQueue(ctx)).toBe(0);
     const kinds = (await db.select().from(editorialQueue)).map((q) => q.kind).sort();
-    expect(kinds).toEqual(["classify", "research"]);
+    expect(kinds).toEqual(["classify", "news_scan", "research"]);
   });
 });
 

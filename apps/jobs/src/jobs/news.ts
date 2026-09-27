@@ -9,7 +9,9 @@ import {
   buildDailyPost,
   buildMonthlyRoundups,
   buildWeeklyRoundup,
+  checkBriefs,
   collectCatalogTips,
+  inviteDueInterviews,
   type Post,
   postPath,
   saveAutoPost,
@@ -38,6 +40,24 @@ const renderEnv = (ctx: JobContext) => ({
   origin: ctx.env.PUBLIC_ORIGIN.replace(/\/$/, ""),
   mediaOrigin: ctx.env.PUBLIC_MEDIA_ORIGIN.replace(/\/$/, ""),
 });
+
+/** Check the morning run's briefs against their sources (`news.briefs`). */
+export async function checkNewsBriefs(ctx: JobContext): Promise<number> {
+  const settings = await loadSettings({ db: ctx.db, kv: ctx.env.CONFIG, log: ctx.log });
+  const settled = await checkBriefs(ctx.db, renderEnv(ctx), settings, {
+    fetch: ctx.fetch,
+    log: ctx.log,
+    now: ctx.now,
+  });
+  if (settled) await enqueueJob(ctx.db, ctx.env.Q_JOBS, "og.render");
+  return settled;
+}
+
+export async function inviteInterviews(ctx: JobContext): Promise<number> {
+  const invited = await inviteDueInterviews(ctx.db, ctx.now);
+  if (invited) ctx.log.info("interviews.invited", { invited });
+  return invited;
+}
 
 export async function catalogNews(ctx: JobContext): Promise<number> {
   const added = await collectCatalogTips(ctx.db, ctx.now);

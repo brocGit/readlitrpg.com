@@ -41,7 +41,15 @@ import { enrichCatalog } from "./jobs/enrich";
 import { importCatalog } from "./jobs/import";
 import { buildMatchModel } from "./jobs/match";
 import { findCovers, processMedia } from "./jobs/media";
-import { catalogNews, dailyRoundup, dailySend, monthlyRoundups, weeklyRoundup } from "./jobs/news";
+import {
+  catalogNews,
+  checkNewsBriefs,
+  dailyRoundup,
+  dailySend,
+  inviteInterviews,
+  monthlyRoundups,
+  weeklyRoundup,
+} from "./jobs/news";
 import { renderShareImages } from "./jobs/og";
 import { announceQuizzes } from "./jobs/quizzes";
 import { buildExports, matchLibraryImports } from "./jobs/readers";
@@ -80,6 +88,8 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "release.confirm_asks": sendReleaseAsks,
   "release.rollover": rollover,
   "news.from_catalog": catalogNews,
+  "news.briefs": checkNewsBriefs,
+  "interviews.invite": inviteInterviews,
   "news.daily_roundup": dailyRoundup,
   "news.daily_send": dailySend,
   "blog.weekly_roundup": weeklyRoundup,
@@ -114,7 +124,14 @@ export default {
     try {
       // Author items (M6) have side effects: publish a listing, apply a date change.
       const settings = await loadSettings({ db, kv: env.CONFIG, log });
-      defaults = await runInboxDefaults(db, now, { handlers: INBOX_HANDLERS, settings });
+      defaults = await runInboxDefaults(db, now, {
+        handlers: INBOX_HANDLERS,
+        settings,
+        renderEnv: {
+          origin: (env.PUBLIC_ORIGIN ?? "").replace(/\/$/, ""),
+          mediaOrigin: (env.PUBLIC_MEDIA_ORIGIN ?? "").replace(/\/$/, ""),
+        },
+      });
       const published = await publishDueQuizzes(db, now);
       defaults += published.length;
       if (published.length) log.info("quiz.auto_published", { quizzes: published });
