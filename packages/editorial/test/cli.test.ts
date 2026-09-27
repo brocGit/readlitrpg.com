@@ -83,7 +83,16 @@ describe("proposal files", () => {
   });
 
   it("reads the editorial skill versions a run follows", () => {
-    expect(skillVersions(repoRoot())).toMatchObject({ run: "1", classify: "1", research: "1" });
+    const declared = (skill: string) =>
+      /Skill version: (\d+)/.exec(
+        readFileSync(join(repoRoot(), ".claude/skills", `editorial-${skill}`, "SKILL.md"), "utf8"),
+      )?.[1];
+    expect(skillVersions(repoRoot())).toMatchObject({
+      run: declared("run"),
+      classify: declared("classify"),
+      research: declared("research"),
+    });
+    expect(declared("classify")).toMatch(/^\d+$/);
   });
 
   it("prints a brief with every active tag, dial and stat", () => {
@@ -128,7 +137,11 @@ describe("a whole run through the CLI", () => {
     }) as unknown as typeof fetch;
 
     expect(await main(["start", "--env", "local", "--label", "test"], fakeFetch)).toBe(0);
-    expect(calls[0]?.body).toMatchObject({ kind: "manual", label: "test", skills: { classify: "1" } });
+    expect(calls[0]?.body).toMatchObject({
+      kind: "manual",
+      label: "test",
+      skills: { classify: skillVersions(repoRoot()).classify },
+    });
     expect(logs.join("\n")).toMatch(/differs from the server/);
     await expect(main(["start"], fakeFetch)).rejects.toThrow(/still open/);
 
