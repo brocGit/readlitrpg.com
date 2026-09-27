@@ -147,6 +147,30 @@ export const SETTINGS = {
     "Appraisals before a judgment stat is shown",
   ),
 
+  // Billing (§12)
+  "billing.author_pro_price_month": def(
+    z.string().max(100),
+    "",
+    "Stripe Price ID for Author Pro, monthly (price_…); empty keeps it off sale",
+  ),
+  "billing.author_pro_price_year": def(z.string().max(100), "", "Stripe Price ID for Author Pro, yearly"),
+  "billing.author_pro_month_cents": def(
+    cents,
+    900,
+    "Author Pro monthly price as shown (match the Stripe Price)",
+  ),
+  "billing.author_pro_year_cents": def(
+    cents,
+    9_000,
+    "Author Pro yearly price as shown (match the Stripe Price)",
+  ),
+  "billing.author_pro_quarterly_credit_cents": def(
+    cents,
+    2_000,
+    "Promo credit Author Pro members get each quarter",
+  ),
+  "billing.automatic_tax": def(z.boolean(), false, "Ask Stripe Tax to calculate tax at checkout"),
+
   // Owner Inbox and notifications (§8)
   "inbox.low_risk_max": def(
     z.number().int().min(0).max(100),
@@ -197,6 +221,36 @@ export const SETTINGS = {
   ),
   "ads.t0_daily_spend_cap_cents": def(cents, 15_000, "Daily spend cap for T0 advertisers"),
   "ads.max_sponsored_per_email": def(z.number().int().min(0).max(5), 2, "Most sponsored slots per email"),
+  "ads.prices": def(
+    z.record(z.string(), cents),
+    {
+      home_spotlight: 1_000,
+      tag_sponsor: 1_000,
+      books_like_sponsor: 1_500,
+      newsletter_top: 2_500,
+      newsletter_standard: 1_500,
+    },
+    "Price of each placement period, in cents (new inventory takes a changed price; bookings keep theirs)",
+  ),
+  "ads.min_lead_days": def(
+    z.number().int().min(1).max(60),
+    3,
+    "Days ahead a paid placement must start (time for the creative review)",
+  ),
+  "ads.max_periods": def(z.number().int().min(1).max(26), 8, "Most periods (days or weeks) in one booking"),
+  "ads.max_open_holds": def(
+    z.number().int().min(1).max(100),
+    10,
+    "Most places one advertiser may hold at once",
+  ),
+  "ads.checkout_attempts_per_hour": def(
+    z.number().int().min(1).max(100),
+    3,
+    "Checkouts one advertiser may start in an hour",
+  ),
+  "ads.sponsored_match_cpm_cents": def(cents, 800, "Sponsored Match price per 1,000 qualified impressions"),
+  "ads.sponsored_match_min_budget_cents": def(cents, 2_000, "Smallest Sponsored Match budget"),
+  "ads.sponsored_match_max_days": def(z.number().int().min(1).max(120), 60, "Longest Sponsored Match flight"),
   "ads.target_cpm_cents": def(
     z.object({ newsletter: cents, web: cents }),
     { newsletter: 200, web: 400 },
@@ -276,6 +330,7 @@ export const SETTINGS = {
   "flags.author_submissions": def(z.boolean(), true, "Allow author book submissions"),
   "flags.guest_posts": def(z.boolean(), true, "Allow guest post pitches"),
   "flags.ads_paid": def(z.boolean(), false, "Sell paid placements"),
+  "flags.author_pro": def(z.boolean(), false, "Sell the Author Pro subscription"),
   "flags.ads_serving": def(z.boolean(), true, "Serve ads, including house ads"),
   "flags.newsletter_send": def(z.boolean(), true, "Send newsletters"),
   "flags.read_only_mode": def(z.boolean(), false, "Refuse all writes (incidents and migrations)"),

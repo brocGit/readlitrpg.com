@@ -88,7 +88,12 @@ async function checkCreative(db: Db, input: HouseCampaignInput): Promise<void> {
 }
 
 /** Where a book may be shown: published, in scope, carrying the tag for a Tag Page Sponsor. */
-async function checkBook(db: Db, bookId: string, productKey: string, target: string | null): Promise<void> {
+export async function checkBook(
+  db: Db,
+  bookId: string,
+  productKey: string,
+  target: string | null,
+): Promise<void> {
   const [b] = await db
     .select({ visibility: books.visibility, flags: books.contentFlags, inScope: books.inScope })
     .from(books)

@@ -131,6 +131,12 @@ export const campaigns = sqliteTable(
     startAt: text("start_at").notNull(),
     // Null: ongoing.
     endAt: text("end_at"),
+    // Budget-paced products (Sponsored Match, §11.3): a prepaid budget spent per qualified
+    // impression. Spend is kept in thousandths of a cent so a CPM price divides exactly.
+    budgetCents: integer("budget_cents"),
+    cpmCents: integer("cpm_cents"),
+    spentMillicents: integer("spent_millicents").notNull().default(0),
+    qualifiedImpressions: integer("qualified_impressions").notNull().default(0),
     createdBy: text("created_by"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

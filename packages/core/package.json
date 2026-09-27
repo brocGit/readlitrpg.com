@@ -10,6 +10,7 @@
     "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
     "./authors": "./src/authors/index.ts",
+    "./billing": "./src/billing/index.ts",
     "./catalog": "./src/catalog/index.ts",
     "./content": "./src/content/index.ts",
     "./db": "./src/db/index.ts",

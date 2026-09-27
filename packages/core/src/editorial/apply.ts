@@ -3,6 +3,7 @@
 // the same provenance code as every other write (source "ai"), or held for the Owner Inbox.
 
 import { and, eq } from "drizzle-orm";
+import { flagCreative } from "../ads/paid";
 import { appendAudit } from "../audit";
 import { notifyAuthor } from "../authors/notices";
 import { type FieldWrite, writeBookFields } from "../catalog/fields";
@@ -502,6 +503,22 @@ async function handleModeration(
 ): Promise<Handled> {
   if (p.verdict === "allow")
     return { status: "accepted", reasons: [], result: { verdict: p.verdict }, close: "done" };
+  // A paid ad's creative goes to the ad review, where rejecting refunds it (§11.7).
+  if (item.subjectType === "creative") {
+    const flagged = await flagCreative(
+      db,
+      item.subjectId,
+      p.verdict,
+      [p.categories.join(", "), p.reasons].filter(Boolean).join(" — "),
+    );
+    return {
+      status: "accepted",
+      reasons: [],
+      result: { verdict: p.verdict },
+      inboxItemId: flagged,
+      close: "done",
+    };
+  }
   // A blocked image comes down at once; "review" stays up until the owner decides.
   if (p.kind === "image_review" && p.verdict === "block" && item.subjectType === "media") {
     await rejectMedia(db, item.subjectId);

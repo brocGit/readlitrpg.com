@@ -186,6 +186,13 @@ export const AUTHOR_NOTICE_KINDS = [
   "interview_invite",
   "interview_ready",
   "interview_scheduled",
+  // M8: paid promotions and Author Pro (§11.4, §11.6).
+  "ad_scheduled",
+  "ad_rejected",
+  "ad_cancelled",
+  "ad_report",
+  "makegood",
+  "pro_welcome",
 ] as const;
 export type AuthorNoticeKind = (typeof AUTHOR_NOTICE_KINDS)[number];
 

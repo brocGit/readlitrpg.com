@@ -92,6 +92,20 @@
       "when": 1790545263905,
       "tag": "0012_inbox_snooze_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1790548996685,
+      "tag": "0013_billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1790548997860,
+      "tag": "0014_credits_ledger_append_only",
+      "breakpoints": true
     }
   ]
 }

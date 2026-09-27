@@ -63,7 +63,7 @@ export const BACKUP_TABLES = [
   "interview_responses",
   "editorial_slots",
   "news_tips",
-  // Ads (M7: house campaigns; orders and credits arrive with paid products).
+  // Ads (M7: house campaigns) and money (M8). Financial records are kept seven years (§12.8).
   "advertisers",
   "ad_products",
   "ad_slots",
@@ -72,6 +72,12 @@ export const BACKUP_TABLES = [
   "creatives",
   "bookings",
   "campaign_stats_daily",
+  "orders",
+  "order_items",
+  "refunds",
+  "credits_ledger",
+  "subscriptions",
+  "promo_codes",
   // Analytics Engine keeps 90 days; these daily totals are the long-term record.
   "page_views_daily",
   "referrers_daily",
@@ -97,4 +103,6 @@ export const BACKUP_EXCLUDED = [
   // until they're emailed (M6).
   "author_pastes",
   "author_notices",
+  // An idempotency log for webhooks: Stripe keeps every event and the orders hold the outcome (M8).
+  "stripe_events",
 ] as const;

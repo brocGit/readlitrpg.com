@@ -5,6 +5,7 @@
 
 import { and, asc, desc, eq, inArray, isNotNull, lte, type SQL, sql } from "drizzle-orm";
 import { appendAudit } from "../audit";
+import type { StripeApi } from "../billing/stripe";
 import type { Db } from "../db";
 import {
   authors,
@@ -33,6 +34,8 @@ export interface NewInboxItem {
   dueAt?: string;
   aiSummary?: string;
   aiRecommendation?: (typeof INBOX_RECOMMENDATIONS)[number];
+  /** 0–100, from automated checks (an ad creative's flags, a guest post's review). */
+  riskScore?: number;
   /** What happens if the owner doesn't act (DESIGN §8.2), and when. */
   defaultAction?: "approve" | "reject" | "expire" | "none";
   defaultActionAt?: string;
@@ -55,6 +58,7 @@ export async function openInboxItem(db: Db, item: NewInboxItem): Promise<InboxIt
       dueAt: item.dueAt ?? null,
       aiSummary: item.aiSummary?.slice(0, 1000) ?? null,
       aiRecommendation: item.aiRecommendation ?? null,
+      riskScore: item.riskScore ?? null,
       defaultAction: item.defaultAction ?? "none",
       defaultActionAt:
         item.defaultAction && item.defaultAction !== "none" ? (item.defaultActionAt ?? null) : null,
@@ -285,6 +289,8 @@ export interface InboxDecisionContext {
   settings: Settings;
   /** Where links in posts a decision publishes point (M7). */
   renderEnv?: { origin: string; mediaOrigin: string };
+  /** For decisions that refund (rejecting a paid ad, M8). Null where Stripe isn't configured. */
+  stripe?: StripeApi | null;
 }
 
 /**
@@ -336,6 +342,7 @@ export async function runInboxDefaults(
     handlers?: Record<string, InboxHandler>;
     settings?: Settings;
     renderEnv?: InboxDecisionContext["renderEnv"];
+    stripe?: StripeApi | null;
   } = {},
 ): Promise<number> {
   const handlers = opts.handlers ?? {};
@@ -374,6 +381,7 @@ export async function runInboxDefaults(
           now,
           settings: opts.settings,
           renderEnv: opts.renderEnv,
+          stripe: opts.stripe,
         },
         status,
       );
