@@ -55,3 +55,11 @@ export async function advance(
     .set({ step: next, nextAt: nowIso(due < now ? now : due) })
     .where(and(eq(emailSequences.userId, row.userId), eq(emailSequences.sequence, row.sequence)));
 }
+
+/** Stop a sequence early: the reader unsubscribed, or the step no longer applies. */
+export async function endSequence(db: Db, userId: string, sequence: Sequence, now = new Date()) {
+  await db
+    .update(emailSequences)
+    .set({ nextAt: null, doneAt: nowIso(now) })
+    .where(and(eq(emailSequences.userId, userId), eq(emailSequences.sequence, sequence)));
+}

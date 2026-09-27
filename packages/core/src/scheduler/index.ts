@@ -102,6 +102,36 @@ export const JOBS = [
     cron: "40 * * * *",
     description: "Embed new and changed books with Workers AI; flag near-duplicates",
   },
+  {
+    key: "email.welcome",
+    cron: "*/5 * * * *",
+    description: "Send due welcome-sequence emails (the reading list on confirmation, then days 2, 5 and 9)",
+  },
+  {
+    key: "email.release_alerts",
+    cron: "*/10 11-13 * * *",
+    description: "From 11:00 UTC, one bundled release-day email per opted-in reader, in chunks",
+  },
+  {
+    key: "email.digest_build",
+    cron: "0 9 * * 4",
+    description: "Thursday: freeze this week's Patch Notes issue (new books, quiz of the week)",
+  },
+  {
+    key: "email.digest_send",
+    cron: "*/5 13-23 * * 5,6",
+    description: "From Friday 13:00 UTC: build and queue Patch Notes in chunks, with the circuit breaker",
+  },
+  {
+    key: "exports.build",
+    cron: "*/10 * * * *",
+    description: "Build queued data exports into PRIVATE and email the reader a link",
+  },
+  {
+    key: "library.import",
+    cron: "*/5 * * * *",
+    description: "Match the next chunks of imported Goodreads / StoryGraph libraries to the catalog",
+  },
 ] as const satisfies readonly JobDef[];
 
 export type JobKey = (typeof JOBS)[number]["key"];

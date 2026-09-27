@@ -101,6 +101,8 @@ export function findBooks(
   q: FindQuery,
   profile: TasteProfile | null = null,
   opts: MatchOptions = DEFAULT_MATCH_OPTIONS,
+  /** Only these matrix rows (a saved search's alert looks at new books only). */
+  only?: ReadonlySet<number>,
 ): { total: number; hits: FindHit[] } {
   const filters = noesProfile(q);
   const includeIdx = q.include.map((s) => m.tags.indexOf(s)).filter((t) => t >= 0);
@@ -109,6 +111,7 @@ export function findBooks(
   const dialIndex = kind === "dial" ? m.dials.indexOf(key ?? "") : -1;
   const statIndex = kind === "stat" ? m.stats.indexOf(key ?? "") : -1;
   for (let i = 0; i < m.n; i++) {
+    if (only && !only.has(i)) continue;
     if (hardFilter(m, i, filters, opts)) continue;
     const tags = tagsOf(m, i);
     if (includeIdx.some((t) => (tags.get(t) ?? 0) < opts.includeMin)) continue;

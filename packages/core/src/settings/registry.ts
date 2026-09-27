@@ -176,6 +176,16 @@ export const SETTINGS = {
   "email.circuit.complaint_rate": def(share, 0.0008, "Complaint rate that pauses sending"),
   "email.circuit.bounce_rate": def(share, 0.04, "Bounce rate that pauses sending"),
   "email.direct_affiliate_links": def(z.boolean(), false, "Put affiliate links directly in emails"),
+  "email.digest_quiet": def(
+    z.enum(["send", "skip"]),
+    "send",
+    "Readers with nothing new this week: send a short issue with top picks, or skip them",
+  ),
+  "email.digest_chunk": def(
+    z.number().int().min(1).max(60),
+    40,
+    "Patch Notes readers built per job run (each run stays under D1's query limit)",
+  ),
   "email.postal_address": def(
     z.string().max(300),
     "",

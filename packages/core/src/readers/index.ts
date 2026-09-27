@@ -3,6 +3,7 @@ export * from "./activity";
 export * from "./consent";
 export * from "./library";
 export * from "./links";
+export * from "./picks";
 export * from "./profile";
 export * from "./sequences";
 export * from "./sns";

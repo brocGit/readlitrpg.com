@@ -167,7 +167,14 @@ export function renderWelcome1(o: {
         ),
         `${total} books picked for your profile. Mark the ones you know and your matches sharpen.`,
       ),
-      block(h2("Best bets") + bookList(o.best), `BEST BETS\n${bookText(o.best)}`),
+      o.best.length
+        ? block(h2("Best bets") + bookList(o.best), `BEST BETS\n${bookText(o.best)}`)
+        : block(
+            p(
+              "Your list is still being stocked: the catalog is filling up. Your matches page updates as books arrive.",
+            ),
+            "Your list is still being stocked. Your matches page updates as books arrive.",
+          ),
       o.more.length
         ? block(h2(`${o.more.length} more`) + bookList(o.more), `MORE\n${bookText(o.more)}`)
         : block("", ""),
@@ -342,7 +349,8 @@ export function renderReleaseAlert(o: {
     o.releases[0]?.title ?? o.savedSearches.find((s) => s.books.length)?.books[0]?.title ?? "New books";
   const count = o.releases.length + o.savedSearches.reduce((n, s) => n + s.books.length, 0);
   return compose({
-    subject: count > 1 ? `Out today: ${first} and ${count - 1} more` : `Out today: ${first}`,
+    // "Out today" only when something followed is released today; saved searches find books new to the site.
+    subject: `${o.releases.length ? "Out today" : "New for you"}: ${first}${count > 1 ? ` and ${count - 1} more` : ""}`,
     preheader: "New books from what you follow.",
     footer: o.footer,
     footerText: "Release alerts from ReadLitRPG: at most one email a day.",

@@ -27,8 +27,10 @@ import {
   SesError,
   SesProvider,
 } from "@rlr/email";
+import { sendReleaseAlerts } from "./jobs/alerts";
 import { verifyAudit } from "./jobs/audit-verify";
 import { exportBackup } from "./jobs/backup";
+import { buildDigestIssue, sendDigestChunk } from "./jobs/digest";
 import { buildQueue, checkCitations, watchdog } from "./jobs/editorial";
 import { enrichCatalog } from "./jobs/enrich";
 import { importCatalog } from "./jobs/import";
@@ -36,11 +38,13 @@ import { buildMatchModel } from "./jobs/match";
 import { findCovers, processMedia } from "./jobs/media";
 import { renderShareImages } from "./jobs/og";
 import { announceQuizzes } from "./jobs/quizzes";
+import { buildExports, matchLibraryImports } from "./jobs/readers";
 import { purgeExpired } from "./jobs/retention";
 import { rollupStats } from "./jobs/stats";
 import { syncTaxonomyJob } from "./jobs/taxonomy-sync";
 import type { JobHandler } from "./jobs/types";
 import { updateVectors } from "./jobs/vectors";
+import { sendWelcomeSteps } from "./jobs/welcome";
 
 export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "backup.export": exportBackup,
@@ -59,6 +63,12 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "stats.rollup": rollupStats,
   "quiz.announce": announceQuizzes,
   "match.model_build": buildMatchModel,
+  "email.welcome": sendWelcomeSteps,
+  "email.release_alerts": sendReleaseAlerts,
+  "email.digest_build": buildDigestIssue,
+  "email.digest_send": sendDigestChunk,
+  "exports.build": buildExports,
+  "library.import": matchLibraryImports,
 };
 
 type QueueKind = "jobs" | "email" | "dlq";
