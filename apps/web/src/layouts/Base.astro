@@ -77,6 +77,20 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
       </p>
       {affiliate && <p>As an Amazon Associate I earn from qualifying purchases.</p>}
     </footer>
+    <script>
+      // A first-party page view (DESIGN §11.6): the path and the referring site, nothing else. No
+      // cookies, no identifiers, and nothing at all when the browser asks not to be tracked.
+      const nav = navigator as Navigator & { globalPrivacyControl?: boolean; doNotTrack?: string | null };
+      if (!nav.globalPrivacyControl && nav.doNotTrack !== "1" && typeof nav.sendBeacon === "function") {
+        let r = "";
+        try {
+          r = document.referrer ? new URL(document.referrer).host : "";
+        } catch {
+          r = "";
+        }
+        nav.sendBeacon("/e", JSON.stringify({ p: location.pathname, r }));
+      }
+    </script>
   </body>
 </html>
 

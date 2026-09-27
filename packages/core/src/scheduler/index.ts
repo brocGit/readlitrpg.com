@@ -78,6 +78,11 @@ export const JOBS = [
     description: "Re-encode pending images into the WebP variants readers see, and queue their review",
   },
   {
+    key: "stats.rollup",
+    cron: "17 * * * *",
+    description: "Copy the last two days of page views from Analytics Engine into daily totals",
+  },
+  {
     key: "og.render",
     cron: "*/15 * * * *",
     description: "Render link-preview PNGs: the site, reader classes, live quiz results and changed books",

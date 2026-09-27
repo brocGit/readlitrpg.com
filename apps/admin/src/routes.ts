@@ -25,6 +25,7 @@ export const ROUTES = {
   "/editorial": ADMIN,
   "/editorial/runs/[id]": ADMIN,
   "/quizzes": ADMIN,
+  "/traffic": ADMIN,
   "/match": ADMIN,
   "/api/editorial/runs": EDITORIAL,
   "/api/editorial/runs/[id]/finish": EDITORIAL,

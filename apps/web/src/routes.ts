@@ -45,6 +45,8 @@ export const ROUTES = {
   "/new": PUBLIC,
   "/search": PUBLIC,
   "/robots.txt": PUBLIC,
+  // The page-view beacon: counts only (DESIGN §11.6).
+  "/e": PUBLIC,
   "/media/[...key]": PUBLIC,
   "/sitemap.xml": PUBLIC,
   "/sitemaps/[name].xml": PUBLIC,

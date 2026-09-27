@@ -4,7 +4,9 @@
 // A reader's passkey must not open the console. Then the catalog (M1) and an editorial run driven
 // through the real `pnpm editorial` CLI with the local token (M2). Then discovery (M3): the owner
 // rebuilds the match model, a reader matches from a loved book, and a published quiz is played,
-// shared and retired.
+// shared and retired. Then the public site (M4): book, series, author and tag pages with structured
+// data, a release date through to New & upcoming and the calendar feed, robots.txt and sitemaps,
+// the page-view beacon, and (with the jobs Worker running) a cover upload and PNG share cards.
 //
 // Local runs stand in for Cloudflare Access with ACCESS_DEV_EMAIL (see .dev.vars.example).
 
@@ -12,6 +14,7 @@ import { execFileSync, execSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { crc32, deflateSync } from "node:zlib";
 import { chromium } from "playwright-core";
 
 const WEB = process.env.E2E_WEB_URL ?? "http://localhost:4321";
@@ -23,6 +26,41 @@ const adminDir = new URL("..", import.meta.url);
 const repoRoot = new URL("../../../", import.meta.url);
 
 const problems = [];
+const withJobs = process.env.E2E_JOBS === "1";
+
+/** A real, decodable PNG of one color: the Images binding has to be able to re-encode it. */
+function solidPng(width, height, [r, g, b]) {
+  const row = Buffer.alloc(1 + width * 3);
+  for (let x = 0; x < width; x++) row.set([r, g, b], 1 + x * 3);
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([len, body, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr.set([8, 2, 0, 0, 0], 8);
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(Buffer.concat(Array.from({ length: height }, () => row)))),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+/** Poll until `probe` returns truthy (jobs run on their own clock). */
+async function eventually(probe, seconds = 45) {
+  for (let i = 0; i < seconds; i++) {
+    const value = await probe();
+    if (value) return value;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return null;
+}
 const check = (condition, message) => {
   if (!condition) throw new Error(`E2E check failed: ${message}`);
   console.log(`✓ ${message}`);
@@ -363,6 +401,18 @@ try {
   const resultHref = await visitor.page.getAttribute('a:has-text("Share my result")', "href");
   await visitor.page.goto(`${WEB}${resultHref}`);
   check(await visitor.page.isVisible("text=Take the quiz"), "the result has a shareable page");
+  const ogUrl = await visitor.page.getAttribute('meta[property="og:image"]', "content");
+  check(/\/og\/quiz\/.+\.png$/.test(ogUrl ?? ""), "the result's link preview is a PNG card");
+  if (withJobs) {
+    // Publishing queued og.render; the jobs Worker draws the cards with resvg inside workerd.
+    const png = await eventually(async () => {
+      const res = await fetch(ogUrl);
+      return res.status === 200 && res.headers.get("content-type") === "image/png"
+        ? new Uint8Array(await res.arrayBuffer())
+        : null;
+    });
+    check(png && png[0] === 0x89 && png[1] === 0x50, "the jobs Worker renders the quiz's PNG share cards");
+  }
   const quizCard = await fetch(`${WEB}${resultHref}/card.svg`);
   check(quizCard.status === 200, "the result has a share card");
   await visitor.page.click('a:has-text("Get matches for this result")');
@@ -383,6 +433,73 @@ try {
     trail.includes("match.model_rebuild") && trail.includes("quiz.publish") && trail.includes("quiz.retire"),
     "model rebuilds and quiz decisions are audited",
   );
+
+  // The public site (M4).
+  await page.goto(bookUrl);
+  await page.selectOption('select[name="kind"]', "ebook");
+  await page.fill('input[name="date"]', "2027-03-14");
+  await page.click('button[value="release_set"]');
+  await page.waitForSelector("text=Release date added");
+  check(true, "the owner sets a release date");
+  await page.setInputFiles('input[name="cover"]', {
+    name: "cover.png",
+    mimeType: "image/png",
+    buffer: solidPng(640, 960, [stamp % 200, 80, 120]),
+  });
+  await page.click('button:has-text("Upload")');
+  await page.waitForSelector("text=Cover received");
+  check(true, "the owner uploads a cover, and it is checked and kept privately");
+
+  const reader2 = await newReader(browser);
+  const beacon = reader2.page.waitForResponse(
+    (r) => new URL(r.url()).pathname === "/e" && r.request().method() === "POST",
+  );
+  await reader2.page.goto(`${WEB}/books/${firstSlug}`);
+  check((await reader2.page.textContent("h1"))?.includes(title), "the book has a public page");
+  check((await beacon).status() === 204, "the page reports a view to the beacon");
+  const html = await reader2.page.content();
+  check(
+    html.includes('"@type":"Book"') && html.includes('rel="canonical"'),
+    "the book page carries structured data and a canonical link",
+  );
+  await reader2.page.click(`a:has-text("E2E Series ${stamp}")`);
+  check(
+    new URL(reader2.page.url()).pathname === `/series/e2e-series-${stamp}`,
+    "the book links to its series",
+  );
+  check((await fetch(`${WEB}/authors/zogarth`)).status === 200, "the author has a page");
+  const tagPage = await fetch(`${WEB}/tags/system-apocalypse`);
+  const tagFeed = await (await fetch(`${WEB}/feeds/tags/system-apocalypse.xml`)).text();
+  check(
+    tagPage.status === 200 && tagFeed.includes(`/books/${firstSlug}`),
+    "the tag has a page, and its feed lists the new book",
+  );
+  const fresh = await (await fetch(`${WEB}/new`)).text();
+  check(
+    fresh.includes(`/books/${firstSlug}`) && fresh.includes("14 Mar 2027"),
+    "New & upcoming shows the release",
+  );
+  const cal = await (await fetch(`${WEB}/feeds/releases.ics`)).text();
+  check(cal.includes("DTSTART;VALUE=DATE:20270314"), "the release calendar has the date");
+  const robots = await (await fetch(`${WEB}/robots.txt`)).text();
+  check(
+    robots.includes("User-agent: GPTBot") && robots.includes("Sitemap:"),
+    "robots.txt sets the crawler policy",
+  );
+  const books = await (await fetch(`${WEB}/sitemaps/books-1.xml`)).text();
+  check(books.includes(`/books/${firstSlug}</loc>`), "the sitemap lists the book");
+  if (withJobs) {
+    const src = await eventually(async () => {
+      const page = await (await fetch(`${WEB}/books/${firstSlug}`)).text();
+      return /<img class="cover large"[^>]*src="([^"]+)"/.exec(page)?.[1] ?? null;
+    }, 60);
+    const img = src ? await fetch(src) : null;
+    check(
+      img?.status === 200 && img.headers.get("content-type") === "image/webp",
+      "the jobs Worker publishes the cover as WebP variants",
+    );
+  }
+  await reader2.context.close();
 
   check(
     problems.length === 0,

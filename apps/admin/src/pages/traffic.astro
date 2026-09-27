@@ -1,0 +1,73 @@
+---
+// Traffic (DESIGN §8.5, §18): page views from the first-party beacon, rolled up daily from
+// Analytics Engine. Counts only; nothing here identifies a reader.
+import { trafficSummary } from "@rlr/core/analytics";
+import Console from "../layouts/Console.astro";
+import { env, getDb } from "../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const days = Astro.url.searchParams.get("days") === "30" ? 30 : 7;
+const { byDay, topPages, topReferrers } = await trafficSummary(getDb(), days);
+const total = byDay.reduce((n, d) => n + Number(d.views), 0);
+const max = Math.max(1, ...byDay.map((d) => Number(d.views)));
+const site = env.PUBLIC_ORIGIN.replace("admin.", "");
+const PATH: Record<string, string> = {
+  book: "/books/",
+  series: "/series/",
+  author: "/authors/",
+  narrator: "/narrators/",
+  tag: "/tags/",
+  books_like: "/books-like/",
+  list: "/lists/",
+  quiz: "/quiz/",
+  quiz_result: "/quiz/",
+};
+---
+
+<Console title="Traffic">
+  <p class="muted">
+    Page views counted by the site's own beacon: no cookies, no IPs, and bots and prefetches left out. Totals are copied
+    from Analytics Engine every hour by <code>stats.rollup</code>, which needs <code>CF_ACCOUNT_ID</code> and
+    <code>CF_API_TOKEN</code> on the jobs Worker.
+  </p>
+  <p><a href="/traffic?days=7">7 days</a> · <a href="/traffic?days=30">30 days</a></p>
+
+  {total === 0 ? (
+    <div class="status-screen"><p class="label">[No data yet]</p><p>Views appear here after the first rollup.</p></div>
+  ) : (
+    <>
+      <h2>{total.toLocaleString("en-US")} views in {days} days</h2>
+      <table>
+        <thead><tr><th>Day</th><th>Views</th><th></th></tr></thead>
+        <tbody>
+          {byDay.map((d) => (
+            <tr><td>{d.day}</td><td>{Number(d.views).toLocaleString("en-US")}</td><td><meter min="0" max={max} value={Number(d.views)} /></td></tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h2>Top pages</h2>
+      <table>
+        <thead><tr><th>Page</th><th>Kind</th><th>Views</th></tr></thead>
+        <tbody>
+          {topPages.map((p) => (
+            <tr>
+              <td>{PATH[p.kind] ? <a href={`${site}${PATH[p.kind]}${p.key}`} rel="noopener">{p.key}</a> : p.key}</td>
+              <td>{p.kind}</td>
+              <td>{Number(p.views).toLocaleString("en-US")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h2>Where readers came from</h2>
+      {topReferrers.length === 0 ? <p class="muted">No referring sites yet.</p> : (
+        <table>
+          <thead><tr><th>Site</th><th>Views</th></tr></thead>
+          <tbody>{topReferrers.map((r) => <tr><td>{r.host}</td><td>{Number(r.views).toLocaleString("en-US")}</td></tr>)}</tbody>
+        </table>
+      )}
+    </>
+  )}
+</Console>

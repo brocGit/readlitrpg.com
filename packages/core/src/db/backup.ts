@@ -38,6 +38,9 @@ export const BACKUP_TABLES = [
   "quiz_daily",
   "quiz_status",
   "appraisals",
+  // Analytics Engine keeps 90 days; these daily totals are the long-term record.
+  "page_views_daily",
+  "referrers_daily",
 ] as const;
 
 /**

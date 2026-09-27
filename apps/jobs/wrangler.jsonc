@@ -20,7 +20,9 @@
     "EMAIL_FROM": "ReadLitRPG <hello@mail.readlitrpg.com>",
     "SES_REGION": "us-east-1",
     // Where readers see the MEDIA bucket; image review runs open covers from here.
-    "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com"
+    "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com",
+    // The Analytics Engine dataset the web Worker's beacon writes to (stats.rollup reads it).
+    "EVENTS_DATASET": "rlr_events"
   },
   "d1_databases": [
     {

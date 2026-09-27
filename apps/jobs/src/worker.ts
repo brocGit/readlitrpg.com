@@ -35,6 +35,7 @@ import { findCovers, processMedia } from "./jobs/media";
 import { renderShareImages } from "./jobs/og";
 import { announceQuizzes } from "./jobs/quizzes";
 import { purgeExpired } from "./jobs/retention";
+import { rollupStats } from "./jobs/stats";
 import { syncTaxonomyJob } from "./jobs/taxonomy-sync";
 import type { JobHandler } from "./jobs/types";
 import { updateVectors } from "./jobs/vectors";
@@ -53,6 +54,7 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "media.covers": findCovers,
   "media.process": processMedia,
   "og.render": renderShareImages,
+  "stats.rollup": rollupStats,
   "quiz.announce": announceQuizzes,
   "match.model_build": buildMatchModel,
 };
