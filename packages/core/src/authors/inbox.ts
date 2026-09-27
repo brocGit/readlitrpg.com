@@ -6,6 +6,7 @@ import type { Db } from "../db";
 import { authorSubmissions, authors, books } from "../db/schema";
 import type { InboxHandler } from "../inbox";
 import type { TrustLevel } from "../policy";
+import type { UndoSpec } from "../undo";
 import { applyEdit, editPatchSchema } from "./edits";
 import { addMember } from "./members";
 import { notifyAuthor } from "./notices";
@@ -25,7 +26,7 @@ const submissionHandler: InboxHandler = {
     if (sub?.status !== "in_review") return;
     const bookId = await applySubmission(db, sub.id, { settings: ctx.settings, now: ctx.now });
     const [book] = await db
-      .select({ slug: books.slug, title: books.title })
+      .select({ slug: books.slug, title: books.title, visibility: books.visibility })
       .from(books)
       .where(eq(books.id, bookId));
     await notifyAuthor(db, {
@@ -34,6 +35,10 @@ const submissionHandler: InboxHandler = {
       kind: "listing_published",
       payload: { title: book?.title ?? str(sub.payload, "title"), slug: book?.slug ?? null, bookId },
     });
+    // Undo hides the listing again (§8.3: "unpublish a listing").
+    return book?.visibility === "published"
+      ? ({ kind: "visibility", bookId, to: "hidden" } satisfies UndoSpec)
+      : null;
   },
   async reject(db, item, ctx) {
     if (item.subjectType !== "submission" || !item.subjectId) return;
@@ -125,7 +130,9 @@ export const AUTHOR_INBOX_HANDLERS: Record<string, InboxHandler> = {
       if (await addMember(db, authorId, userId, "owner", ctx.decidedBy)) {
         await notifyAuthor(db, { authorId, userId, kind: "claim_approved" });
         await notifyAuthor(db, { authorId, kind: "member_added", payload: { userId, by: "ReadLitRPG" } });
+        return { kind: "member_remove", authorId, userId } satisfies UndoSpec;
       }
+      return null;
     },
     async reject(db, item, ctx) {
       const authorId = str(item.payload, "authorId");

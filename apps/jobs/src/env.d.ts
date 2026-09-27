@@ -15,6 +15,8 @@ interface Env {
   /** Optional: post it to Mastodon (the instance's https URL and an access token with write:statuses). */
   MASTODON_URL?: string;
   MASTODON_TOKEN?: string;
+  /** Optional: a private Discord channel's webhook for the owner's instant alerts (DESIGN §8.4). */
+  DISCORD_ALERT_WEBHOOK?: string;
 }
 
 // Bundled binaries (wrangler.jsonc "rules"): WebAssembly as a compiled module, fonts as bytes.

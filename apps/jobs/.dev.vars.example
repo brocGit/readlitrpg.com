@@ -3,6 +3,7 @@ ENVIRONMENT=local
 EMAIL_PROVIDER=console
 PUBLIC_MEDIA_ORIGIN=http://localhost:4321/media
 PUBLIC_ORIGIN=http://localhost:4321
+ADMIN_ORIGIN=http://localhost:4322
 EMAIL_FROM_NEWS=ReadLitRPG <weekly@localhost>
 # Keys that sign unsubscribe, one-click mark and export links (JSON of key id to secret). The web
 # Worker must hold the same value. Production: docs/runbooks/secrets.md.

@@ -1,7 +1,27 @@
 ---
-import { decideInboxItem, decideWithHandler, getInboxItem, listOpenInbox } from "@rlr/core/inbox";
+import { appendAudit } from "@rlr/core/audit";
+import {
+  CLOSE_ONLY_DEFAULT_TYPES,
+  countdown,
+  countSnoozed,
+  decideInboxItem,
+  decideWithHandler,
+  getInboxItem,
+  type InboxItem,
+  isLowRisk,
+  itemAuthorId,
+  listOpenInbox,
+  REJECT_REASONS,
+  rejectNote,
+  SNOOZE_CHOICES,
+  snoozeInboxItem,
+  trustAuthor,
+  wakeInboxItem,
+} from "@rlr/core/inbox";
 import { INBOX_HANDLERS } from "@rlr/core/inbox/handlers";
 import { can } from "@rlr/core/policy";
+import type { UndoSpec } from "@rlr/core/undo";
+import InboxKeys from "../components/InboxKeys.tsx";
 import Console from "../layouts/Console.astro";
 import { adminActor } from "../lib/admin-session";
 import { audit, flash, readForm } from "../lib/forms";
@@ -10,51 +30,167 @@ import { getDb, renderEnv } from "../lib/runtime";
 const admin = await Astro.locals.admin();
 if (!admin) return Astro.redirect("/signin", 303);
 const db = getDb();
+const settings = await Astro.locals.settings();
+const showSnoozed = Astro.url.searchParams.get("snoozed") === "1";
+const back = showSnoozed ? "/inbox?snoozed=1" : "/inbox";
+
+/** Whether a card offers Approve/Reject (its decision acts) or just Resolve. */
+const decidable = (item: InboxItem) =>
+  Boolean(INBOX_HANDLERS[item.type]) &&
+  (item.subjectType === "submission" || !["possible_duplicate", "scope_check"].includes(item.type));
+
+/** Decide one item as the owner, and audit it with its undo (DESIGN §8.3). */
+async function decide(
+  item: InboxItem,
+  status: "approved" | "rejected" | "resolved",
+  opts: { note?: string; reason?: string; bulk?: boolean } = {},
+): Promise<boolean> {
+  const note = status === "rejected" ? rejectNote(opts.reason, opts.note) : opts.note?.trim() || undefined;
+  let changed = false;
+  let undo: UndoSpec | null = null;
+  if (status !== "resolved" && decidable(item)) {
+    const outcome = await decideWithHandler(
+      db,
+      item,
+      status === "approved" ? "approve" : "reject",
+      INBOX_HANDLERS,
+      {
+        decidedBy: admin.userId,
+        note,
+        reasonCode: opts.reason || undefined,
+        now: new Date(),
+        settings,
+        renderEnv: renderEnv(),
+      },
+    );
+    changed = outcome.changed;
+    undo = outcome.undo;
+  } else {
+    changed = await decideInboxItem(db, item.id, {
+      status: status === "rejected" ? "rejected" : status === "approved" ? "approved" : "resolved",
+      decidedBy: admin.userId,
+      note,
+      reasonCode: opts.reason || undefined,
+    });
+  }
+  if (changed)
+    await audit(admin, Astro.locals.requestId, {
+      action: opts.bulk ? "inbox.bulk_approve" : "inbox.decide",
+      subjectType: "inbox_item",
+      subjectId: item.id,
+      diff: {
+        status,
+        type: item.type,
+        title: item.title,
+        note: note ?? null,
+        reason: opts.reason || null,
+        ...(undo ? { undo } : {}),
+      },
+    });
+  return changed;
+}
 
 if (Astro.request.method === "POST") {
   const form = await readForm(Astro.request);
   if (!can(adminActor(admin), "inbox.decide").ok)
-    return Astro.redirect(flash("/inbox", "Not allowed", "error"), 303);
+    return Astro.redirect(flash(back, "Not allowed", "error"), 303);
+  const op = form.op ?? "decide";
+
+  if (op === "bulk") {
+    // Exactly the list the owner saw, each re-checked: anything that changed since stays put.
+    const maxRisk = settings["inbox.low_risk_max"];
+    let done = 0;
+    for (const id of (form.ids ?? "").split(",").filter(Boolean).slice(0, 100)) {
+      const item = await getInboxItem(db, id);
+      if (!item || !isLowRisk(item, INBOX_HANDLERS, maxRisk)) continue;
+      const status = CLOSE_ONLY_DEFAULT_TYPES.has(item.type) && !decidable(item) ? "resolved" : "approved";
+      if (await decide(item, status, { bulk: true })) done++;
+    }
+    return Astro.redirect(flash(back, `Approved ${done} low-risk item${done === 1 ? "" : "s"}.`), 303);
+  }
+
+  const item = await getInboxItem(db, form.id ?? "");
+  if (!item) return Astro.redirect(flash(back, "That item is gone.", "error"), 303);
+
+  if (op === "snooze") {
+    const choice = SNOOZE_CHOICES.find((c) => c.key === form.for) ?? SNOOZE_CHOICES[1];
+    const until = new Date(Date.now() + choice.hours * 3_600_000);
+    const ok = await snoozeInboxItem(db, item.id, until);
+    if (ok)
+      await audit(admin, Astro.locals.requestId, {
+        action: "inbox.snooze",
+        subjectType: "inbox_item",
+        subjectId: item.id,
+        diff: { until: until.toISOString() },
+      });
+    return Astro.redirect(
+      flash(
+        back,
+        ok ? `Snoozed for ${choice.label.toLowerCase()}.` : "Only open items can be snoozed.",
+        ok ? "ok" : "error",
+      ),
+      303,
+    );
+  }
+
+  if (op === "wake") {
+    await wakeInboxItem(db, item.id);
+    return Astro.redirect(flash(back, "Back in the inbox."), 303);
+  }
+
+  if (op === "trust") {
+    // "Trust this author for this kind of item": one step up (to T1 at most), then approve.
+    const authorId = itemAuthorId(item);
+    const raised = authorId ? await trustAuthor(db, authorId) : null;
+    if (authorId && raised)
+      await appendAudit(db, {
+        actor: { type: "admin", id: admin.userId },
+        action: "author.trust",
+        subjectType: "author",
+        subjectId: authorId,
+        diff: { ...raised, via: "inbox", undo: { kind: "author_trust", authorId, to: raised.from } },
+        requestId: Astro.locals.requestId,
+      });
+    const changed = await decide(item, "approved", { note: form.note });
+    return Astro.redirect(
+      flash(
+        back,
+        `${changed ? "Approved" : "Already closed"}${raised ? `; the author is now ${raised.to}` : "; the author's trust stays as it is"}.`,
+      ),
+      303,
+    );
+  }
+
   const status =
     form.decision === "rejected" ? "rejected" : form.decision === "approved" ? "approved" : "resolved";
-  const item = await getInboxItem(db, form.id ?? "");
-  // Author items do something when decided: publish the listing, apply the change, verify (M6).
-  const handled = item && status !== "resolved" && INBOX_HANDLERS[item.type];
-  const changed = !item
-    ? false
-    : handled
-      ? await decideWithHandler(db, item, status === "approved" ? "approve" : "reject", INBOX_HANDLERS, {
-          decidedBy: admin.userId,
-          note: form.note || undefined,
-          now: new Date(),
-          settings: await Astro.locals.settings(),
-          renderEnv: renderEnv(),
-        })
-      : await decideInboxItem(db, item.id, { status, decidedBy: admin.userId, note: form.note || undefined });
-  if (changed) {
-    await audit(admin, Astro.locals.requestId, {
-      action: "inbox.decide",
-      subjectType: "inbox_item",
-      subjectId: form.id,
-      diff: { status, type: item?.type ?? null, note: form.note || null },
-    });
-  }
+  const changed = await decide(item, status, { note: form.note, reason: form.reason });
   return Astro.redirect(
-    flash(
-      "/inbox",
-      changed ? `Marked ${status}.` : "That item was already closed.",
-      changed ? "ok" : "error",
-    ),
+    flash(back, changed ? `Marked ${status}.` : "That item was already closed.", changed ? "ok" : "error"),
     303,
   );
 }
 
-const items = await listOpenInbox(db, 200);
+const now = new Date();
+const items = await listOpenInbox(db, 200, { snoozed: showSnoozed });
+const snoozedCount = showSnoozed ? items.length : await countSnoozed(db);
+const lowRisk = showSnoozed
+  ? []
+  : items.filter((i) => isLowRisk(i, INBOX_HANDLERS, settings["inbox.low_risk_max"]));
 const isPair = (p: unknown): p is { bookId: string; otherId: string; reason: string } =>
   typeof p === "object" && p !== null && "bookId" in p && "otherId" in p;
 const field = (p: unknown, key: string): string | null => {
   const v = typeof p === "object" && p !== null ? (p as Record<string, unknown>)[key] : null;
   return typeof v === "string" ? v : null;
+};
+/** Where "e" (edit) goes for a card: the thing to open and fix. */
+const editHref = (item: InboxItem): string | null => {
+  const p = item.payload;
+  if (field(p, "postId")) return `/blog/${field(p, "postId")}`;
+  if (item.subjectType === "post" && item.subjectId) return `/blog/${item.subjectId}`;
+  if (field(p, "bookId")) return `/catalog/books/${field(p, "bookId")}`;
+  if (field(p, "authorId")) return `/catalog/authors/${field(p, "authorId")}`;
+  if (field(p, "runId")) return `/editorial/runs/${field(p, "runId")}`;
+  return null;
 };
 const recommendation: Record<string, string> = {
   approve: "Recommends: approve",
@@ -64,12 +200,40 @@ const recommendation: Record<string, string> = {
 };
 ---
 
-<Console title="Inbox">
+<Console title={showSnoozed ? "Inbox: snoozed" : "Inbox"}>
+  <p class="inbox-bar">
+    {showSnoozed ? <a href="/inbox">← Back to the inbox</a> : <a href="/inbox?snoozed=1">Snoozed ({snoozedCount})</a>}
+    · <a href="/audit?undoable=1">Undo a recent decision</a>
+  </p>
+  {!showSnoozed && <InboxKeys client:load />}
+  {
+    lowRisk.length > 0 && (
+      <details class="bulk">
+        <summary>Approve all low-risk ({lowRisk.length})</summary>
+        <p class="muted">
+          These would approve themselves anyway, or the review says approve; none is flagged or urgent. Each is checked
+          again when you confirm, and each can be undone from the audit log for 30 days.
+        </p>
+        <ul>
+          {lowRisk.map((i) => (
+            <li>
+              {i.title} <span class="muted">{i.type} · {countdown(i, now)}</span>
+            </li>
+          ))}
+        </ul>
+        <form method="post">
+          <input type="hidden" name="op" value="bulk" />
+          <input type="hidden" name="ids" value={lowRisk.map((i) => i.id).join(",")} />
+          <button class="button small" type="submit">Approve these {lowRisk.length}</button>
+        </form>
+      </details>
+    )
+  }
   {
     items.length === 0 ? (
       <div class="status-screen">
         <p class="label">[Quest log empty]</p>
-        <p>Nothing needs you right now.</p>
+        <p>{showSnoozed ? "Nothing is snoozed." : "Nothing needs you right now."}</p>
       </div>
     ) : (
       <table>
@@ -78,13 +242,20 @@ const recommendation: Record<string, string> = {
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr>
-              <td>{item.priority}</td>
+            <tr data-inbox-item tabindex="-1">
+              <td>{item.priority}{item.riskScore !== null && <div class="muted">risk {item.riskScore}</div>}</td>
               <td>
                 <strong>{item.title}</strong>
                 <div class="muted">{item.type}{item.subjectType ? ` · ${item.subjectType} ${item.subjectId ?? ""}` : ""}</div>
+                <div class="countdown">
+                  {item.status === "snoozed" && item.snoozedUntil
+                    ? `Snoozed until ${item.snoozedUntil.slice(0, 16).replace("T", " ")} UTC · `
+                    : ""}
+                  {countdown(item, now)}
+                </div>
                 {item.aiSummary && <p>{item.aiSummary}</p>}
                 {item.aiRecommendation && <p class="muted">{recommendation[item.aiRecommendation]}</p>}
+                {editHref(item) && <p><a href={editHref(item) ?? ""} data-key="e">Open it (e)</a></p>}
                 {item.type === "classification_review" && field(item.payload, "proposalId") && (
                   <form method="post" action="/editorial" class="inline">
                     <input type="hidden" name="proposal" value={field(item.payload, "proposalId") ?? ""} />
@@ -168,19 +339,54 @@ const recommendation: Record<string, string> = {
                 )}
               </td>
               <td>{item.createdAt.slice(0, 16).replace("T", " ")}</td>
-              <td>
-                <form method="post" class="inline">
-                  <input type="hidden" name="id" value={item.id} />
-                  <input type="text" name="note" placeholder="Note (optional)" maxlength="500" />
-                  {INBOX_HANDLERS[item.type] && (item.subjectType === "submission" || !["possible_duplicate", "scope_check"].includes(item.type)) ? (
-                    <>
-                      <button class="button small" name="decision" value="approved" type="submit">Approve</button>
-                      <button class="button small secondary" name="decision" value="rejected" type="submit">Reject</button>
-                    </>
-                  ) : (
-                    <button class="button small" name="decision" value="resolved" type="submit">Resolve</button>
-                  )}
-                </form>
+              <td class="decide">
+                {item.status === "snoozed" ? (
+                  <form method="post" class="inline">
+                    <input type="hidden" name="id" value={item.id} />
+                    <button class="button small" name="op" value="wake" type="submit">Wake now</button>
+                  </form>
+                ) : (
+                  <>
+                    <form method="post" class="stack">
+                      <input type="hidden" name="id" value={item.id} />
+                      <input type="text" name="note" placeholder="Note (optional)" maxlength="500" aria-label="Note" />
+                      {decidable(item) ? (
+                        <>
+                          <label>
+                            Reason if rejecting
+                            <select name="reason">
+                              <option value="">None</option>
+                              {REJECT_REASONS.map((r) => (
+                                <option value={r.code}>{r.label}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <div class="inline">
+                            <button class="button small" name="decision" value="approved" type="submit" data-key="a">Approve</button>
+                            <button class="button small secondary" name="decision" value="rejected" type="submit" data-key="r">Reject</button>
+                            {itemAuthorId(item) && (
+                              <button class="button small secondary" name="op" value="trust" type="submit">
+                                Approve &amp; trust author
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <button class="button small" name="decision" value="resolved" type="submit" data-key="a">Resolve</button>
+                      )}
+                    </form>
+                    <form method="post" class="inline">
+                      <input type="hidden" name="id" value={item.id} />
+                      <input type="hidden" name="op" value="snooze" />
+                      <select name="for" aria-label="Snooze for">
+                        {SNOOZE_CHOICES.map((c) => (
+                          <option value={c.key} selected={c.key === "1d"}>{c.label}</option>
+                        ))}
+                      </select>
+                      <button class="button small secondary" type="submit" data-key="s">Snooze</button>
+                    </form>
+                  </>
+                )}
               </td>
             </tr>
           ))}
@@ -189,3 +395,29 @@ const recommendation: Record<string, string> = {
     )
   }
 </Console>
+
+<style>
+  .inbox-bar {
+    margin-bottom: var(--space-3);
+  }
+  .bulk {
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-small);
+  }
+  .countdown {
+    font-family: var(--font-system);
+    font-size: 0.85rem;
+    color: var(--color-primary);
+  }
+  .decide .stack {
+    display: grid;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  tr[data-inbox-item]:focus {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+</style>

@@ -119,6 +119,11 @@ export const inboxItems = sqliteTable(
     decidedAt: text("decided_at"),
     reasonCode: text("reason_code"),
     note: text("note"),
+    // Snoozed items come back on the first heartbeat after this (M7, §8.1). A default action
+    // still runs on time while an item is snoozed: nobody waiting on it is kept stuck.
+    snoozedUntil: text("snoozed_until"),
+    // When the owner was told about it right away (§8.4 instant alerts), so they hear once.
+    alertedAt: text("alerted_at"),
     createdAt: text("created_at").notNull().default(isoNow),
     updatedAt: text("updated_at").notNull().default(isoNow),
   },

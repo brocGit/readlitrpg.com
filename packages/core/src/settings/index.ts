@@ -112,7 +112,12 @@ export async function updateSetting<K extends SettingKey>(
     action: "settings.update",
     subjectType: "setting",
     subjectId: key,
-    diff: { before: before?.value ?? { default: def.default }, after: parsed.data },
+    // Undo restores the earlier override, or the default when there wasn't one (§8.3).
+    diff: {
+      before: before?.value ?? { default: def.default },
+      after: parsed.data,
+      undo: before ? { kind: "setting", key, value: before.value } : { kind: "setting", key, reset: true },
+    },
     requestId: deps.requestId,
     ipHash: deps.ipHash,
   });
@@ -133,7 +138,11 @@ export async function resetSetting(
     action: "settings.reset",
     subjectType: "setting",
     subjectId: key,
-    diff: { before: deleted[0]?.value, after: { default: SETTINGS[key].default } },
+    diff: {
+      before: deleted[0]?.value,
+      after: { default: SETTINGS[key].default },
+      undo: { kind: "setting", key, value: deleted[0]?.value },
+    },
     requestId: deps.requestId,
     ipHash: deps.ipHash,
   });

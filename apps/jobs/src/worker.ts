@@ -7,7 +7,7 @@ import { createLogger, type Logger, maskEmail, ulid } from "@rlr/core";
 import { advanceCampaigns, releaseExpiredHolds } from "@rlr/core/ads";
 import { publishDuePosts } from "@rlr/core/content";
 import { createDb, type Db } from "@rlr/core/db";
-import { openInboxItem, runInboxDefaults } from "@rlr/core/inbox";
+import { openInboxItem, runInboxDefaults, wakeSnoozed } from "@rlr/core/inbox";
 import { INBOX_HANDLERS } from "@rlr/core/inbox/handlers";
 import { publishDueQuizzes } from "@rlr/core/quiz";
 import { isSuppressed } from "@rlr/core/readers";
@@ -53,6 +53,7 @@ import {
   weeklyRoundup,
 } from "./jobs/news";
 import { renderShareImages } from "./jobs/og";
+import { ownerAlerts, ownerDailyDigest, ownerWeeklySummary } from "./jobs/owner";
 import { announceQuizzes } from "./jobs/quizzes";
 import { buildExports, matchLibraryImports } from "./jobs/readers";
 import { purgeExpired } from "./jobs/retention";
@@ -97,6 +98,9 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "blog.weekly_roundup": weeklyRoundup,
   "blog.monthly_roundups": monthlyRoundups,
   "inventory.generate": generateAdInventory,
+  "owner.alerts": ownerAlerts,
+  "owner.daily_digest": ownerDailyDigest,
+  "owner.weekly_summary": ownerWeeklySummary,
 };
 
 type QueueKind = "jobs" | "email" | "dlq";
@@ -135,6 +139,7 @@ export default {
           mediaOrigin: (env.PUBLIC_MEDIA_ORIGIN ?? "").replace(/\/$/, ""),
         },
       });
+      defaults += await wakeSnoozed(db, now);
       const published = await publishDueQuizzes(db, now);
       defaults += published.length;
       if (published.length) log.info("quiz.auto_published", { quizzes: published });

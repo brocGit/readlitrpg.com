@@ -136,6 +136,7 @@ export async function setQuizStatus(
     action: status === "live" ? "quiz.publish" : "quiz.retire",
     subjectType: "quiz",
     subjectId: slug,
+    diff: { undo: { kind: "quiz_status", slug, to: status === "live" ? "retired" : "live" } },
   });
 }
 

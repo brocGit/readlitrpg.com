@@ -44,6 +44,9 @@ export const TEMPLATES = [
   "author_notice",
   "change_digest",
   "release_ask",
+  "owner_daily",
+  "owner_weekly",
+  "owner_alert",
 ] as const;
 
 /** Messages on Q_EMAIL. Validated when consumed; unknown kinds go to the DLQ. */

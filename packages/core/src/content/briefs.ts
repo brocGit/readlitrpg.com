@@ -13,6 +13,7 @@ import type { Logger } from "../log";
 import { SafeFetchError, safeFetch } from "../net/safe-fetch";
 import type { Settings } from "../settings";
 import { nowIso } from "../time";
+import type { UndoSpec } from "../undo";
 import { createPost, publishPost, type RenderEnv } from "./posts";
 
 export interface Brief {
@@ -186,7 +187,9 @@ export const newsBriefHandler: InboxHandler = {
     const tipId = (item.payload as { tipId?: string } | null)?.tipId ?? item.subjectId;
     if (!tipId) return;
     const [tip] = await db.select().from(newsTips).where(eq(newsTips.id, tipId));
-    if (tip && tip.status !== "briefed") await publishBrief(db, tip, ctx.renderEnv ?? DEFAULT_ENV, ctx.now);
+    if (!tip || tip.status === "briefed") return;
+    const postId = await publishBrief(db, tip, ctx.renderEnv ?? DEFAULT_ENV, ctx.now);
+    return postId ? ({ kind: "post_status", postId, to: "unpublished" } satisfies UndoSpec) : null;
   },
   async reject(db, item) {
     const tipId = (item.payload as { tipId?: string } | null)?.tipId ?? item.subjectId;

@@ -8,6 +8,7 @@ export { SesError, SesProvider } from "./providers/ses";
 export * from "./templates/author";
 export { escapeHtml } from "./templates/layout";
 export { renderMagicLink } from "./templates/magic-link";
+export * from "./templates/owner";
 export * from "./templates/reader";
 export * from "./types";
 

@@ -22,6 +22,8 @@
     "EMAIL_FROM_NEWS": "ReadLitRPG <weekly@news.readlitrpg.com>",
     // Links in emails point here.
     "PUBLIC_ORIGIN": "https://readlitrpg.com",
+    // Links in the owner's emails (digests, alerts) point here.
+    "ADMIN_ORIGIN": "https://admin.readlitrpg.com",
     "SES_REGION": "us-east-1",
     // Where readers see the MEDIA bucket; image review runs open covers from here.
     "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com",

@@ -70,7 +70,11 @@ if (Astro.request.method === "POST") {
       await setCampaignState(db, form.id ?? "", to);
       await log("ads.campaign_state", form.id, {
         to,
-        undo: to === "paused" ? { kind: "campaign_state", id: form.id, to: "scheduled" } : undefined,
+        // Pausing and resuming undo each other; ending gives places back, so it can't be undone.
+        undo:
+          to === "completed"
+            ? undefined
+            : { kind: "campaign_state", id: form.id, to: to === "paused" ? "scheduled" : "paused" },
       });
       return Astro.redirect(flash("/ads", `Campaign ${to === "scheduled" ? "resumed" : to}.`), 303);
     }

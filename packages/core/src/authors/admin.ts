@@ -71,7 +71,7 @@ export async function setTrustLevel(
     action: "author.trust",
     subjectType: "author",
     subjectId: authorId,
-    diff: { from: a.trust, to: level },
+    diff: { from: a.trust, to: level, undo: { kind: "author_trust", authorId, to: a.trust } },
   });
   return true;
 }

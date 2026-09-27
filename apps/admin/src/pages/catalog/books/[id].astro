@@ -23,7 +23,7 @@ import { enqueue } from "@rlr/core/editorial";
 import { acceptImage, MediaError, UPLOAD_COVER_RULES, variantKey } from "@rlr/core/media";
 import { can } from "@rlr/core/policy";
 import { enqueueJob } from "@rlr/core/scheduler";
-import { books, media, RELEASE_KINDS } from "@rlr/core/schema";
+import { bookFieldSources, books, media, RELEASE_KINDS } from "@rlr/core/schema";
 import { and, desc, eq } from "drizzle-orm";
 import Console from "../../../layouts/Console.astro";
 import { adminActor } from "../../../lib/admin-session";
@@ -97,9 +97,19 @@ if (Astro.request.method === "POST") {
       case "hide":
       case "draft": {
         const target = form.action === "publish" ? "published" : form.action === "hide" ? "hidden" : "draft";
+        const [before] = await db
+          .select({ visibility: books.visibility })
+          .from(books)
+          .where(eq(books.id, id));
         const result = await setVisibility(db, id, target);
         if (!result.ok) return Astro.redirect(flash(here, `Can't publish: ${result.reason}.`, "error"), 303);
-        await log(`catalog.book_${target}`);
+        const prev = before?.visibility;
+        await log(
+          `catalog.book_${target}`,
+          prev && prev !== target && (prev === "published" || prev === "hidden" || prev === "draft")
+            ? { from: prev, undo: { kind: "visibility", bookId: id, to: prev } }
+            : undefined,
+        );
         return Astro.redirect(flash(here, `Book is now ${target}.`), 303);
       }
       case "owner_check": {
@@ -133,7 +143,24 @@ if (Astro.request.method === "POST") {
           sourceRef: "console",
           createdBy: admin.userId,
         });
-        await log("catalog.field_override", { field, value });
+        // Undo drops this provenance row and lets the next source's value back (DESIGN §8.3).
+        const [src] = await db
+          .select({ id: bookFieldSources.id })
+          .from(bookFieldSources)
+          .where(
+            and(
+              eq(bookFieldSources.bookId, id),
+              eq(bookFieldSources.field, field),
+              eq(bookFieldSources.source, "admin"),
+            ),
+          )
+          .orderBy(desc(bookFieldSources.createdAt), desc(bookFieldSources.id))
+          .limit(1);
+        await log("catalog.field_override", {
+          field,
+          value,
+          ...(src ? { undo: { kind: "field_source", bookId: id, sourceId: src.id } } : {}),
+        });
         return Astro.redirect(flash(here, `${field} set. Your value now wins over every other source.`), 303);
       }
       case "tag": {
@@ -159,7 +186,7 @@ if (Astro.request.method === "POST") {
         const target = await findBookRef(db, form.into ?? "");
         if (!target) return Astro.redirect(flash(here, "No book with that id or slug.", "error"), 303);
         const mergeId = await mergeBooks(db, target.id, id, admin.userId);
-        await log("catalog.merge", { into: target.id, mergeId });
+        await log("catalog.merge", { into: target.id, mergeId, undo: { kind: "merge", mergeId } });
         return Astro.redirect(
           flash(`/catalog/books/${target.id}`, `Merged into "${target.title}". You can undo it below.`),
           303,

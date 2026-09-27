@@ -147,6 +147,24 @@ export const SETTINGS = {
     "Appraisals before a judgment stat is shown",
   ),
 
+  // Owner Inbox and notifications (§8)
+  "inbox.low_risk_max": def(
+    z.number().int().min(0).max(100),
+    30,
+    'Highest risk score "Approve all low-risk" includes',
+  ),
+  "owner.alert_min_priority": def(
+    z.number().int().min(0).max(100),
+    90,
+    "Inbox items at or above this priority alert the owner at once (email, and Discord if set up)",
+  ),
+  "owner.daily_digest": def(
+    z.boolean(),
+    true,
+    "Email the owner at 13:00 UTC when something is due or urgent",
+  ),
+  "owner.weekly_summary": def(z.boolean(), true, "Email the owner a summary every Sunday"),
+
   // Quizzes (§7.16)
   "quiz.fun_effect_importance": def(share, 0.3, "Weight of fun-quiz answers relative to Match Quiz answers"),
   "quiz.auto_publish_hours": def(

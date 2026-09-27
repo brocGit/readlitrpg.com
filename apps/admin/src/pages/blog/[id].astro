@@ -42,6 +42,11 @@ if (Astro.request.method === "POST") {
     audit(admin, Astro.locals.requestId, { action, subjectType: "post", subjectId: id, diff });
   const settings = await Astro.locals.settings();
   try {
+    // Scheduling a draft can be undone (back to where it was); re-timing a scheduled post can't.
+    const undoSchedule =
+      post.status === "scheduled" || post.status === "published"
+        ? {}
+        : { undo: { kind: "post_status", postId: id, to: post.status } };
     switch (form.action) {
       case "save": {
         await updatePost(db, id, postPatchFromForm(form), renderEnv(), admin.userId);
@@ -65,7 +70,7 @@ if (Astro.request.method === "POST") {
         await updatePost(db, id, postPatchFromForm(form), renderEnv(), admin.userId);
         await releaseSlots(db, id);
         await setPostStatus(db, id, "scheduled", { publishAt: at.toISOString() });
-        await log("post.schedule", { at: at.toISOString(), from: post.status });
+        await log("post.schedule", { at: at.toISOString(), from: post.status, ...undoSchedule });
         return Astro.redirect(
           flash(here, `Scheduled for ${at.toISOString().slice(0, 16).replace("T", " ")} UTC.`),
           303,
@@ -76,7 +81,7 @@ if (Astro.request.method === "POST") {
         await updatePost(db, id, postPatchFromForm(form), renderEnv(), admin.userId);
         const at = await claimNextSlot(db, id, kind, settings);
         await setPostStatus(db, id, "scheduled", { publishAt: at });
-        await log("post.schedule", { at, slot: kind, from: post.status });
+        await log("post.schedule", { at, slot: kind, from: post.status, ...undoSchedule });
         return Astro.redirect(
           flash(here, `In the next ${kind} slot: ${at.slice(0, 16).replace("T", " ")} UTC.`),
           303,

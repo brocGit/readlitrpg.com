@@ -20,6 +20,7 @@
     "./match": "./src/match/index.ts",
     "./media": "./src/media/index.ts",
     "./net": "./src/net/safe-fetch.ts",
+    "./owner": "./src/owner/index.ts",
     "./policy": "./src/policy/index.ts",
     "./quiz": "./src/quiz/index.ts",
     "./ratelimit": "./src/ratelimit/index.ts",
@@ -30,7 +31,8 @@
     "./settings": "./src/settings/index.ts",
     "./site": "./src/site/index.ts",
     "./taxonomy": "./src/taxonomy/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./undo": "./src/undo/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

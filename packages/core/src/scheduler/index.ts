@@ -196,6 +196,22 @@ export const JOBS = [
     cron: "30 4 * * *",
     description: "Keep ad inventory 120 days ahead: one unit per slot and day (or week) with its price",
   },
+  {
+    key: "owner.alerts",
+    cron: "*/5 * * * *",
+    description: "Tell the owner at once about security events, disputes, circuit breakers and urgent items",
+  },
+  {
+    key: "owner.daily_digest",
+    cron: "0 13 * * *",
+    description: "Email the owner the items due within 48 hours and anything urgent (nothing on a quiet day)",
+  },
+  {
+    key: "owner.weekly_summary",
+    cron: "0 14 * * 0",
+    description:
+      "Sunday: the week in numbers, what decided itself (with undo links), and next week's schedule",
+  },
 ] as const satisfies readonly JobDef[];
 
 export type JobKey = (typeof JOBS)[number]["key"];

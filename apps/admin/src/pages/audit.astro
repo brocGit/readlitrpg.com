@@ -1,23 +1,75 @@
 ---
+import { env } from "cloudflare:workers";
 import { verifyAuditLog } from "@rlr/core/audit";
+import { can } from "@rlr/core/policy";
 import { auditLog } from "@rlr/core/schema";
-import { desc } from "drizzle-orm";
+import { describeUndo, listAudit, UNDO_DAYS, UndoError, undoAudit, withUndo } from "@rlr/core/undo";
+import { eq } from "drizzle-orm";
 import Console from "../layouts/Console.astro";
+import { adminActor } from "../lib/admin-session";
+import { flash, readForm } from "../lib/forms";
 import { getDb } from "../lib/runtime";
 
 const admin = await Astro.locals.admin();
 if (!admin) return Astro.redirect("/signin", 303);
 const db = getDb();
 
-const rows = await db.select().from(auditLog).orderBy(desc(auditLog.seq)).limit(100);
-const check = Astro.url.searchParams.get("verify") === "1" ? await verifyAuditLog(db) : null;
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  const back = `/audit${form.back?.startsWith("?") ? form.back : ""}`;
+  // Undo reverses catalog, content, ads and settings changes: the owner's own powers.
+  if (!can(adminActor(admin), "inbox.decide").ok || !can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash(back, "Not allowed", "error"), 303);
+  try {
+    const { row, spec } = await undoAudit(
+      db,
+      form.undo ?? "",
+      { type: "admin", id: admin.userId },
+      { settings: { kv: env.CONFIG }, requestId: Astro.locals.requestId },
+    );
+    return Astro.redirect(flash(back, `Undone #${row.seq}: ${describeUndo(spec).toLowerCase()}.`), 303);
+  } catch (error) {
+    if (error instanceof UndoError)
+      return Astro.redirect(flash(back, `Can't undo: ${error.message}.`, "error"), 303);
+    throw error;
+  }
+}
+
+const q = Astro.url.searchParams;
+const id = q.get("id");
+const filter = {
+  action: q.get("action")?.slice(0, 60) || undefined,
+  actorType: ["admin", "system", "user", "editorial_run"].includes(q.get("actor") ?? "")
+    ? (q.get("actor") ?? undefined)
+    : undefined,
+  undoable: q.get("undoable") === "1",
+  limit: 100,
+};
+const rows = id
+  ? await withUndo(db, await db.select().from(auditLog).where(eq(auditLog.id, id)))
+  : await listAudit(db, filter);
+const check = q.get("verify") === "1" ? await verifyAuditLog(db) : null;
+const here = `?${q.toString()}`;
 ---
 
 <Console title="Audit log">
   <p class="muted">
     Append-only. Each row carries a hash of the one before it, so an edited or deleted row breaks the chain. A job checks the whole
-    chain every night.
+    chain every night. Actions marked with <strong>Undo</strong> can be reversed for {UNDO_DAYS} days; the undo is recorded as a new row.
   </p>
+  <form method="get" class="inline filters">
+    <label>Action <input type="text" name="action" value={filter.action ?? ""} placeholder="e.g. inbox. or catalog.book_published" /></label>
+    <label>
+      Actor
+      <select name="actor">
+        <option value="">Anyone</option>
+        {["admin", "system", "editorial_run", "user"].map((a) => <option value={a} selected={filter.actorType === a}>{a}</option>)}
+      </select>
+    </label>
+    <label><input type="checkbox" name="undoable" value="1" checked={filter.undoable} /> Can be undone</label>
+    <button class="button small secondary" type="submit">Filter</button>
+    <a href="/audit">Clear</a>
+  </form>
   <p><a class="button small secondary" href="/audit?verify=1">Verify the chain now</a></p>
   {
     check && (
@@ -28,21 +80,44 @@ const check = Astro.url.searchParams.get("verify") === "1" ? await verifyAuditLo
       </p>
     )
   }
+  {rows.length === 0 && <p class="muted">No rows match.</p>}
   <table>
     <thead>
-      <tr><th>#</th><th>When (UTC)</th><th>Actor</th><th>Action</th><th>Subject</th><th>Change</th></tr>
+      <tr><th>#</th><th>When (UTC)</th><th>Actor</th><th>Action</th><th>Subject</th><th>Change</th><th></th></tr>
     </thead>
     <tbody>
       {rows.map((r) => (
-        <tr>
+        <tr id={`a-${r.id}`} class={r.id === id ? "highlight" : undefined}>
           <td>{r.seq}</td>
           <td>{r.createdAt.slice(0, 19).replace("T", " ")}</td>
           <td>{r.actorType}{r.actorId ? ` ${r.actorId.slice(-6)}` : ""}</td>
           <td>{r.action}</td>
           <td>{r.subjectType ? `${r.subjectType} ${r.subjectId ?? ""}` : ""}</td>
           <td><code>{r.diff == null ? "" : JSON.stringify(r.diff).slice(0, 300)}</code></td>
+          <td>
+            {r.undo && r.undoState === "open" && (
+              <form method="post" class="inline">
+                <input type="hidden" name="undo" value={r.id} />
+                <input type="hidden" name="back" value={here} />
+                <button class="button small secondary" type="submit" title={describeUndo(r.undo)}>Undo</button>
+                <div class="muted">{describeUndo(r.undo)}</div>
+              </form>
+            )}
+            {r.undoState === "done" && <span class="muted">Undone</span>}
+            {r.undoState === "expired" && <span class="muted">Too old to undo</span>}
+          </td>
         </tr>
       ))}
     </tbody>
   </table>
 </Console>
+
+<style>
+  .filters {
+    margin-bottom: var(--space-3);
+  }
+  tr.highlight {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+</style>
