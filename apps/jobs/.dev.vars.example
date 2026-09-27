@@ -2,6 +2,11 @@
 ENVIRONMENT=local
 EMAIL_PROVIDER=console
 PUBLIC_MEDIA_ORIGIN=http://localhost:4321/media
+PUBLIC_ORIGIN=http://localhost:4321
+EMAIL_FROM_NEWS=ReadLitRPG <weekly@localhost>
+# Keys that sign unsubscribe, one-click mark and export links (JSON of key id to secret). The web
+# Worker must hold the same value. Production: docs/runbooks/secrets.md.
+LINK_SIGNING_KEYS={"k1":"local-dev-only-link-key-not-for-production-000000"}
 # Only needed to test real sending from a laptop (SES sandbox, verified recipients only):
 # SES_ACCESS_KEY_ID=
 # SES_SECRET_ACCESS_KEY=

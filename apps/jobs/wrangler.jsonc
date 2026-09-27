@@ -18,6 +18,10 @@
     "ENVIRONMENT": "production",
     "EMAIL_PROVIDER": "ses",
     "EMAIL_FROM": "ReadLitRPG <hello@mail.readlitrpg.com>",
+    // Newsletters and alerts go out from their own subdomain, so their reputation stays separate (§13.2).
+    "EMAIL_FROM_NEWS": "ReadLitRPG <weekly@news.readlitrpg.com>",
+    // Links in emails point here.
+    "PUBLIC_ORIGIN": "https://readlitrpg.com",
     "SES_REGION": "us-east-1",
     // Where readers see the MEDIA bucket; image review runs open covers from here.
     "PUBLIC_MEDIA_ORIGIN": "https://media.readlitrpg.com",

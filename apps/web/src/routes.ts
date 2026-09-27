@@ -54,7 +54,16 @@ export const ROUTES = {
   "/feeds/releases.ics": PUBLIC,
   "/feeds/tags/[slug].xml": PUBLIC,
   "/feeds/tags/[slug].ics": PUBLIC,
+  // Readers and email (M5). The webhook checks SNS signatures itself.
+  "/api/webhooks/ses": PUBLIC,
 } satisfies RouteRegistry;
+
+/**
+ * Routes that accept cross-site POSTs. They never act on cookies: each request carries its own
+ * proof (an SNS signature, or a signed link for RFC 8058 one-click unsubscribes from mail apps).
+ * Every other POST must come from our own origin (see middleware.ts).
+ */
+export const CROSS_SITE_POSTS: ReadonlySet<string> = new Set(["/api/webhooks/ses"]);
 
 /** Routes whose responses are personal and must never be cached anywhere. */
 export const PRIVATE_PREFIXES = ["/account", "/api/"];

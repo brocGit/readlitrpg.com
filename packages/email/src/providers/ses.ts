@@ -7,8 +7,10 @@ export interface SesConfig {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
-  /** "ReadLitRPG <hello@mail.readlitrpg.com>" */
+  /** Transactional mail, e.g. "ReadLitRPG <hello@notify.readlitrpg.com>" */
   from: string;
+  /** Newsletters and alerts from their own subdomain, so their reputation is separate (DESIGN §13.1). */
+  fromMarketing?: string;
   /** Separate configuration sets per stream keep reputations apart. */
   configurationSets?: Partial<Record<EmailMessage["stream"], string>>;
   fetch?: typeof fetch;
@@ -46,7 +48,8 @@ export class SesProvider implements EmailProvider {
     const url = `https://email.${this.config.region}.amazonaws.com/v2/email/outbound-emails`;
     const headers = Object.entries(message.headers ?? {}).map(([Name, Value]) => ({ Name, Value }));
     const body = {
-      FromEmailAddress: this.config.from,
+      FromEmailAddress:
+        message.stream === "marketing" ? (this.config.fromMarketing ?? this.config.from) : this.config.from,
       Destination: { ToAddresses: [message.to] },
       Content: {
         Simple: {

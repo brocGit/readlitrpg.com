@@ -26,7 +26,8 @@ export default defineConfig({
   // Shiki uses inline styles, which the CSP forbids. The blog (M7) will use Prism.
   markdown: { syntaxHighlight: false },
   security: {
-    checkOrigin: true,
+    // The same check runs in src/middleware.ts, which can exempt signed webhooks and one-click links.
+    checkOrigin: false,
     csp: {
       algorithm: "SHA-256",
       directives: [...csp.directives],

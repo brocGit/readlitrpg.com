@@ -1,5 +1,5 @@
-// Request pipeline: context → security headers (wrapping the gate, so even refusals get them) →
-// route gate (DESIGN §15.4, §15.5).
+// Request pipeline: context → security headers (wrapping the rest, so even refusals get them) →
+// origin check → route gate (DESIGN §15.4, §15.5).
 
 import { defineMiddleware, sequence } from "astro:middleware";
 import { ulid } from "@rlr/core";
@@ -7,9 +7,10 @@ import { checkRoute, type RouteAccess } from "@rlr/core/policy";
 import { apiSecurityHeaders, applyHeaders, buildCsp, securityHeaders } from "@rlr/core/security";
 import { loadSettings, type Settings } from "@rlr/core/settings";
 import { log } from "./lib/log";
+import { isCrossSiteFormPost } from "./lib/origin";
 import { env, getAuth, getDb, isProduction } from "./lib/runtime";
 import { resolveActor, resolveSession, type SessionInfo } from "./lib/session";
-import { PRIVATE_PREFIXES, ROUTES } from "./routes";
+import { CROSS_SITE_POSTS, PRIVATE_PREFIXES, ROUTES } from "./routes";
 
 const once = <T>(fn: () => Promise<T>): (() => Promise<T>) => {
   let value: Promise<T> | undefined;
@@ -30,6 +31,15 @@ const context = defineMiddleware((ctx, next) => {
 });
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+// Astro's own check (security.checkOrigin) can't exempt a route, and SNS and mail apps post without
+// an Origin header, so the same rule lives here with an explicit exemption list.
+const origin = defineMiddleware((ctx, next) => {
+  if (!CROSS_SITE_POSTS.has(ctx.routePattern) && isCrossSiteFormPost(ctx.request, ctx.url)) {
+    return new Response(`Cross-site ${ctx.request.method} form submissions are forbidden`, { status: 403 });
+  }
+  return next();
+});
 
 const gate = defineMiddleware(async (ctx, next) => {
   const access: RouteAccess | undefined = (ROUTES as Record<string, RouteAccess>)[ctx.routePattern];
@@ -94,4 +104,4 @@ const headers = defineMiddleware(async (ctx, next) => {
   return result;
 });
 
-export const onRequest = sequence(context, headers, gate);
+export const onRequest = sequence(context, headers, origin, gate);

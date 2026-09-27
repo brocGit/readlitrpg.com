@@ -3,10 +3,11 @@
 //   scheduled  every 5 minutes: the heartbeat dispatches due jobs to Q_JOBS and runs inbox defaults
 //   queue      rlr-jobs: run one job; rlr-email: send email; *-dlq: open an Owner Inbox item
 
-import { createLogger, type Logger, maskEmail } from "@rlr/core";
+import { createLogger, type Logger, maskEmail, ulid } from "@rlr/core";
 import { createDb, type Db } from "@rlr/core/db";
 import { openInboxItem, runInboxDefaults } from "@rlr/core/inbox";
 import { publishDueQuizzes } from "@rlr/core/quiz";
+import { isSuppressed } from "@rlr/core/readers";
 import {
   finishJobRun,
   HEARTBEAT_KV_KEY,
@@ -17,6 +18,7 @@ import {
   runHeartbeat,
   startJobRun,
 } from "@rlr/core/scheduler";
+import { emailSends } from "@rlr/core/schema";
 import {
   buildEmail,
   ConsoleProvider,
@@ -154,6 +156,7 @@ export function emailProvider(env: Env): EmailProvider {
     secretAccessKey: env.SES_SECRET_ACCESS_KEY,
     region: env.SES_REGION,
     from: env.EMAIL_FROM,
+    fromMarketing: env.EMAIL_FROM_NEWS,
     configurationSets: { transactional: "rlr-transactional", marketing: "rlr-marketing" },
   });
 }
@@ -180,17 +183,36 @@ async function sendEmails(batch: MessageBatch, env: Env, db: Db, log: Logger) {
       message.ack();
       continue;
     }
+    const logSend = (status: "sent" | "suppressed" | "failed", providerMessageId: string | null = null) =>
+      db.insert(emailSends).values({
+        id: ulid(),
+        userId: email.userId ?? null,
+        template: email.template ?? parsed.data.kind,
+        issueId: email.issueId ?? null,
+        providerMessageId,
+        status,
+      });
+    // Checked at send time, so an unsubscribe or bounce since the email was queued still counts.
+    if (await isSuppressed(db, email.to, email.stream)) {
+      log.info("email.suppressed", { kind: parsed.data.kind, template: email.template });
+      await logSend("suppressed");
+      message.ack();
+      continue;
+    }
     try {
       const result = await provider.send(email);
       log.info("email.sent", {
         kind: parsed.data.kind,
+        template: email.template,
         provider: result.provider,
         provider_id: result.messageId,
       });
+      await logSend("sent", result.messageId);
       message.ack();
     } catch (error) {
       if (error instanceof SesError && !error.retryable) {
         log.error("email.rejected", { kind: parsed.data.kind, status: error.status });
+        await logSend("failed");
         message.ack();
       } else {
         log.warn("email.retry", { kind: parsed.data.kind, attempt: message.attempts, error });

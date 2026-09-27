@@ -4,6 +4,8 @@
 declare namespace Cloudflare {
   interface Env {
     TURNSTILE_SECRET?: string;
+    /** The SNS topic SES publishes bounces and complaints to (docs/runbooks/email-setup.md). */
+    SNS_TOPIC_ARN?: string;
   }
 }
 

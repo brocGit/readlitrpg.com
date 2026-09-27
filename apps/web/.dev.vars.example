@@ -7,5 +7,7 @@ RP_ID=localhost
 EMAIL_DELIVERY=console
 AUTH_SECRET=local-dev-only-secret-not-for-production-use-000000
 IP_HASH_SALT_SEED=local-dev-only-salt
+# Signs unsubscribe, one-click mark and export links; the jobs Worker holds the same value.
+LINK_SIGNING_KEYS={"k1":"local-dev-only-link-key-not-for-production-000000"}
 # Cloudflare's always-pass Turnstile test site key. Leave TURNSTILE_SECRET unset locally to skip verification.
 TURNSTILE_SITE_KEY=1x00000000000000000000AA

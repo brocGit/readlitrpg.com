@@ -176,6 +176,11 @@ export const SETTINGS = {
   "email.circuit.complaint_rate": def(share, 0.0008, "Complaint rate that pauses sending"),
   "email.circuit.bounce_rate": def(share, 0.04, "Bounce rate that pauses sending"),
   "email.direct_affiliate_links": def(z.boolean(), false, "Put affiliate links directly in emails"),
+  "email.postal_address": def(
+    z.string().max(300),
+    "",
+    "Postal address in every marketing email's footer (CAN-SPAM); marketing mail waits until it is set",
+  ),
   "affiliate.amazon_tag_web": def(
     z.string().regex(/^([a-z0-9-]{1,40}-2\d)?$/),
     "",
