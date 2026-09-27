@@ -100,7 +100,7 @@ export const SETTINGS = {
     0.92,
     "Embedding similarity (with a shared author) that flags a possible duplicate",
   ),
-  "embed.batch_size": def(z.number().int().min(1).max(100), 50, "Books embedded per run of the vectors job"),
+  "embed.batch_size": def(z.number().int().min(1).max(90), 50, "Books embedded per run of the vectors job"),
   "import.chunk_size": def(
     z.number().int().min(1).max(40),
     20,

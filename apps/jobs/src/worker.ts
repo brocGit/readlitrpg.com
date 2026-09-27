@@ -1,11 +1,11 @@
 // The jobs Worker (DESIGN §4.2, §7.9). No public routes.
 //
-//   scheduled  every 5 minutes: the heartbeat dispatches due jobs to Q_JOBS
+//   scheduled  every 5 minutes: the heartbeat dispatches due jobs to Q_JOBS and runs inbox defaults
 //   queue      rlr-jobs: run one job; rlr-email: send email; *-dlq: open an Owner Inbox item
 
 import { createLogger, type Logger, maskEmail } from "@rlr/core";
 import { createDb, type Db } from "@rlr/core/db";
-import { openInboxItem } from "@rlr/core/inbox";
+import { openInboxItem, runInboxDefaults } from "@rlr/core/inbox";
 import {
   finishJobRun,
   HEARTBEAT_KV_KEY,
@@ -26,11 +26,13 @@ import {
 } from "@rlr/email";
 import { verifyAudit } from "./jobs/audit-verify";
 import { exportBackup } from "./jobs/backup";
+import { buildQueue, checkCitations, watchdog } from "./jobs/editorial";
 import { enrichCatalog } from "./jobs/enrich";
 import { importCatalog } from "./jobs/import";
 import { purgeExpired } from "./jobs/retention";
 import { syncTaxonomyJob } from "./jobs/taxonomy-sync";
 import type { JobHandler } from "./jobs/types";
+import { updateVectors } from "./jobs/vectors";
 
 export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "backup.export": exportBackup,
@@ -39,6 +41,10 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "taxonomy.sync": syncTaxonomyJob,
   "catalog.enrich": enrichCatalog,
   "catalog.import": importCatalog,
+  "editorial.queue": buildQueue,
+  "editorial.watchdog": watchdog,
+  "editorial.citations": checkCitations,
+  "vectors.update": updateVectors,
 };
 
 type QueueKind = "jobs" | "email" | "dlq";
@@ -63,7 +69,16 @@ export default {
       },
     });
     ctx.waitUntil(env.CONFIG.put(HEARTBEAT_KV_KEY, now.toISOString()));
-    if (result.dispatched.length || result.failed.length) log.info("heartbeat", { ...result });
+    // Inbox default actions whose deadline has passed (DESIGN §7.9). A failure here must not stop
+    // the scheduler, so it is logged and retried on the next tick.
+    let defaults = 0;
+    try {
+      defaults = await runInboxDefaults(db, now);
+    } catch (error) {
+      log.error("heartbeat.inbox_defaults_failed", { error });
+    }
+    if (result.dispatched.length || result.failed.length || defaults)
+      log.info("heartbeat", { ...result, defaults });
     if (result.failed.length) log.error("heartbeat.dispatch_failed", { failed: result.failed });
   },
 

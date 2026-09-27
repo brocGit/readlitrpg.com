@@ -3,11 +3,14 @@
 
 import { defineMiddleware, sequence } from "astro:middleware";
 import { ulid } from "@rlr/core";
-import { checkRoute, type RouteAccess } from "@rlr/core/policy";
-import { applyHeaders, buildCsp, securityHeaders } from "@rlr/core/security";
+import { openInboxItem } from "@rlr/core/inbox";
+import { type Actor, checkRoute, type RouteAccess } from "@rlr/core/policy";
+import { type AccessIdentity, applyHeaders, buildCsp, securityHeaders } from "@rlr/core/security";
 import { loadSettings, type Settings } from "@rlr/core/settings";
+import type { APIContext, MiddlewareNext } from "astro";
 import { checkAccess } from "./lib/access";
 import { type AdminSession, adminActor, resolveAdminSession } from "./lib/admin-session";
+import { checkEditorialIdentity, checkEditorialToken, EDITORIAL_PREFIX } from "./lib/editorial-auth";
 import { env, getAuth, getDb, isProduction, log } from "./lib/runtime";
 import { ROUTES } from "./routes";
 
@@ -25,18 +28,55 @@ const access = defineMiddleware(async (ctx, next) => {
     log.warn("access.denied", { reason: result.reason, request_id: ctx.locals.requestId });
     return new Response("Access required", { status: 403, headers: { "Cache-Control": "no-store" } });
   }
-  // Service tokens are for the editorial API (M2). Nothing here accepts them yet.
-  if (result.identity.kind !== "user") {
-    return new Response("Forbidden", { status: 403, headers: { "Cache-Control": "no-store" } });
-  }
   ctx.locals.access = result.identity;
   const settings = once<Settings>(() => loadSettings({ db: getDb(), kv: env.CONFIG, log }));
   ctx.locals.settings = settings;
+  ctx.locals.editorial = null;
+  if (ctx.url.pathname.startsWith(EDITORIAL_PREFIX)) {
+    return editorialAccess(ctx, result.identity, next);
+  }
+  // Service tokens only ever reach the editorial API.
+  if (result.identity.kind !== "user") {
+    return new Response("Forbidden", { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
   ctx.locals.admin = once<AdminSession | null>(() =>
     resolveAdminSession(ctx.request, { auth: getAuth(), db: getDb(), access: result.identity, settings }),
   );
   return next();
 });
+
+/** The editorial API: Access service token, editorial token, and the kill switch (§7.13). */
+async function editorialAccess(
+  ctx: APIContext,
+  identity: AccessIdentity,
+  next: MiddlewareNext,
+): Promise<Response> {
+  const refuse = (status: number, reason: string) => {
+    log.warn("editorial.refused", { reason, request_id: ctx.locals.requestId });
+    return Response.json({ error: reason }, { status, headers: { "Cache-Control": "no-store" } });
+  };
+  const who = checkEditorialIdentity(identity, env);
+  if (!who.ok) return refuse(who.status, who.reason);
+  const token = await checkEditorialToken(ctx.request, env);
+  if (!token.ok) {
+    // A valid service token with a wrong editorial token means one of the two leaked, or a
+    // rotation went wrong. Either way the owner should know (one alert per hour).
+    if (token.reason === "bad_token" && env.ENVIRONMENT !== "local") {
+      await openInboxItem(getDb(), {
+        type: "security_event",
+        title: "The editorial API refused a bad editorial token",
+        priority: 90,
+        payload: { requestId: ctx.locals.requestId },
+        dedupeKey: `editorial_bad_token:${new Date().toISOString().slice(0, 13)}`,
+      });
+    }
+    return refuse(token.status, token.reason);
+  }
+  if (!(await ctx.locals.settings())["flags.editorial_api"]) return refuse(503, "editorial_api_off");
+  ctx.locals.editorial = { tokenSlot: token.tokenSlot };
+  ctx.locals.admin = async () => null;
+  return next();
+}
 
 const gate = defineMiddleware(async (ctx, next) => {
   const rule: RouteAccess | undefined = (ROUTES as Record<string, RouteAccess>)[ctx.routePattern];
@@ -45,7 +85,11 @@ const gate = defineMiddleware(async (ctx, next) => {
     return new Response("Not found", { status: 404 });
   }
   if (rule.kind !== "public") {
-    const decision = checkRoute(adminActor(await ctx.locals.admin()), rule);
+    // Editorial requests never carry an admin session; their actor comes from the token alone.
+    const actor: Actor = ctx.locals.editorial
+      ? { kind: "editorial", runId: "" }
+      : adminActor(await ctx.locals.admin());
+    const decision = checkRoute(actor, rule);
     if (!decision.ok) {
       if (ctx.url.pathname.startsWith("/api/"))
         return Response.json({ error: decision.reason }, { status: 401 });

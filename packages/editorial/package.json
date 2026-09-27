@@ -1,0 +1,23 @@
+{
+  "name": "@rlr/editorial",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rlr/core": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260926.1",
+    "@types/node": "22.20.4",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

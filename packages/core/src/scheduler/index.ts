@@ -52,6 +52,26 @@ export const JOBS = [
     cron: "*/5 * * * *",
     description: "Ingest the next chunk of any queued CSV, seed or dump import",
   },
+  {
+    key: "editorial.queue",
+    cron: "*/15 * * * *",
+    description: "Queue classification, dedupe and research work for editorial runs",
+  },
+  {
+    key: "editorial.watchdog",
+    cron: "23 * * * *",
+    description: "Release expired claims, close dead runs, alert when no run has succeeded",
+  },
+  {
+    key: "editorial.citations",
+    cron: "*/10 * * * *",
+    description: "Fetch pages that research runs cite; a page naming the book confirms it",
+  },
+  {
+    key: "vectors.update",
+    cron: "40 * * * *",
+    description: "Embed new and changed books with Workers AI; flag near-duplicates",
+  },
 ] as const satisfies readonly JobDef[];
 
 export type JobKey = (typeof JOBS)[number]["key"];

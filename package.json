@@ -17,13 +17,16 @@
     "format": "biome check --write .",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && node --test scripts/*.test.mjs && node scripts/quiz-tool.mjs check && node scripts/taxonomy-build.mjs --check",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && node --test scripts/*.test.mjs && node scripts/quiz-tool.mjs check && pnpm eval:classify && node scripts/taxonomy-build.mjs --check",
     "quiz": "node scripts/quiz-tool.mjs",
-    "taxonomy": "node scripts/taxonomy-build.mjs"
+    "taxonomy": "node scripts/taxonomy-build.mjs",
+    "editorial": "tsx packages/editorial/src/bin.ts",
+    "eval:classify": "tsx packages/editorial/src/bin.ts eval"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
     "drizzle-kit": "0.31.11",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "yaml": "2.9.1"
   }

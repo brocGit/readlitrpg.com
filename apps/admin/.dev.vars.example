@@ -6,3 +6,6 @@ ADMIN_AUTH_SECRET=local-dev-only-admin-secret-not-for-production-00
 # Local only: stands in for the Cloudflare Access identity. Ignored unless ENVIRONMENT=local
 # and the request is to localhost. Make this user an admin with docs/runbooks/bootstrap-admin.md.
 ACCESS_DEV_EMAIL=owner@example.com
+# Local only: the SHA-256 of the well-known local editorial token "local-editorial-token-not-a-secret",
+# which `pnpm editorial --env local` sends. Production uses a real hash set with wrangler secret put.
+EDITORIAL_TOKEN_HASH=f8d6c23c82bdd709f88b0268936efe5d1ee7041222ab3ac2509750dabe20dad5

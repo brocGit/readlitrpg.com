@@ -1,7 +1,10 @@
 // Every admin page and endpoint, with its access rule (DESIGN §15.4). Cloudflare Access applies
 // to all of them first; PUBLIC here means "Access only, no admin session yet" (the sign-in page).
+// EDITORIAL routes take an Access service token plus the editorial token, never an admin session.
 
-import { ADMIN, PUBLIC, type RouteRegistry } from "@rlr/core/policy";
+import { ADMIN, PUBLIC, type RouteRegistry, requires } from "@rlr/core/policy";
+
+const EDITORIAL = requires("editorial.run");
 
 export const ROUTES = {
   "/": ADMIN,
@@ -19,4 +22,9 @@ export const ROUTES = {
   "/catalog/import": ADMIN,
   "/catalog/import/[id]": ADMIN,
   "/taxonomy": ADMIN,
+  "/api/editorial/runs": EDITORIAL,
+  "/api/editorial/runs/[id]/finish": EDITORIAL,
+  "/api/editorial/pull": EDITORIAL,
+  "/api/editorial/push": EDITORIAL,
+  "/api/editorial/status": EDITORIAL,
 } satisfies RouteRegistry;

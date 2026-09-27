@@ -1,4 +1,4 @@
-// The admin Worker: admin.readlitrpg.com (DESIGN §4.2). Owner console, later the editorial API.
+// The admin Worker: admin.readlitrpg.com (DESIGN §4.2). Owner console and the editorial API (§7.1).
 // Two independent locks: Cloudflare Access in front (JWT checked on every request here too), and
 // a passkey-only admin session whose user must be an admin with the same email as the Access identity.
 // Resource IDs are placeholders until the Cloudflare account is set up (docs/runbooks/cloudflare-setup.md).
@@ -16,7 +16,9 @@
     "PUBLIC_ORIGIN": "https://admin.readlitrpg.com",
     "RP_ID": "readlitrpg.com",
     "ACCESS_TEAM_DOMAIN": "https://readlitrpg.cloudflareaccess.com",
-    "ACCESS_AUD": "set-at-setup"
+    "ACCESS_AUD": "set-at-setup",
+    // Access service-token client IDs allowed to call the editorial API (comma-separated).
+    "EDITORIAL_ACCESS_CLIENT_IDS": "set-at-setup"
   },
   "d1_databases": [
     {

@@ -5,4 +5,8 @@ interface Env {
   SES_SECRET_ACCESS_KEY?: string;
   /** Optional. Without it, enrichment uses Open Library only (Google Books throttles anonymous calls). */
   GOOGLE_BOOKS_API_KEY?: string;
+  /** Optional pair for embeddings through the Workers AI REST API (DESIGN §7.2). */
+  CF_ACCOUNT_ID?: string;
+  /** A Cloudflare API token scoped to Workers AI. */
+  CF_API_TOKEN?: string;
 }
