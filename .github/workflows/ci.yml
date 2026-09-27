@@ -79,6 +79,7 @@ jobs:
           (cd apps/web && pnpm exec astro preview --port 4321 &)
           sleep 8
           (cd apps/admin && pnpm exec astro preview --port 4322 &)
+          (cd apps/jobs && pnpm exec wrangler dev --persist-to ../../.wrangler/state --port 8788 --inspector-port 9231 > /tmp/jobs.log 2>&1 &)
           for i in $(seq 1 60); do
             curl -sf http://localhost:4321/healthz && curl -sf http://localhost:4322/healthz && exit 0
             sleep 1
@@ -88,7 +89,8 @@ jobs:
         run: pnpm --filter @rlr/web run e2e
         env:
           CHROMIUM_PATH: /usr/bin/google-chrome
-      - name: Owner console
+      - name: Owner console and catalog
         run: pnpm --filter @rlr/admin run e2e
         env:
           CHROMIUM_PATH: /usr/bin/google-chrome
+          E2E_JOBS: "1"

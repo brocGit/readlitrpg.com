@@ -56,6 +56,7 @@ export const ACTIONS = [
   "guest_post.submit",
   "book_analytics.view",
   "inbox.decide",
+  "catalog.manage",
   "schedule.manage",
   "settings.change",
   "money.refund",
@@ -160,6 +161,7 @@ function userCan(
       return levels.some((l) => l >= TRUST_RANK.T1) ? ALLOW : deny("forbidden");
     }
     case "inbox.decide":
+    case "catalog.manage":
     case "schedule.manage":
     case "settings.change":
     case "money.refund":

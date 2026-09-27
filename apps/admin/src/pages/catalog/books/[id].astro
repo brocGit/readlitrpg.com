@@ -1,0 +1,262 @@
+---
+import {
+  addConfirmation,
+  type BookField,
+  FieldValueError,
+  findBookRef,
+  getBookDetail,
+  MergeError,
+  mergeBooks,
+  publicationGate,
+  resolveField,
+  type SourcedValue,
+  setVisibility,
+  unmergeBooks,
+  writeBookFields,
+  writeBookTags,
+} from "@rlr/core/catalog";
+import { can } from "@rlr/core/policy";
+import { enqueueJob } from "@rlr/core/scheduler";
+import { books } from "@rlr/core/schema";
+import { eq } from "drizzle-orm";
+import Console from "../../../layouts/Console.astro";
+import { adminActor } from "../../../lib/admin-session";
+import { OVERRIDABLE } from "../../../lib/catalog";
+import { audit, flash, readForm } from "../../../lib/forms";
+import { env, getDb } from "../../../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const id = Astro.params.id ?? "";
+const here = `/catalog/books/${id}`;
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash(here, "Not allowed", "error"), 303);
+  const log = (action: string, diff?: unknown) =>
+    audit(admin, Astro.locals.requestId, { action, subjectType: "book", subjectId: id, diff });
+  try {
+    switch (form.action) {
+      case "publish":
+      case "hide":
+      case "draft": {
+        const target = form.action === "publish" ? "published" : form.action === "hide" ? "hidden" : "draft";
+        const result = await setVisibility(db, id, target);
+        if (!result.ok) return Astro.redirect(flash(here, `Can't publish: ${result.reason}.`, "error"), 303);
+        await log(`catalog.book_${target}`);
+        return Astro.redirect(flash(here, `Book is now ${target}.`), 303);
+      }
+      case "owner_check": {
+        await addConfirmation(db, {
+          subjectType: "book",
+          subjectId: id,
+          source: "owner_check",
+          sourceRef: "console",
+          createdBy: admin.userId,
+        });
+        await log("catalog.owner_check");
+        return Astro.redirect(flash(here, "Marked as checked by you. It can be published now."), 303);
+      }
+      case "relookup": {
+        await db.update(books).set({ enrichStatus: "pending" }).where(eq(books.id, id));
+        await enqueueJob(db, env.Q_JOBS, "catalog.enrich");
+        return Astro.redirect(flash(here, "Looking it up in Open Library and Google Books now."), 303);
+      }
+      case "override": {
+        const field = form.field as BookField;
+        const read = OVERRIDABLE[field];
+        if (!read) return Astro.redirect(flash(here, "That field can't be changed here.", "error"), 303);
+        const value = read(form.value ?? "");
+        await writeBookFields(db, id, [{ field, value }], {
+          source: "admin",
+          sourceRef: "console",
+          createdBy: admin.userId,
+        });
+        await log("catalog.field_override", { field, value });
+        return Astro.redirect(flash(here, `${field} set. Your value now wins over every other source.`), 303);
+      }
+      case "tag": {
+        const slug = (form.slug ?? "").trim();
+        const on = form.on === "1";
+        const crowdMin = (await Astro.locals.settings())["tags.crowd_min_votes"];
+        const { unknown } = await writeBookTags(db, id, [{ slug, value: on ? 1 : 0 }], "admin", crowdMin);
+        if (unknown.length) return Astro.redirect(flash(here, `No active tag "${slug}".`, "error"), 303);
+        await log("catalog.tag_lock", { slug, on });
+        return Astro.redirect(flash(here, `${slug} ${on ? "added" : "removed"} and locked.`), 303);
+      }
+      case "merge": {
+        const target = await findBookRef(db, form.into ?? "");
+        if (!target) return Astro.redirect(flash(here, "No book with that id or slug.", "error"), 303);
+        const mergeId = await mergeBooks(db, target.id, id, admin.userId);
+        await log("catalog.merge", { into: target.id, mergeId });
+        return Astro.redirect(
+          flash(`/catalog/books/${target.id}`, `Merged into "${target.title}". You can undo it below.`),
+          303,
+        );
+      }
+      case "unmerge": {
+        await unmergeBooks(db, form.merge ?? "", admin.userId);
+        await log("catalog.unmerge", { mergeId: form.merge });
+        return Astro.redirect(flash(here, "Merge undone."), 303);
+      }
+    }
+  } catch (error) {
+    if (error instanceof FieldValueError || error instanceof MergeError) {
+      return Astro.redirect(flash(here, error.message, "error"), 303);
+    }
+    throw error;
+  }
+  return Astro.redirect(here, 303);
+}
+
+const detail = await getBookDetail(db, id);
+if (!detail) return Astro.redirect(flash("/catalog", "No such book.", "error"), 303);
+const { book } = detail;
+const gate = publicationGate(book);
+const sourcesByField = new Map<string, SourcedValue[]>();
+for (const p of detail.provenance) {
+  sourcesByField.set(p.field, [
+    ...(sourcesByField.get(p.field) ?? []),
+    { value: p.value, source: p.source, confidence: p.confidence, createdAt: p.createdAt, id: p.id },
+  ]);
+}
+const winner = (field: BookField) => resolveField(field, sourcesByField.get(field) ?? []).source ?? "default";
+const show = (v: unknown) =>
+  v === null || v === undefined || v === "" ? "—" : Array.isArray(v) ? v.join(", ") || "none" : String(v);
+const fieldRows: [BookField, unknown][] = [
+  ["title", book.title],
+  ["subtitle", book.subtitle],
+  ["seriesPosition", book.seriesPosition],
+  ["firstPublished", book.firstPublished ? `${book.firstPublished} (${book.firstPublishedPrecision})` : null],
+  ["pageCount", book.pageCount],
+  ["pubStatus", book.pubStatus],
+  ["primaryGenre", book.primaryGenre],
+  ["inScope", book.inScope],
+  ["crunchLevel", book.crunchLevel],
+  ["romanceLevel", book.romanceLevel],
+  ["harem", book.harem],
+  ["contentFlags", book.contentFlags],
+  ["isAiGenerated", book.isAiGenerated],
+  ["blurbAuthor", book.blurbAuthor],
+];
+---
+
+<Console title={book.title}>
+  <p class="muted">
+    {detail.authors.map((a) => a.name).join(", ")}
+    {detail.series && ` · ${detail.series.name}${book.seriesPosition != null ? ` #${book.seriesPosition}` : ""} (${detail.series.status})`}
+    · <code>{book.slug}</code> · {book.origin}
+  </p>
+
+  {book.redirectTo && <p class="notice error">Merged into <a href={`/catalog/books/${book.redirectTo}`}>another book</a>. Its URL redirects there.</p>}
+
+  <section class="status-screen gate">
+    <p class="label">Status: {book.visibility}</p>
+    <p>{gate.ok ? "✓ Passes the publication gate." : `✗ Not publishable yet: ${gate.reason}.`}</p>
+    <div class="row">
+      {book.visibility !== "published" && gate.ok && <form method="post"><button class="button small" name="action" value="publish" type="submit">Publish</button></form>}
+      {book.visibility === "published" && <form method="post"><button class="button small secondary" name="action" value="hide" type="submit">Hide</button></form>}
+      {book.visibility === "hidden" && <form method="post"><button class="button small secondary" name="action" value="draft" type="submit">Back to draft</button></form>}
+      {!book.confirmedAt && <form method="post"><button class="button small secondary" name="action" value="owner_check" type="submit">I've checked it: confirm</button></form>}
+      <form method="post"><button class="button small secondary" name="action" value="relookup" type="submit">Look it up again ({book.enrichStatus})</button></form>
+    </div>
+  </section>
+
+  <h2>Fields</h2>
+  <table>
+    <thead><tr><th>Field</th><th>Value</th><th>From</th></tr></thead>
+    <tbody>
+      {fieldRows.map(([field, value]) => (<tr><td>{field}</td><td>{show(value)}</td><td class="muted">{winner(field)}</td></tr>))}
+    </tbody>
+  </table>
+  <form method="post" class="inline override">
+    <input type="hidden" name="action" value="override" />
+    <select name="field" aria-label="Field">{Object.keys(OVERRIDABLE).map((f) => <option value={f}>{f}</option>)}</select>
+    <input type="text" name="value" placeholder="New value (blank clears)" aria-label="New value" size="30" />
+    <button class="button small" type="submit">Override</button>
+  </form>
+
+  <h2>Tags</h2>
+  {detail.tags.length === 0 ? <p class="muted">No tags yet.</p> : (
+    <table>
+      <thead><tr><th>Tag</th><th>Facet</th><th>Score</th><th>Evidence</th></tr></thead>
+      <tbody>
+        {detail.tags.map((t) => (<tr><td>{t.name} <code>{t.slug}</code></td><td>{t.facet}</td><td>{t.score.toFixed(2)}{t.adminLocked ? " 🔒" : ""}</td><td class="muted">{t.sources.join(", ")}</td></tr>))}
+      </tbody>
+    </table>
+  )}
+  <form method="post" class="inline">
+    <input type="hidden" name="action" value="tag" />
+    <input type="text" name="slug" placeholder="tag slug" aria-label="Tag slug" />
+    <button class="button small" name="on" value="1" type="submit">Add and lock</button>
+    <button class="button small secondary" name="on" value="0" type="submit">Remove and lock</button>
+  </form>
+
+  <h2>Editions and links</h2>
+  <table>
+    <thead><tr><th>Format</th><th>Identifiers</th><th>Publisher</th><th>Narrators</th><th>KU</th></tr></thead>
+    <tbody>
+      {detail.editions.map((e) => (
+        <tr>
+          <td>{e.format}</td>
+          <td><code>{[e.asin && `ASIN ${e.asin}`, e.isbn13 && `ISBN ${e.isbn13}`, e.audibleAsin && `Audible ${e.audibleAsin}`].filter(Boolean).join(" · ")}</code></td>
+          <td>{e.publisher ?? ""}</td>
+          <td>{e.narrators.join(", ")}</td>
+          <td>{e.kindleUnlimited === null ? "" : e.kindleUnlimited ? "yes" : "no"}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <ul>{detail.links.map((l) => <li>{l.kind}: <code>{l.url}</code></li>)}</ul>
+  {detail.releases.length > 0 && (
+    <ul>{detail.releases.map((r) => <li>{r.kind} {r.date ?? "TBA"} ({r.datePrecision}, {r.status}, {r.region})</li>)}</ul>
+  )}
+
+  <h2>Confirmations</h2>
+  {detail.confirmations.length === 0 ? <p class="muted">None yet.</p> : (
+    <ul>{detail.confirmations.map((c) => <li>{c.source} <code>{c.sourceRef}</code> · {c.createdAt.slice(0, 10)}</li>)}</ul>
+  )}
+
+  <h2>Merge</h2>
+  <form method="post" class="inline">
+    <input type="hidden" name="action" value="merge" />
+    <input type="text" name="into" placeholder="id or slug of the book to keep" aria-label="Book to keep" size="36" />
+    <button class="button small secondary" type="submit">Merge this book into it</button>
+  </form>
+  {detail.merges.length > 0 && (
+    <ul>
+      {detail.merges.map((m) => (
+        <li>
+          {m.loserId === book.id ? "Merged into" : "Absorbed"} <a href={`/catalog/books/${m.loserId === book.id ? m.winnerId : m.loserId}`}>another book</a> on {m.mergedAt.slice(0, 10)}
+          {m.undoneAt ? " (undone)" : (
+            <form method="post" class="inline"><input type="hidden" name="merge" value={m.id} /><button class="button small secondary" name="action" value="unmerge" type="submit">Undo</button></form>
+          )}
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <h2>Where the data came from</h2>
+  <table>
+    <thead><tr><th>When</th><th>Field</th><th>Value</th><th>Source</th></tr></thead>
+    <tbody>
+      {detail.provenance.map((p) => (<tr><td>{p.createdAt.slice(0, 16).replace("T", " ")}</td><td>{p.field}</td><td><code>{JSON.stringify(p.value)?.slice(0, 80)}</code></td><td class="muted">{p.source}{p.sourceRef ? ` · ${p.sourceRef}` : ""}</td></tr>))}
+    </tbody>
+  </table>
+</Console>
+
+<style>
+  .gate {
+    margin-bottom: var(--space-6);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .override {
+    margin-top: var(--space-3);
+  }
+</style>

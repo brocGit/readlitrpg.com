@@ -1,0 +1,131 @@
+---
+import { ingestBook } from "@rlr/core/catalog";
+import { can } from "@rlr/core/policy";
+import { FORMATS, HAREM, RELEASE_KINDS } from "@rlr/core/schema";
+import { CRUNCH_LEVELS, GENRE_SLUGS, getTag, ROMANCE_LEVELS } from "@rlr/core/taxonomy";
+import Console from "../../layouts/Console.astro";
+import { adminActor } from "../../lib/admin-session";
+import { ownerIngestContext, quickAddInput } from "../../lib/catalog";
+import { audit, flash, readForm } from "../../lib/forms";
+import { getDb } from "../../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+let error: string | null = null;
+let values: Record<string, string> = {};
+
+if (Astro.request.method === "POST") {
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash("/catalog/new", "Not allowed", "error"), 303);
+  values = await readForm(Astro.request);
+  const { input, error: formError } = quickAddInput(values);
+  if (input) {
+    const result = await ingestBook(db, input, ownerIngestContext(admin, await Astro.locals.settings()));
+    await audit(admin, Astro.locals.requestId, {
+      action: "catalog.quick_add",
+      subjectType: "book",
+      subjectId: result.bookId,
+      diff: { created: result.created, matchedBy: result.matchedBy, warnings: result.warnings },
+    });
+    const note = [
+      result.created
+        ? "Added."
+        : `Matched an existing book (by ${result.matchedBy.replace("_", " ")}) and updated it.`,
+      result.duplicates.length ? "It looks like a possible duplicate; there's an inbox item." : "",
+      ...result.warnings,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return Astro.redirect(flash(`/catalog/books/${result.bookId}`, note), 303);
+  }
+  error = formError ?? "Check the form.";
+}
+const v = (k: string) => values[k] ?? "";
+---
+
+<Console title="Add a book">
+  <p class="muted">
+    Anything you add here counts as checked by you, so it can be published straight away. If the book already exists (same ASIN, ISBN,
+    or author and title), it's updated instead, and your values win.
+  </p>
+  {error && <p class="notice error" role="alert">{error}</p>}
+  <form method="post" class="grid">
+    <fieldset>
+      <legend>The book</legend>
+      <div class="field"><label for="title">Title *</label><input id="title" name="title" required maxlength="300" value={v("title")} /></div>
+      <div class="field"><label for="subtitle">Subtitle</label><input id="subtitle" name="subtitle" maxlength="300" value={v("subtitle")} /></div>
+      <div class="field"><label for="authors">Authors * (comma-separated)</label><input id="authors" name="authors" required value={v("authors")} /></div>
+      <div class="field"><label for="series">Series</label><input id="series" name="series" value={v("series")} /></div>
+      <div class="field"><label for="position">Book number in the series</label><input id="position" name="position" inputmode="decimal" value={v("position")} /></div>
+      <div class="field"><label for="published">First published (2026-03-14, 2026-03, Q1 2027…)</label><input id="published" name="published" value={v("published")} /></div>
+      <div class="field"><label for="pages">Pages</label><input id="pages" name="pages" inputmode="numeric" value={v("pages")} /></div>
+    </fieldset>
+    <fieldset>
+      <legend>What it's like</legend>
+      <div class="field">
+        <label for="genre">Genre</label>
+        <select id="genre" name="genre">
+          <option value="">—</option>
+          {[...GENRE_SLUGS].map((g) => <option value={g} selected={v("genre") === g}>{getTag(g)?.name}</option>)}
+        </select>
+      </div>
+      <div class="field"><label for="tags">Tags (slugs or names, comma-separated)</label><input id="tags" name="tags" value={v("tags")} /><a href="/taxonomy" class="muted">See all tags</a></div>
+      <div class="field">
+        <label for="crunch">Crunch</label>
+        <select id="crunch" name="crunch"><option value="">—</option>{CRUNCH_LEVELS.map((c) => <option value={c.value} selected={v("crunch") === String(c.value)}>{c.value} · {c.label}</option>)}</select>
+      </div>
+      <div class="field">
+        <label for="romance">Romance</label>
+        <select id="romance" name="romance"><option value="">—</option>{ROMANCE_LEVELS.map((r) => <option value={r.value} selected={v("romance") === String(r.value)}>{r.value} · {r.label}</option>)}</select>
+      </div>
+      <div class="field">
+        <label for="harem">Harem</label>
+        <select id="harem" name="harem"><option value="">—</option>{HAREM.map((h) => <option value={h} selected={v("harem") === h}>{h}</option>)}</select>
+      </div>
+      <div class="field"><label for="blurb">Blurb (only the author's own, with permission)</label><textarea id="blurb" name="blurb" rows="4" maxlength="5000">{v("blurb")}</textarea></div>
+    </fieldset>
+    <fieldset>
+      <legend>Where to get it</legend>
+      <div class="field"><label for="links">Links (one per line: Amazon, Audible, Royal Road…)</label><textarea id="links" name="links" rows="3">{v("links")}</textarea></div>
+      <div class="field">
+        <label for="format">Edition format (for the ASIN or ISBN)</label>
+        <select id="format" name="format"><option value="">—</option>{FORMATS.map((f) => <option value={f} selected={v("format") === f}>{f}</option>)}</select>
+      </div>
+      <div class="field"><label for="asin">Kindle ASIN</label><input id="asin" name="asin" value={v("asin")} /></div>
+      <div class="field"><label for="isbn">ISBN</label><input id="isbn" name="isbn" value={v("isbn")} /></div>
+      <div class="field"><label for="publisher">Publisher</label><input id="publisher" name="publisher" value={v("publisher")} /></div>
+      <div class="field">
+        <label for="ku">Kindle Unlimited</label>
+        <select id="ku" name="ku"><option value="">—</option><option value="yes" selected={v("ku") === "yes"}>yes</option><option value="no" selected={v("ku") === "no"}>no</option></select>
+      </div>
+      <div class="field"><label for="audible_asin">Audible ASIN</label><input id="audible_asin" name="audible_asin" value={v("audible_asin")} /></div>
+      <div class="field"><label for="narrators">Narrators (comma-separated)</label><input id="narrators" name="narrators" value={v("narrators")} /></div>
+      <div class="field"><label for="release_date">Upcoming release date</label><input id="release_date" name="release_date" value={v("release_date")} /></div>
+      <div class="field">
+        <label for="release_kind">Release kind</label>
+        <select id="release_kind" name="release_kind">{RELEASE_KINDS.map((k) => <option value={k} selected={v("release_kind") === k}>{k}</option>)}</select>
+      </div>
+    </fieldset>
+    <p><button class="button" type="submit">Save book</button></p>
+  </form>
+</Console>
+
+<style>
+  .grid {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    align-items: start;
+  }
+  fieldset {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+  }
+  select,
+  textarea {
+    font: inherit;
+    padding: var(--space-2);
+  }
+</style>

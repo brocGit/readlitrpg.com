@@ -1,0 +1,149 @@
+---
+import {
+  CSV_TEMPLATE_HEADER,
+  createImport,
+  type ParsedFile,
+  parseCatalogCsv,
+  parseNdjson,
+  parseSeedFile,
+} from "@rlr/core/catalog";
+import { can } from "@rlr/core/policy";
+import { enqueueJob } from "@rlr/core/scheduler";
+import { catalogImports } from "@rlr/core/schema";
+import { desc } from "drizzle-orm";
+import Console from "../../../layouts/Console.astro";
+import { adminActor } from "../../../lib/admin-session";
+import { audit, flash } from "../../../lib/forms";
+import { env, getDb } from "../../../lib/runtime";
+
+const MAX_BYTES = 5 * 1024 * 1024;
+const KINDS = {
+  csv: { label: "CSV (your own list)", fieldSource: "admin", origin: "admin", parse: parseCatalogCsv },
+  seed: {
+    label: "Seed file (JSON from an editorial run)",
+    fieldSource: "ai",
+    origin: "ai_seed",
+    parse: parseSeedFile,
+  },
+  ol_dump: {
+    label: "Open Library extract (NDJSON)",
+    fieldSource: "api",
+    origin: "import",
+    parse: parseNdjson,
+  },
+} as const;
+type Kind = keyof typeof KINDS;
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+let problems: ParsedFile | null = null;
+
+if (Astro.request.method === "POST") {
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash("/catalog/import", "Not allowed", "error"), 303);
+  const form = await Astro.request.formData();
+  const kind = String(form.get("kind") ?? "") as Kind;
+  const file = form.get("file");
+  if (!(kind in KINDS) || !(file instanceof File) || file.size === 0) {
+    return Astro.redirect(flash("/catalog/import", "Choose a file and what kind it is.", "error"), 303);
+  }
+  if (file.size > MAX_BYTES)
+    return Astro.redirect(flash("/catalog/import", "Files can be at most 5 MB.", "error"), 303);
+  const spec = KINDS[kind];
+  const parsed = spec.parse(await file.text());
+  if (parsed.errors.length || parsed.rows.length === 0) {
+    problems =
+      parsed.rows.length === 0 && parsed.errors.length === 0
+        ? { ...parsed, errors: [{ rowNum: 0, message: "no rows found" }] }
+        : parsed;
+  } else {
+    const id = await createImport(db, {
+      kind,
+      filename: file.name.slice(0, 200),
+      fieldSource: spec.fieldSource,
+      origin: spec.origin,
+      createdBy: admin.userId,
+      rows: parsed.rows,
+    });
+    await enqueueJob(db, env.Q_JOBS, "catalog.import");
+    await audit(admin, Astro.locals.requestId, {
+      action: "catalog.import_created",
+      subjectType: "catalog_import",
+      subjectId: id,
+      diff: { kind, filename: file.name, rows: parsed.rows.length, notes: parsed.notes },
+    });
+    const notes = parsed.notes.length ? ` (${parsed.notes.join("; ")})` : "";
+    return Astro.redirect(
+      flash(`/catalog/import/${id}`, `Importing ${parsed.rows.length} books${notes}.`),
+      303,
+    );
+  }
+}
+
+const recent = await db.select().from(catalogImports).orderBy(desc(catalogImports.createdAt)).limit(20);
+---
+
+<Console title="Import books">
+  {
+    problems && (
+      <div class="notice error" role="alert">
+        <p><strong>Nothing was imported.</strong> Fix these rows and upload the file again:</p>
+        <ul>
+          {problems.errors.slice(0, 50).map((e) => <li>{e.rowNum > 0 ? `Row ${e.rowNum}: ` : ""}{e.message}</li>)}
+        </ul>
+        {problems.errors.length > 50 && <p>…and {problems.errors.length - 50} more.</p>}
+      </div>
+    )
+  }
+  <form method="post" enctype="multipart/form-data" class="upload">
+    <div class="field">
+      <label for="kind">What kind of file</label>
+      <select id="kind" name="kind">{Object.entries(KINDS).map(([k, s]) => <option value={k}>{s.label}</option>)}</select>
+    </div>
+    <div class="field"><label for="file">File (up to 5 MB, 5,000 books)</label><input id="file" name="file" type="file" accept=".csv,.json,.ndjson,.txt" required /></div>
+    <button class="button" type="submit">Check and import</button>
+  </form>
+  <details>
+    <summary>CSV columns</summary>
+    <p>The first row names the columns. Only <code>title</code> and <code>authors</code> are required; order doesn't matter, and case, spaces and underscores in headers are ignored. Separate several authors, tags or narrators with <code>;</code>.</p>
+    <pre>{CSV_TEMPLATE_HEADER}</pre>
+    <p class="muted">Your own CSV rows count as checked by you. Seed files stay unpublished until something independent confirms each book.</p>
+  </details>
+
+  <h2>Recent imports</h2>
+  {
+    recent.length === 0 ? (
+      <p class="muted">None yet.</p>
+    ) : (
+      <table>
+        <thead><tr><th>File</th><th>Kind</th><th>Status</th><th>Progress</th><th>New</th><th>Matched</th><th>Flagged</th><th>Failed</th></tr></thead>
+        <tbody>
+          {recent.map((i) => (
+            <tr>
+              <td><a href={`/catalog/import/${i.id}`}>{i.filename ?? i.id}</a></td>
+              <td>{i.kind}</td>
+              <td>{i.status}</td>
+              <td>{i.processed} / {i.total}</td>
+              <td>{i.created}</td>
+              <td>{i.matched}</td>
+              <td>{i.flagged}</td>
+              <td>{i.failed}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+</Console>
+
+<style>
+  .upload {
+    max-width: 32rem;
+    margin-bottom: var(--space-6);
+  }
+  select {
+    font: inherit;
+    padding: var(--space-2);
+  }
+</style>

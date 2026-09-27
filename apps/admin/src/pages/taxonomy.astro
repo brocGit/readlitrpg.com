@@ -1,0 +1,72 @@
+---
+import { can } from "@rlr/core/policy";
+import { bookTags, tags } from "@rlr/core/schema";
+import { FACETS, syncTaxonomy, TAGS, TAXONOMY_HASH } from "@rlr/core/taxonomy";
+import { count, eq, gte } from "drizzle-orm";
+import Console from "../layouts/Console.astro";
+import { adminActor } from "../lib/admin-session";
+import { audit, flash } from "../lib/forms";
+import { env, getDb } from "../lib/runtime";
+
+const TAXONOMY_KV_KEY = "taxonomy:hash";
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash("/taxonomy", "Not allowed", "error"), 303);
+  const result = await syncTaxonomy(db);
+  await env.CONFIG.put(TAXONOMY_KV_KEY, TAXONOMY_HASH);
+  await audit(admin, Astro.locals.requestId, { action: "taxonomy.sync", diff: result });
+  return Astro.redirect(
+    flash("/taxonomy", `Synced: ${result.inserted} added, ${result.updated} updated.`),
+    303,
+  );
+}
+
+const settings = await Astro.locals.settings();
+const [synced, inDb, usage] = await Promise.all([
+  env.CONFIG.get(TAXONOMY_KV_KEY),
+  db.select({ slug: tags.slug }).from(tags),
+  db
+    .select({ slug: tags.slug, n: count() })
+    .from(bookTags)
+    .innerJoin(tags, eq(tags.id, bookTags.tagId))
+    .where(gte(bookTags.score, settings["tags.display_min"]))
+    .groupBy(tags.slug),
+]);
+const used = new Map(usage.map((u) => [u.slug, u.n]));
+const upToDate = synced === TAXONOMY_HASH && inDb.length >= TAGS.length;
+---
+
+<Console title="Taxonomy">
+  <div class="status-screen">
+    <p class="label">[Vocabulary {TAXONOMY_HASH}]</p>
+    <p>
+      {TAGS.length} tags in data/taxonomy.yaml · {inDb.length} in the database ·
+      {upToDate ? " up to date." : " needs a sync (the hourly job will do it, or sync now)."}
+    </p>
+    <form method="post"><button class="button small" type="submit">Sync now</button></form>
+  </div>
+  <p class="muted">To add, rename or retire tags, edit data/taxonomy.yaml (with docs/TAXONOMY.md) and deploy. Slugs are permanent.</p>
+  {
+    FACETS.map((facet) => (
+      <section>
+        <h2>{facet.name}</h2>
+        <table>
+          <thead><tr><th>Tag</th><th>Definition</th><th>Books</th></tr></thead>
+          <tbody>
+            {TAGS.filter((t) => t.facet === facet.key).map((t) => (
+              <tr>
+                <td>{t.name} <code>{t.slug}</code>{t.synonyms?.length ? <div class="muted">also: {t.synonyms.join(", ")}</div> : null}</td>
+                <td>{t.definition}</td>
+                <td>{used.get(t.slug) ?? 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    ))
+  }
+</Console>

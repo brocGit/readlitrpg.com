@@ -13,11 +13,15 @@ const error = Astro.url.searchParams.get("error");
 const nav = [
   ["/", "Dashboard"],
   ["/inbox", "Inbox"],
+  ["/catalog", "Catalog"],
+  ["/taxonomy", "Taxonomy"],
   ["/automation", "Automation"],
   ["/settings", "Settings"],
   ["/audit", "Audit log"],
 ] as const;
 const here = Astro.url.pathname;
+const current = (href: string) =>
+  href === "/" ? here === "/" : here === href || here.startsWith(`${href}/`);
 ---
 
 <!doctype html>
@@ -37,7 +41,7 @@ const here = Astro.url.pathname;
           admin && (
             <nav aria-label="Console">
               {nav.map(([href, label]) => (
-                <a href={href} aria-current={here === href ? "page" : undefined}>
+                <a href={href} aria-current={current(href) ? "page" : undefined}>
                   {label}
                 </a>
               ))}

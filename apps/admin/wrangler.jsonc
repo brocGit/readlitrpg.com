@@ -26,5 +26,7 @@
       "migrations_dir": "../../migrations"
     }
   ],
-  "kv_namespaces": [{ "binding": "CONFIG", "id": "00000000000040008000000000000002" }]
+  "kv_namespaces": [{ "binding": "CONFIG", "id": "00000000000040008000000000000002" }],
+  // Producer only: the console can queue a job (an import, a lookup) but never consumes the queue.
+  "queues": { "producers": [{ "binding": "Q_JOBS", "queue": "rlr-jobs" }] }
 }

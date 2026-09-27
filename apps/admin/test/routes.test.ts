@@ -38,7 +38,16 @@ describe("route registry", () => {
   });
 
   it("keeps console pages admin-only", () => {
-    for (const page of ["/", "/inbox", "/automation", "/settings", "/audit"] as const) {
+    for (const page of [
+      "/",
+      "/inbox",
+      "/automation",
+      "/settings",
+      "/audit",
+      "/catalog",
+      "/catalog/books/[id]",
+      "/taxonomy",
+    ] as const) {
       expect(ROUTES[page].kind).toBe("admin");
     }
   });

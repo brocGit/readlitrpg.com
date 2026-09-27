@@ -13,4 +13,10 @@ export const ROUTES = {
   "/automation": ADMIN,
   "/settings": ADMIN,
   "/audit": ADMIN,
+  "/catalog": ADMIN,
+  "/catalog/new": ADMIN,
+  "/catalog/books/[id]": ADMIN,
+  "/catalog/import": ADMIN,
+  "/catalog/import/[id]": ADMIN,
+  "/taxonomy": ADMIN,
 } satisfies RouteRegistry;

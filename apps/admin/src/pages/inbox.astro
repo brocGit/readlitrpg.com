@@ -40,6 +40,8 @@ if (Astro.request.method === "POST") {
 }
 
 const items = await listOpenInbox(db, 200);
+const isPair = (p: unknown): p is { bookId: string; otherId: string; reason: string } =>
+  typeof p === "object" && p !== null && "bookId" in p && "otherId" in p;
 ---
 
 <Console title="Inbox">
@@ -62,6 +64,13 @@ const items = await listOpenInbox(db, 200);
                 <strong>{item.title}</strong>
                 <div class="muted">{item.type}{item.subjectType ? ` · ${item.subjectType} ${item.subjectId ?? ""}` : ""}</div>
                 {item.aiSummary && <p>{item.aiSummary}</p>}
+                {item.type === "possible_duplicate" && isPair(item.payload) && (
+                  <p>
+                    Compare <a href={`/catalog/books/${item.payload.bookId}`}>this book</a> with{" "}
+                    <a href={`/catalog/books/${item.payload.otherId}`}>the existing one</a> ({item.payload.reason}). Merge from the
+                    book page if they're the same; resolve here if not.
+                  </p>
+                )}
                 {item.payload != null && (
                   <details>
                     <summary>Details</summary>

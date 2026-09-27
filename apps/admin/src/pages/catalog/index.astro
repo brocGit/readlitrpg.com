@@ -1,0 +1,150 @@
+---
+import { catalogSummary, listBooks, publishableDraftIds, setVisibility } from "@rlr/core/catalog";
+import { can } from "@rlr/core/policy";
+import { VISIBILITY } from "@rlr/core/schema";
+import Console from "../../layouts/Console.astro";
+import { adminActor } from "../../lib/admin-session";
+import { audit, flash, readForm } from "../../lib/forms";
+import { getDb } from "../../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  if (!can(adminActor(admin), "catalog.manage").ok)
+    return Astro.redirect(flash("/catalog", "Not allowed", "error"), 303);
+  if (form.action === "publish_confirmed") {
+    const ids = await publishableDraftIds(db);
+    let published = 0;
+    for (const id of ids) if ((await setVisibility(db, id, "published")).ok) published++;
+    await audit(admin, Astro.locals.requestId, {
+      action: "catalog.publish_confirmed",
+      diff: { published, ids },
+    });
+    return Astro.redirect(flash("/catalog", `Published ${published} confirmed book(s).`), 303);
+  }
+  return Astro.redirect("/catalog", 303);
+}
+
+const params = Astro.url.searchParams;
+const visibility = VISIBILITY.find((v) => v === params.get("visibility"));
+const confirmed =
+  params.get("confirmed") === "yes" ? "yes" : params.get("confirmed") === "no" ? "no" : undefined;
+const q = params.get("q")?.slice(0, 100) ?? "";
+const page = Math.max(1, Number(params.get("page")) || 1);
+const perPage = 50;
+const [summary, { rows, total }] = await Promise.all([
+  catalogSummary(db),
+  listBooks(db, { q, visibility, confirmed }, perPage, (page - 1) * perPage),
+]);
+const pages = Math.max(1, Math.ceil(total / perPage));
+const link = (p: number) => {
+  const u = new URLSearchParams(params);
+  u.set("page", String(p));
+  return `/catalog?${u}`;
+};
+---
+
+<Console title="Catalog">
+  <section class="summary">
+    <div class="status-screen"><p class="label">Books</p><p class="big">{summary.total}</p></div>
+    <div class="status-screen"><p class="label">Published</p><p class="big">{summary.published}</p></div>
+    <div class="status-screen">
+      <p class="label">Confirmed, not yet published</p>
+      <p class="big">{summary.readyToPublish}</p>
+      {
+        summary.readyToPublish > 0 && (
+          <form method="post">
+            <button class="button small" name="action" value="publish_confirmed" type="submit">Publish all confirmed</button>
+          </form>
+        )
+      }
+    </div>
+    <div class="status-screen">
+      <p class="label">Waiting for confirmation</p>
+      <p class="big">{summary.awaitingConfirmation}</p>
+      <p class="muted small">Seeds go public only after Open Library, Google Books, a cited source, the author or you confirm them.</p>
+    </div>
+  </section>
+
+  <p class="actions">
+    <a class="button" href="/catalog/new">Add a book</a>
+    <a class="button secondary" href="/catalog/import">Import a file</a>
+  </p>
+
+  <form method="get" class="filters">
+    <input type="search" name="q" value={q} placeholder="Title, author or series" aria-label="Search" />
+    <select name="visibility" aria-label="Visibility">
+      <option value="">Any visibility</option>
+      {VISIBILITY.filter((v) => v !== "removed").map((v) => <option value={v} selected={v === visibility}>{v}</option>)}
+    </select>
+    <select name="confirmed" aria-label="Confirmed">
+      <option value="">Confirmed or not</option>
+      <option value="yes" selected={confirmed === "yes"}>Confirmed</option>
+      <option value="no" selected={confirmed === "no"}>Unconfirmed</option>
+    </select>
+    <button class="button small secondary" type="submit">Filter</button>
+  </form>
+
+  <p class="muted">{total} match{total === 1 ? "" : "es"}{pages > 1 ? ` · page ${page} of ${pages}` : ""}</p>
+  <table>
+    <thead>
+      <tr><th>Title</th><th>Author</th><th>Series</th><th>Genre</th><th>Status</th><th>Lookup</th></tr>
+    </thead>
+    <tbody>
+      {rows.map((b) => (
+        <tr>
+          <td><a href={`/catalog/books/${b.id}`}>{b.title}</a></td>
+          <td>{b.authorNames}</td>
+          <td>{b.seriesName ? `${b.seriesName}${b.seriesPosition != null ? ` #${b.seriesPosition}` : ""}` : ""}</td>
+          <td>{b.primaryGenre ?? ""}</td>
+          <td>
+            {b.visibility}
+            {b.confirmedAt ? " · confirmed" : ""}
+            <div class="muted small">{b.origin}</div>
+          </td>
+          <td>{b.enrichStatus}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  {
+    pages > 1 && (
+      <p class="pager">
+        {page > 1 && <a href={link(page - 1)}>← Previous</a>}
+        {page < pages && <a href={link(page + 1)}>Next →</a>}
+      </p>
+    )
+  }
+</Console>
+
+<style>
+  .summary {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    margin-bottom: var(--space-6);
+  }
+  .big {
+    font-size: 1.8rem;
+    margin: 0;
+  }
+  .small {
+    font-size: 0.8rem;
+  }
+  .actions,
+  .filters,
+  .pager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+  }
+  .filters input,
+  .filters select {
+    font: inherit;
+    padding: var(--space-2);
+  }
+</style>

@@ -142,6 +142,74 @@ try {
   );
   check(audit.includes("Chain intact"), "the audit chain verifies");
 
+  // Catalog (M1): vocabulary, quick-add, the publication gate, and a CSV import.
+  const page = owner.page;
+  await page.goto(`${ADMIN}/taxonomy`);
+  await page.click('button:has-text("Sync now")');
+  await page.waitForSelector("text=Synced:");
+  check(await page.isVisible("text=Dungeon Core"), "the taxonomy syncs into the database");
+
+  const stamp = Date.now();
+  const title = `E2E Hunter ${stamp}`;
+  await page.goto(`${ADMIN}/catalog/new`);
+  await page.fill("#title", title);
+  await page.fill("#authors", "Zogarth");
+  await page.fill("#series", `E2E Series ${stamp}`);
+  await page.fill("#position", "1");
+  await page.selectOption("#genre", "litrpg");
+  await page.fill("#tags", "system-apocalypse, xianxia");
+  await page.fill("#links", `https://www.amazon.com/dp/B0E2E${String(stamp).slice(-5)}/ref=sr_1_1?tag=x-20`);
+  await page.click('button:has-text("Save book")');
+  await page.waitForSelector("text=Added.");
+  check(
+    await page.isVisible("text=Passes the publication gate"),
+    "a book the owner adds passes the publication gate",
+  );
+  check(await page.isVisible("text=cultivation"), "tag synonyms resolve (xianxia → cultivation)");
+  await page.click('button[value="publish"]');
+  await page.waitForSelector("text=Book is now published");
+  check(true, "the owner publishes it");
+  const bookUrl = page.url().split("?")[0];
+
+  await page.goto(`${ADMIN}/catalog/new`);
+  await page.fill("#title", `${title}: A LitRPG Adventure (E2E Series ${stamp} Book 1)`);
+  await page.fill("#authors", "Zogarth");
+  await page.fill("#pages", "704");
+  await page.click('button:has-text("Save book")');
+  await page.waitForSelector("text=Matched an existing book");
+  check(page.url().split("?")[0] === bookUrl, "adding it again with a retail title updates the same book");
+
+  const csv = [
+    "Title,Authors,Series,Book,Genre,Tags",
+    `E2E Import A ${stamp},E2E Author,E2E Imports ${stamp},1,progression-fantasy,cultivation`,
+    `E2E Import B ${stamp},E2E Author,E2E Imports ${stamp},2,progression-fantasy,cultivation`,
+  ].join("\n");
+  await page.goto(`${ADMIN}/catalog/import`);
+  await page.selectOption("#kind", "csv");
+  await page.setInputFiles("#file", { name: "e2e.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+  await page.click('button:has-text("Check and import")');
+  await page.waitForSelector("text=Importing 2 books");
+  check(true, "a CSV upload is validated and queued");
+  if (process.env.E2E_JOBS === "1") {
+    let complete = false;
+    for (let i = 0; i < 30 && !complete; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      await page.reload();
+      complete = await page.isVisible("text=Import complete");
+    }
+    check(complete, "the jobs Worker ingests the import");
+  }
+
+  await page.goto(`${ADMIN}/catalog/import`);
+  await page.setInputFiles("#file", {
+    name: "bad.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("title,authors,crunch\nX,Y,9\n"),
+  });
+  await page.click('button:has-text("Check and import")');
+  await page.waitForSelector("text=Nothing was imported");
+  check(await page.isVisible("text=Row 2:"), "a bad file is refused with row numbers, and nothing is stored");
+
   check(
     problems.length === 0,
     `no CSP violations or page errors${problems.length ? `: ${problems.join(" | ")}` : ""}`,

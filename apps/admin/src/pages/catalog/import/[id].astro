@@ -1,0 +1,76 @@
+---
+import { catalogImportRows, catalogImports } from "@rlr/core/schema";
+import { and, asc, eq, ne } from "drizzle-orm";
+import Console from "../../../layouts/Console.astro";
+import { getDb } from "../../../lib/runtime";
+
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const id = Astro.params.id ?? "";
+const [job] = await db.select().from(catalogImports).where(eq(catalogImports.id, id));
+if (!job) return Astro.redirect("/catalog/import", 303);
+
+// Rows worth a look: failures, and rows that matched something or raised a warning.
+const done = await db
+  .select()
+  .from(catalogImportRows)
+  .where(and(eq(catalogImportRows.importId, id), ne(catalogImportRows.status, "pending")))
+  .orderBy(asc(catalogImportRows.rowNum))
+  .limit(2000);
+type Result = {
+  bookId?: string;
+  created?: boolean;
+  matchedBy?: string;
+  warnings?: string[];
+  duplicates?: unknown[];
+  error?: string;
+};
+const notable = done
+  .map((r) => ({
+    row: r,
+    result: (r.result ?? {}) as Result,
+    title: (r.payload as { input?: { title?: string } }).input?.title ?? "",
+  }))
+  .filter(
+    ({ row, result }) =>
+      row.status === "error" || (result.warnings?.length ?? 0) > 0 || (result.duplicates?.length ?? 0) > 0,
+  )
+  .slice(0, 300);
+const percent = job.total ? Math.round((job.processed / job.total) * 100) : 100;
+---
+
+<Console title={`Import: ${job.filename ?? job.id}`}>
+  <div class="status-screen">
+    <p class="label">[{job.status === "done" ? "Import complete" : `Importing · ${percent}%`}]</p>
+    <p>
+      {job.processed} of {job.total} rows · {job.created} new · {job.matched} matched existing books · {job.flagged} possible duplicates ·
+      {job.failed} failed
+    </p>
+    {job.status !== "done" && <p class="muted">A job works through about 20 rows at a time. Refresh to see progress.</p>}
+  </div>
+
+  <h2>Rows to look at</h2>
+  {
+    notable.length === 0 ? (
+      <p class="muted">Nothing unusual so far.</p>
+    ) : (
+      <table>
+        <thead><tr><th>Row</th><th>Title</th><th>What happened</th></tr></thead>
+        <tbody>
+          {notable.map(({ row, result, title }) => (
+            <tr>
+              <td>{row.rowNum}</td>
+              <td>{result.bookId ? <a href={`/catalog/books/${result.bookId}`}>{title}</a> : title}</td>
+              <td>
+                {row.status === "error" ? <strong>Failed: {result.error}</strong> : result.created ? "Added" : `Matched (${result.matchedBy})`}
+                {(result.duplicates?.length ?? 0) > 0 && " · possible duplicate (see inbox)"}
+                {(result.warnings ?? []).map((w) => <div class="muted">{w}</div>)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+</Console>

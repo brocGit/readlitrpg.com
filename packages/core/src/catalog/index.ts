@@ -7,5 +7,6 @@ export * from "./input";
 export * from "./merge";
 export * from "./normalize";
 export * from "./provenance";
+export * from "./queries";
 export * from "./resolve";
 export * from "./tags";

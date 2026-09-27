@@ -135,11 +135,13 @@ describe("permission matrix (DESIGN §2.3)", () => {
     for (const actor of [visitor, subscriber, reader, author, verifiedAuthor, publisher]) {
       expect(allowed(actor, "inbox.decide")).toBe(false);
       expect(allowed(actor, "schedule.manage")).toBe(false);
+      expect(allowed(actor, "catalog.manage")).toBe(false);
       expect(allowed(actor, "settings.change")).toBe(false);
       expect(allowed(actor, "money.refund")).toBe(false);
     }
     expect(allowed(admin, "inbox.decide")).toBe(true);
     expect(allowed(staleAdmin, "schedule.manage")).toBe(true);
+    expect(allowed(staleAdmin, "catalog.manage")).toBe(true);
     expect(allowed(admin, "settings.change")).toBe(true);
     expect(allowed(admin, "money.refund")).toBe(true);
     expect(allowed(staleAdmin, "inbox.decide")).toBe(true);
