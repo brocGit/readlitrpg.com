@@ -1,13 +1,17 @@
 // Retention (DESIGN §16.2): expired sessions, sign-in tokens and rate counters, old job history, audit rows
 // past seven years (oldest first, so the chain still verifies from its new first row), anonymous quiz
 // takes after 90 days (their counts stay in quiz_daily; QUIZZES §4.3), the email send log after 90
-// days, subscriptions never confirmed, and data exports past their link's life.
+// days, subscriptions never confirmed, and data exports past their link's life. Authors' pasted text
+// goes a week after it's read, sent notices after 30 days and emailed change notes after 90.
 
 import { AUDIT_RETENTION_DAYS } from "@rlr/core/audit";
+import { purgeSentNotices } from "@rlr/core/authors";
 import { purgeAnonymousTakes } from "@rlr/core/quiz";
 import { purgeUnconfirmed } from "@rlr/core/readers";
 import {
   auditLog,
+  authorPastes,
+  changeNotifications,
   dataExports,
   emailSends,
   jobRuns,
@@ -15,7 +19,7 @@ import {
   sessions,
   verifications,
 } from "@rlr/core/schema";
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, ne } from "drizzle-orm";
 import type { JobContext } from "./types";
 
 export const JOB_RUN_RETENTION_DAYS = 90;
@@ -32,11 +36,19 @@ export async function purgeExpired(ctx: JobContext): Promise<number> {
     // One day of margin so clock skew between the Worker and D1 never trips the delete trigger.
     db.delete(auditLog).where(lt(auditLog.createdAt, daysAgo(AUDIT_RETENTION_DAYS + 1))),
     db.delete(emailSends).where(lt(emailSends.createdAt, daysAgo(EMAIL_SEND_RETENTION_DAYS))),
+    // Authors (M6): pasted text once it's been read, and change notes long since emailed.
+    db
+      .delete(authorPastes)
+      .where(and(ne(authorPastes.status, "queued"), lt(authorPastes.createdAt, daysAgo(7)))),
+    db.delete(changeNotifications).where(lt(changeNotifications.emailedAt, daysAgo(90))),
   ]);
+  const notices = await purgeSentNotices(db, now);
   const takes = await purgeAnonymousTakes(db, now);
   const unconfirmed = await purgeUnconfirmed(db, now);
   const exports = await expireExports(ctx);
-  return results.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0) + takes + unconfirmed + exports;
+  return (
+    results.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0) + takes + unconfirmed + exports + notices
+  );
 }
 
 /** Export files are deleted once their link expires; the row stays as "expired" for the account page. */

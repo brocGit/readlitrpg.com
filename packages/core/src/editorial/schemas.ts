@@ -231,12 +231,55 @@ export const imageReviewProposalSchema = z
   })
   .strict();
 
+/**
+ * "Paste anything" (DESIGN §10.3 step 0, §7.15 source 7): the books in an author's pasted text,
+ * as drafts the author confirms. Titles, links and blurbs must come from the pasted text itself:
+ * the server drops anything that isn't in it, so nothing is added from memory.
+ */
+export const importExtractProposalSchema = z
+  .object({
+    kind: z.literal("import_extract"),
+    item_id: id,
+    paste_id: id,
+    books: z
+      .array(
+        z
+          .object({
+            title: z.string().trim().min(1).max(300),
+            series_name: z.string().trim().min(1).max(200).optional(),
+            series_position: z.number().min(0).max(1000).optional(),
+            coauthors: z.array(z.string().trim().min(1).max(200)).max(5).optional(),
+            genre: z
+              .string()
+              .refine((g) => GENRE_SLUGS.has(g), "not a genre")
+              .optional(),
+            blurb: shortText(3_000).optional(),
+            links: z.array(z.string().trim().url().max(2_000)).max(10).optional(),
+            releases: z
+              .array(
+                z.object({
+                  kind: z.enum(["ebook", "audio", "print"]),
+                  date: z.string().trim().min(1).max(40),
+                }),
+              )
+              .max(3)
+              .optional(),
+          })
+          .strict(),
+      )
+      .max(50),
+    anomalies: z.array(z.enum(ANOMALIES)).max(5),
+    notes: shortText(500).optional(),
+  })
+  .strict();
+
 export const proposalSchema = z.discriminatedUnion("kind", [
   classifyProposalSchema,
   dedupeProposalSchema,
   researchProposalSchema,
   moderateProposalSchema,
   imageReviewProposalSchema,
+  importExtractProposalSchema,
 ]);
 
 export type ClassifyProposal = z.infer<typeof classifyProposalSchema>;
@@ -244,6 +287,7 @@ export type DedupeProposal = z.infer<typeof dedupeProposalSchema>;
 export type ResearchProposal = z.infer<typeof researchProposalSchema>;
 export type ModerateProposal = z.infer<typeof moderateProposalSchema>;
 export type ImageReviewProposal = z.infer<typeof imageReviewProposalSchema>;
+export type ImportExtractProposal = z.infer<typeof importExtractProposalSchema>;
 export type Proposal = z.infer<typeof proposalSchema>;
 
 // ---------------------------------------------------------------------------------------------

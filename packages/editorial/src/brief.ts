@@ -173,6 +173,43 @@ const BRIEFS: Record<EditorialKind, () => string> = {
       "",
       '```json\n{ "kind": "moderate", "item_id": "<id>", "verdict": "allow", "categories": [], "reasons": "Optional." }\n```',
     ].join("\n"),
+  import_extract: () =>
+    [
+      "# Import extract brief (paste anything)",
+      "",
+      "An author pasted their book list (an author page, a website list, a newsletter). List every book in it",
+      "as a draft for the author to confirm. Use only what the text says: titles exactly as written, links that",
+      "appear in the text, a blurb only if the text has one (copied, not rewritten). Leave out anything you'd have",
+      "to guess, books in `input.author.existing_titles`, and books by other authors (recommendations, ads).",
+      "The server drops any title, link or blurb that isn't in the pasted text.",
+      "",
+      `genre (optional): one of ${[...TAGS.filter((t) => t.facet === "genre").map((t) => t.slug)].join(", ")}`,
+      "releases (optional): kind ebook | audio | print, date as written (2026-11-03, Nov 2026, Q1 2027, TBA)",
+      "",
+      "```json",
+      JSON.stringify(
+        {
+          kind: "import_extract",
+          item_id: "<from the work file>",
+          paste_id: "<input.paste_id>",
+          books: [
+            {
+              title: "Dungeon Potato 4",
+              series_name: "Dungeon Potato",
+              series_position: 4,
+              genre: "litrpg",
+              links: ["https://www.amazon.com/dp/B0EXAMPLE1"],
+              releases: [{ kind: "ebook", date: "2026-11-03" }],
+            },
+          ],
+          anomalies: [],
+          notes: "Optional, plain text.",
+        },
+        null,
+        2,
+      ),
+      "```",
+    ].join("\n"),
   image_review: () =>
     [
       "# Image review brief",
@@ -222,6 +259,14 @@ export function template(items: { item_id: string; kind: EditorialKind; input: u
           verdict: null,
           confidence: null,
           sources: [],
+        };
+      case "import_extract":
+        return {
+          kind: "import_extract",
+          item_id: item.item_id,
+          paste_id: (item.input as { paste_id?: string }).paste_id ?? null,
+          books: [],
+          anomalies: [],
         };
       default:
         return { kind: item.kind, item_id: item.item_id, verdict: null, categories: [] };

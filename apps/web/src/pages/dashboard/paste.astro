@@ -1,0 +1,109 @@
+---
+import { ulid } from "@rlr/core";
+import { parseLink } from "@rlr/core/catalog";
+import { enqueue } from "@rlr/core/editorial";
+import { authorPastes, authorSubmissions, authors } from "@rlr/core/schema";
+import { and, desc, eq } from "drizzle-orm";
+import DashNav from "../../components/dashboard/DashNav.astro";
+import Base from "../../layouts/Base.astro";
+import { profileAccess } from "../../lib/authors";
+import { withinLimit } from "../../lib/match";
+import { env, getDb } from "../../lib/runtime";
+import "../../styles/discover.css";
+import "../../styles/reader.css";
+import "../../styles/dashboard.css";
+
+// Paste anything (DESIGN §10.3 step 0): links are read at once; the next editorial run turns the rest
+// into drafts, and the author is emailed to check and submit each one. Nothing is published unseen.
+const authorId = Astro.url.searchParams.get("author") ?? "";
+const access = await profileAccess(Astro.locals, authorId);
+if (!access) return Astro.redirect("/dashboard", 303);
+const db = getDb();
+const [a] = await db.select({ name: authors.name }).from(authors).where(eq(authors.id, authorId));
+let message: { ok: boolean; text: string } | null = null;
+if (Astro.request.method === "POST") {
+  const text = String((await Astro.request.formData()).get("text") ?? "").slice(0, 20_000);
+  if (!(await withinLimit(env.RL_WRITE, "dash:paste", Astro.request, Astro.clientAddress)))
+    message = { ok: false, text: "Too many at once. Wait a minute." };
+  else if (text.trim().length < 20)
+    message = { ok: false, text: "Paste a little more: a list of your books, with links if you have them." };
+  else {
+    const urls = [...new Set(text.match(/https?:\/\/[^\s<>"')]+/g) ?? [])].slice(0, 100);
+    const links = urls.filter((u) => parseLink(u).ok);
+    const id = ulid();
+    await db.insert(authorPastes).values({ id, authorId, userId: access.actor.userId, text, links });
+    // After moderation, classification and dedupe, before research (the run skill's order).
+    await enqueue(db, [{ kind: "import_extract", subjectType: "author_paste", subjectId: id, priority: 52 }]);
+    message = {
+      ok: true,
+      text: `Got it${links.length ? `, including ${links.length} store link${links.length === 1 ? "" : "s"}` : ""}. We'll turn it into drafts, usually within a day, and email you to check them.`,
+    };
+  }
+}
+const [pastes, drafts] = await Promise.all([
+  db
+    .select()
+    .from(authorPastes)
+    .where(eq(authorPastes.authorId, authorId))
+    .orderBy(desc(authorPastes.createdAt))
+    .limit(5),
+  db
+    .select()
+    .from(authorSubmissions)
+    .where(and(eq(authorSubmissions.authorId, authorId), eq(authorSubmissions.status, "draft")))
+    .orderBy(desc(authorSubmissions.createdAt))
+    .limit(50),
+]);
+const title = (p: unknown) =>
+  typeof (p as { title?: unknown }).title === "string" ? (p as { title: string }).title : "Untitled";
+---
+
+<Base title="Paste your book list" noIndex>
+  <h1>Paste your book list</h1>
+  <DashNav authorId={authorId} />
+  {message && <p class={`notice${message.ok ? "" : " error"}`} role="status">{message.text}</p>}
+  <p>
+    Copy your author page, the book list from your website or a newsletter, and paste it here. We'll turn it into
+    a draft listing for each of {a?.name ?? "your"} books. You check and submit each one; nothing is published
+    without you.
+  </p>
+  <form method="post">
+    <div class="field">
+      <label for="text">Your book list</label>
+      <textarea id="text" name="text" rows="14" maxlength="20000" required></textarea>
+    </div>
+    <button class="button" type="submit">Make drafts</button>
+  </form>
+  <p class="muted small">We read store links straight away. We never fetch Amazon or Royal Road pages.</p>
+
+  {
+    drafts.length > 0 && (
+      <section>
+        <h2>Drafts to check</h2>
+        <ul class="rows">
+          {drafts.map((d) => (
+            <li>
+              <span>{title(d.payload)}</span>
+              <a class="button small" href={`/dashboard/books/new?author=${authorId}&draft=${d.id}`}>Check and submit</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+  {
+    pastes.length > 0 && (
+      <section>
+        <h2>Earlier pastes</h2>
+        <ul class="rows">
+          {pastes.map((p) => (
+            <li>
+              <span>{p.createdAt.slice(0, 10)}</span>
+              <span class="muted">{p.status === "queued" ? "Being read…" : p.status === "extracted" ? `${p.drafts} draft(s)` : "Couldn't read it"}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</Base>

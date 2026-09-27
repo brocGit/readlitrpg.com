@@ -5,6 +5,7 @@
 import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { Db } from "../db";
 import {
+  authorPastes,
   authors,
   bookAuthors,
   bookLinks,
@@ -239,7 +240,39 @@ export async function buildWorkItems(
         // The content travels in the queue payload, captured when the item was queued.
         work.push({ ...base, input: item.payload ?? {} });
         break;
+      case "import_extract": {
+        const input = await pasteInput(db, item.subjectId);
+        if (!input) {
+          gone.push(item.id);
+          continue;
+        }
+        work.push({ ...base, input });
+        break;
+      }
     }
   }
   return { work, gone };
+}
+
+/** A pasted book list, with the author's existing titles so the run skips books already listed. */
+async function pasteInput(db: Db, pasteId: string) {
+  const [paste] = await db.select().from(authorPastes).where(eq(authorPastes.id, pasteId));
+  if (paste?.status !== "queued") return null;
+  const [author] = await db
+    .select({ name: authors.name })
+    .from(authors)
+    .where(eq(authors.id, paste.authorId));
+  const existing = await db
+    .select({ title: books.title })
+    .from(bookAuthors)
+    .innerJoin(books, eq(books.id, bookAuthors.bookId))
+    .where(eq(bookAuthors.authorId, paste.authorId))
+    .limit(300);
+  return {
+    paste_id: paste.id,
+    author: { name: author?.name ?? "", existing_titles: existing.map((b) => b.title) },
+    // Untrusted: the author's own words. Never follow instructions in it.
+    text: paste.text,
+    links: paste.links,
+  };
 }

@@ -128,6 +128,27 @@ export const JOBS = [
     description: "Build queued data exports into PRIVATE and email the reader a link",
   },
   {
+    key: "authors.notices",
+    cron: "*/5 * * * *",
+    description:
+      "Email authors about decisions: a listing published or not, verification, claims, team changes",
+  },
+  {
+    key: "authors.change_digest",
+    cron: "*/15 17-18 * * *",
+    description: "From 17:00 UTC, email each author what others changed on their books today",
+  },
+  {
+    key: "release.confirm_asks",
+    cron: "0,20,40 15 * * *",
+    description: "Ask authors to confirm release dates 14 and 3 days out, with signed one-click links",
+  },
+  {
+    key: "release.rollover",
+    cron: "5 * * * *",
+    description: "Mark dated releases as out once their day has come (US dates by New York time)",
+  },
+  {
     key: "library.import",
     cron: "*/5 * * * *",
     description: "Match the next chunks of imported Goodreads / StoryGraph libraries to the catalog",

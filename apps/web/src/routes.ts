@@ -93,6 +93,7 @@ export const ROUTES = {
   "/dashboard/team/[id]": SIGNED_IN,
   "/dashboard/invite/[token]": SIGNED_IN,
   "/dashboard/books/new": SIGNED_IN,
+  "/dashboard/paste": SIGNED_IN,
   "/dashboard/books/[id]": SIGNED_IN,
   "/dashboard/release/[token]": PUBLIC,
 } satisfies RouteRegistry;

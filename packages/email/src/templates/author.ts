@@ -170,7 +170,8 @@ export function renderAuthorNotice(
           p(`We didn't apply your change (${escapeHtml(s("reason") || "an edit")}).`),
           `We didn't apply your change (${s("reason") || "an edit"}).`,
         ),
-        ...(note ? [part(p(escapeHtml(note)), note)] : []),
+        // `note` would fall back to the reason, already said above.
+        ...(s("note") ? [part(p(escapeHtml(s("note"))), s("note"))] : []),
         part(
           muted("Reply to this email if you'd like to talk it through."),
           "Reply to this email if you'd like to talk it through.",

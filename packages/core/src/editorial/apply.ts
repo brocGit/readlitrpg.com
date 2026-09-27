@@ -4,11 +4,21 @@
 
 import { and, eq } from "drizzle-orm";
 import { appendAudit } from "../audit";
+import { notifyAuthor } from "../authors/notices";
 import { type FieldWrite, writeBookFields } from "../catalog/fields";
+import { titleKey } from "../catalog/normalize";
 import { writeAiScores } from "../catalog/scores";
 import { replaceAiTags } from "../catalog/tags";
 import type { Db } from "../db";
-import { books, editorialProposals, inboxItems, type ProposalStatus } from "../db/schema";
+import {
+  authorPastes,
+  authorSubmissions,
+  bookAuthors,
+  books,
+  editorialProposals,
+  inboxItems,
+  type ProposalStatus,
+} from "../db/schema";
 import { ulid } from "../ids";
 import { decideInboxItem, getInboxItem, openInboxItem } from "../inbox";
 import { rejectMedia } from "../media/pipeline";
@@ -23,6 +33,7 @@ import {
   confidenceValue,
   type DedupeProposal,
   type ImageReviewProposal,
+  type ImportExtractProposal,
   type ModerateProposal,
   type Proposal,
   proposalItemId,
@@ -163,7 +174,89 @@ async function handle(
     case "moderate":
     case "image_review":
       return handleModeration(db, p, item);
+    case "import_extract":
+      return handleImportExtract(db, p, item);
   }
+}
+
+// ---------------------------------------------------------------------------------------------
+// import_extract ("paste anything", DESIGN §10.3 step 0)
+
+const squash = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * Turn the run's reading of a paste into drafts the author confirms. Only what the paste itself
+ * contains is kept (titles, links, blurbs), and books the author already has are skipped, so the
+ * drafts can't carry anything invented. Nothing is published here.
+ */
+async function handleImportExtract(db: Db, p: ImportExtractProposal, item: QueueItem): Promise<Handled> {
+  if (item.subjectType !== "author_paste" || item.subjectId !== p.paste_id)
+    return { status: "rejected", reasons: [`paste_id must be ${item.subjectId}`], close: null };
+  const [paste] = await db.select().from(authorPastes).where(eq(authorPastes.id, p.paste_id));
+  if (paste?.status !== "queued")
+    return { status: "rejected", reasons: ["the paste is gone or done"], close: "rejected" };
+  const text = squash(paste.text);
+  const existing = new Set(
+    (
+      await db
+        .select({ key: books.titleKey })
+        .from(bookAuthors)
+        .innerJoin(books, eq(books.id, bookAuthors.bookId))
+        .where(eq(bookAuthors.authorId, paste.authorId))
+    ).map((b) => b.key),
+  );
+  const seen = new Set<string>();
+  const drafts: Record<string, unknown>[] = [];
+  const dropped: string[] = [];
+  for (const b of p.books) {
+    const key = titleKey(b.title);
+    if (!text.includes(squash(b.title))) {
+      dropped.push(`"${b.title.slice(0, 60)}" isn't in the pasted text`);
+      continue;
+    }
+    if (!key || existing.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    drafts.push({
+      title: b.title,
+      ...(b.series_name ? { series: { name: b.series_name, position: b.series_position } } : {}),
+      coAuthors: b.coauthors ?? [],
+      primaryGenre: b.genre ?? "",
+      blurb: b.blurb && text.includes(squash(b.blurb)) ? b.blurb : undefined,
+      links: (b.links ?? []).filter((l) => paste.text.includes(l)),
+      releases: b.releases ?? [],
+    });
+  }
+  const now = nowIso();
+  if (drafts.length)
+    await db.insert(authorSubmissions).values(
+      drafts.map((payload) => ({
+        id: ulid(),
+        authorId: paste.authorId,
+        userId: paste.userId,
+        source: "paste" as const,
+        status: "draft" as const,
+        payload,
+        pasteId: paste.id,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    );
+  await db
+    .update(authorPastes)
+    .set({ status: "extracted", drafts: drafts.length, extractedAt: now })
+    .where(eq(authorPastes.id, paste.id));
+  await notifyAuthor(db, {
+    authorId: paste.authorId,
+    userId: paste.userId,
+    kind: "drafts_ready",
+    payload: { drafts: drafts.length },
+  });
+  return {
+    status: "accepted",
+    reasons: dropped.slice(0, 10),
+    result: { drafts: drafts.length, dropped: dropped.length },
+    close: "done",
+  };
 }
 
 // ---------------------------------------------------------------------------------------------

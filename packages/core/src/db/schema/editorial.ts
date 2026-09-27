@@ -8,7 +8,14 @@ import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqli
 const isoNow = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 
 /** Kinds of work. Later milestones add news_scan, brief_review, feed_summary, draft, quiz, audit. */
-export const EDITORIAL_KINDS = ["classify", "dedupe", "research", "moderate", "image_review"] as const;
+export const EDITORIAL_KINDS = [
+  "classify",
+  "dedupe",
+  "research",
+  "moderate",
+  "image_review",
+  "import_extract",
+] as const;
 export type EditorialKind = (typeof EDITORIAL_KINDS)[number];
 
 export const QUEUE_STATUS = ["queued", "claimed", "done", "rejected", "expired"] as const;

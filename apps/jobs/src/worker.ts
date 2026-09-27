@@ -31,6 +31,7 @@ import {
 } from "@rlr/email";
 import { sendReleaseAlerts } from "./jobs/alerts";
 import { verifyAudit } from "./jobs/audit-verify";
+import { rollover, sendAuthorNotices, sendChangeDigests, sendReleaseAsks } from "./jobs/authors";
 import { exportBackup } from "./jobs/backup";
 import { buildDigestIssue, sendDigestChunk } from "./jobs/digest";
 import { buildQueue, checkCitations, watchdog } from "./jobs/editorial";
@@ -71,6 +72,10 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "email.digest_send": sendDigestChunk,
   "exports.build": buildExports,
   "library.import": matchLibraryImports,
+  "authors.notices": sendAuthorNotices,
+  "authors.change_digest": sendChangeDigests,
+  "release.confirm_asks": sendReleaseAsks,
+  "release.rollover": rollover,
 };
 
 type QueueKind = "jobs" | "email" | "dlq";
