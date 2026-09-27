@@ -128,7 +128,7 @@ export interface RollupDeps {
   fetch?: typeof fetch;
 }
 
-async function aeQuery<T>(sqlText: string, deps: RollupDeps): Promise<T[]> {
+export async function aeQuery<T>(sqlText: string, deps: RollupDeps): Promise<T[]> {
   const opts: SafeFetchOptions = {
     allowHosts: ["api.cloudflare.com"],
     method: "POST",

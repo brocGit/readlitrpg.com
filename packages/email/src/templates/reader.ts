@@ -275,6 +275,33 @@ export function renderWelcome4(o: { preferencesUrl: string; footer: Footer }): R
 // ---------------------------------------------------------------------------------------------
 // Patch Notes: this week in LitRPG (DESIGN §13.5)
 
+/** A newsletter placement (DESIGN §11.2): always labeled, never disguised as a pick. */
+export interface EmailAd {
+  /** "top" sits under the heading; "standard" between sections. */
+  position: "top" | "standard";
+  label: string;
+  headline: string;
+  body: string | null;
+  cta: string;
+  /** A /go/ link: the destination is looked up at click time. */
+  url: string;
+  book?: { title: string; series: string | null } | null;
+}
+
+function adBlock(ad: EmailAd) {
+  const html = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e4dfd3;"><tr><td style="padding:12px 14px;">
+<div style="${mono}font-size:11px;letter-spacing:0.05em;text-transform:uppercase;${muted}">${escapeHtml(ad.label)}</div>
+<div style="font-weight:600;margin-top:4px;">${a(ad.url, ad.headline, "color:#1b1a17;text-decoration:none;")}</div>
+${ad.book ? `<div style="font-size:13px;${muted}">${escapeHtml([ad.book.title, ad.book.series].filter(Boolean).join(" · "))}</div>` : ""}
+${ad.body ? `<div style="font-size:14px;margin-top:4px;">${escapeHtml(ad.body)}</div>` : ""}
+<div style="margin-top:8px;font-size:14px;">${a(ad.url, `${ad.cta} →`)}</div>
+</td></tr></table>`;
+  const text = [`[${ad.label.toUpperCase()}] ${ad.headline}`, ad.body, `${ad.cta}: ${ad.url}`]
+    .filter(Boolean)
+    .join("\n");
+  return block(html, text);
+}
+
 export interface DigestParts {
   week: string;
   className: string | null;
@@ -285,10 +312,14 @@ export interface DigestParts {
   quiz: { title: string; url: string } | null;
   /** The week's newest blog post (DESIGN §14.2 distribution), if any. */
   post?: { title: string; url: string; dek: string | null } | null;
+  /** Sponsored and house placements, at most `ads.max_sponsored_per_email` (§11.2). */
+  ads?: EmailAd[];
   footer: Footer;
 }
 
 export function renderDigest(d: DigestParts): Rendered {
+  const top = (d.ads ?? []).filter((x) => x.position === "top");
+  const standard = (d.ads ?? []).filter((x) => x.position === "standard");
   const quiet =
     !d.outFromFollows.length &&
     !d.newMatches.length &&
@@ -297,6 +328,7 @@ export function renderDigest(d: DigestParts): Rendered {
   const heading = d.className ? `This week for ${d.className}` : "This week in LitRPG";
   const blocks = [
     block(system(`[Patch Notes · ${d.week}] ${heading}`), `[Patch Notes · ${d.week}] ${heading}`),
+    ...top.map(adBlock),
     quiet
       ? block(
           p("A quiet week for your follows. The catalog grows every day; here's where to look meanwhile."),
@@ -315,6 +347,7 @@ export function renderDigest(d: DigestParts): Rendered {
           `NEW MATCHES FOR YOUR TASTE\n${bookText(d.newMatches)}`,
         )
       : block("", ""),
+    ...standard.slice(0, 1).map(adBlock),
     ...d.savedSearches
       .filter((s) => s.books.length)
       .map((s) =>
@@ -329,6 +362,7 @@ export function renderDigest(d: DigestParts): Rendered {
           `COMING SOON\n${bookText(d.comingSoon)}`,
         )
       : block("", ""),
+    ...standard.slice(1).map(adBlock),
     d.quiz
       ? block(
           h2("Quiz of the week") + p(a(d.quiz.url, d.quiz.title)),

@@ -4,8 +4,10 @@
 // issue if bounces or complaints climb; a daily cap and the newsletter kill switch stop it too.
 
 import { ulid } from "@rlr/core";
+import { countEmailSends, type Placement, placementsFor } from "@rlr/core/ads";
 import { BLOG_TYPES, listPosts, postPath } from "@rlr/core/content";
 import { openInboxItem } from "@rlr/core/inbox";
+import { hardFilter, indexOfBook } from "@rlr/core/match";
 import { liveQuizzes, READER_CLASSES } from "@rlr/core/quiz";
 import {
   effectiveInputs,
@@ -17,7 +19,7 @@ import {
 } from "@rlr/core/readers";
 import { books, emailConsents, emailSends, newsletterIssues, savedQueries, users } from "@rlr/core/schema";
 import { formatDate } from "@rlr/core/site";
-import { type DigestParts, renderDigest } from "@rlr/email";
+import { type DigestParts, type EmailAd, renderDigest } from "@rlr/email";
 import { and, asc, count, desc, eq, gt, gte, inArray, isNull } from "drizzle-orm";
 import {
   addDays,
@@ -173,13 +175,19 @@ export async function sendDigestChunk(ctx: JobContext): Promise<number> {
 
   const newIds = new Set(content.newBookIds);
   const src = `src=nl&i=${issue.id}`;
+  const ads = await newsletterAds(mc, content.sendDate);
+  const sends = new Map<string, { campaignKey: string; slot: string; n: number }>();
   let queued = 0;
   let skipped = 0;
   for (const r of readers) {
-    const parts = await digestFor(mc, r.userId, newIds, content, src);
+    const parts = await digestFor(mc, r.userId, newIds, content, src, ads);
     if (!parts) {
       skipped++;
       continue;
+    }
+    for (const ad of parts.adKeys) {
+      const k = `${ad.campaignKey}|${ad.slot}`;
+      sends.set(k, { ...ad, n: (sends.get(k)?.n ?? 0) + 1 });
     }
     const email = renderDigest(parts.parts);
     await queueRendered(mc, {
@@ -193,6 +201,7 @@ export async function sendDigestChunk(ctx: JobContext): Promise<number> {
     });
     queued++;
   }
+  if (sends.size) await countEmailSends(mc.db, isoDay(mc.now), sends);
   const done = readers.length < chunk;
   const stats = issue.stats ?? {};
   await mc.db
@@ -208,13 +217,40 @@ export async function sendDigestChunk(ctx: JobContext): Promise<number> {
   return queued;
 }
 
+const NEWSLETTER_SLOTS = ["newsletter_top", "newsletter_standard_1", "newsletter_standard_2"];
+
+/**
+ * This issue's placements (DESIGN §11.2): the same for every reader, then filtered per reader.
+ * No built-in house ads in email: an unsold slot is simply left out.
+ */
+async function newsletterAds(mc: MailContext, sendDate: string): Promise<Placement[]> {
+  if (!mc.settings["flags.ads_serving"] || mc.settings["ads.max_sponsored_per_email"] <= 0) return [];
+  try {
+    return await placementsFor(mc.db, mc.keys, {
+      slots: NEWSLETTER_SLOTS,
+      date: sendDate,
+      builtins: false,
+      now: mc.now,
+    });
+  } catch (error) {
+    // An ad problem never holds up the newsletter.
+    mc.log.error("digest.ads_failed", { error });
+    return [];
+  }
+}
+
 async function digestFor(
   mc: MailContext,
   userId: string,
   newIds: ReadonlySet<string>,
   content: IssueContent,
   src: string,
-): Promise<{ parts: DigestParts; headers: Record<string, string> } | null> {
+  placements: Placement[] = [],
+): Promise<{
+  parts: DigestParts;
+  headers: Record<string, string>;
+  adKeys: { campaignKey: string; slot: string }[];
+} | null> {
   const profile = await getReaderProfile(mc.db, userId);
   const className = READER_CLASSES.find((c) => c.key === profile.readerClass)?.name ?? null;
   const today = isoDay(mc.now);
@@ -254,10 +290,37 @@ async function digestFor(
     matches =
       mc.matrix && profileP ? await picksFor(mc.db, mc.matrix, profileP, { ...pickOpts, limit: 3 }) : [];
   }
+  // A promoted book must pass the reader's hard no's and not be one they've already read (§11.5).
+  // Without a profile to check against, only placements without a book are shown.
+  const index = mc.matrix ? indexOfBook(mc.matrix) : null;
+  const ads = placements
+    .filter((pl) => {
+      if (!pl.book) return true;
+      const i = index?.get(pl.book.id);
+      return (
+        mc.matrix !== null &&
+        profileP !== null &&
+        i !== undefined &&
+        !hardFilter(mc.matrix, i, profileP, mc.options)
+      );
+    })
+    .slice(0, mc.settings["ads.max_sponsored_per_email"]);
   const { footer, headers } = await footerFor(mc, userId, "weekly_digest");
   return {
     headers,
+    adKeys: ads.map((x) => ({ campaignKey: x.campaignKey, slot: x.slot })),
     parts: {
+      ads: ads.map(
+        (x): EmailAd => ({
+          position: x.slot === "newsletter_top" ? "top" : "standard",
+          label: x.label,
+          headline: x.headline,
+          body: x.body,
+          cta: x.cta,
+          url: `${mc.origin}${x.href}`,
+          book: x.book ? { title: x.book.title, series: x.book.series?.name ?? null } : null,
+        }),
+      ),
       week: formatDate(content.sendDate, "day"),
       className,
       outFromFollows: out.slice(0, 8).map((r) => releaseBook(mc, r, src)),

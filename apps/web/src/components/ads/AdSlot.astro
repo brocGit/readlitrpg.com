@@ -1,0 +1,24 @@
+---
+// One ad placement (DESIGN §11.5): server-rendered into the cached page, clearly labeled, linking
+// through /go/ (rel="sponsored" when paid or the owner's own book). The beacon reports what was
+// shown and what was seen; data-ad carries only the campaign and slot.
+import type { Placement } from "@rlr/core/ads";
+import Cover from "../site/Cover.astro";
+
+interface Props {
+  placement: Placement;
+}
+const { placement: p } = Astro.props;
+const rel = p.sponsored ? "sponsored noopener" : "noopener";
+---
+
+<aside class={`ad-card${p.sponsored ? " sponsored" : ""}`} data-ad={p.campaignKey} data-slot={p.slot} aria-label={`${p.label}: ${p.headline}`}>
+  <p class="ad-label">{p.label}</p>
+  {p.book && <Cover cover={p.book.cover} title={p.book.title} width={72} />}
+  <div>
+    <h3><a href={p.href} rel={rel}>{p.headline}</a></h3>
+    {p.book && <p class="muted small">{p.book.title}{p.book.series ? ` · ${p.book.series.name}` : ""}</p>}
+    {p.body && <p>{p.body}</p>}
+    <a class="button small" href={p.href} rel={rel}>{p.cta}</a>
+  </div>
+</aside>

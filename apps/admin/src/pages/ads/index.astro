@@ -1,0 +1,220 @@
+---
+import {
+  AD_PRODUCTS,
+  CampaignError,
+  CTA_LABELS,
+  createHouseCampaign,
+  deliveryReport,
+  ensureAdCatalog,
+  generateInventory,
+  inventoryCalendar,
+  listCampaigns,
+  setBlackout,
+  setCampaignState,
+} from "@rlr/core/ads";
+import { findBookRef } from "@rlr/core/catalog";
+import { adProducts } from "@rlr/core/schema";
+import Console from "../../layouts/Console.astro";
+import { audit, flash, readForm } from "../../lib/forms";
+import { getDb } from "../../lib/runtime";
+
+// Ads (DESIGN §8.5, §11): house campaigns on the real slots and inventory (§11.9), the inventory
+// calendar with blackouts, and delivery from the beacon and /go/ clicks. Paid products are M8.
+const admin = await Astro.locals.admin();
+if (!admin) return Astro.redirect("/signin", 303);
+const db = getDb();
+const [anyProduct] = await db.select({ id: adProducts.id }).from(adProducts).limit(1);
+if (!anyProduct) {
+  await ensureAdCatalog(db);
+  await generateInventory(db);
+}
+
+if (Astro.request.method === "POST") {
+  const form = await readForm(Astro.request);
+  const log = (action: string, subjectId: string | undefined, diff: unknown) =>
+    audit(admin, Astro.locals.requestId, { action, subjectType: "campaign", subjectId, diff });
+  try {
+    if (form.action === "create") {
+      const ref = (form.book ?? "").trim();
+      const book = ref ? await findBookRef(db, ref) : null;
+      if (ref && !book) return Astro.redirect(flash("/ads", "No book with that id or slug.", "error"), 303);
+      const r = await createHouseCampaign(db, {
+        name: form.name ?? "",
+        productKey: form.product ?? "",
+        mode: form.mode === "reserved" ? "reserved" : "backfill",
+        slots: form.slot ? [form.slot] : [],
+        bookId: book?.id ?? null,
+        headline: form.headline ?? "",
+        body: form.body ?? "",
+        cta: form.cta ?? "",
+        customUrl: form.url?.trim() || null,
+        target: form.target?.trim() || null,
+        startDate: form.start ?? "",
+        endDate: form.end || null,
+        weight: Number(form.weight || 1),
+        ownBook: form.own === "on",
+        createdBy: admin.userId,
+      });
+      await log("ads.campaign_create", r.campaignId, {
+        product: form.product,
+        mode: form.mode,
+        booked: r.booked,
+      });
+      return Astro.redirect(
+        flash("/ads", r.booked ? `Campaign booked in ${r.booked} period(s).` : "Backfill campaign created."),
+        303,
+      );
+    }
+    if (form.action === "state") {
+      const to = form.to === "paused" ? "paused" : form.to === "completed" ? "completed" : "scheduled";
+      await setCampaignState(db, form.id ?? "", to);
+      await log("ads.campaign_state", form.id, {
+        to,
+        undo: to === "paused" ? { kind: "campaign_state", id: form.id, to: "scheduled" } : undefined,
+      });
+      return Astro.redirect(flash("/ads", `Campaign ${to === "scheduled" ? "resumed" : to}.`), 303);
+    }
+    if (form.action === "blackout") {
+      await setBlackout(db, form.unit ?? "", form.on === "1");
+      await log("ads.blackout", form.unit, { on: form.on === "1" });
+      return Astro.redirect(
+        flash("/ads", form.on === "1" ? "Kept for house campaigns." : "Back on sale."),
+        303,
+      );
+    }
+  } catch (e) {
+    if (e instanceof CampaignError)
+      return Astro.redirect(flash("/ads", `Not created: ${e.message}.`, "error"), 303);
+    throw e;
+  }
+}
+
+const today = new Date().toISOString().slice(0, 10);
+const [list, calendar, report] = await Promise.all([
+  listCampaigns(db),
+  inventoryCalendar(db, today, 14),
+  deliveryReport(db, 30),
+]);
+const stats = new Map(report.map((r) => [r.campaignKey, r]));
+const house = report.filter((r) => r.campaignKey.startsWith("house:"));
+const dailyUnits = calendar.filter((u) => u.slot.startsWith("home_"));
+const weeklyUnits = calendar.filter((u) => !u.slot.startsWith("home_"));
+const pct = (a: number, b: number) => (b ? `${((100 * a) / b).toFixed(1)}%` : "—");
+---
+
+<Console title="Ads">
+  <p class="muted">
+    Phase 1 serves <strong>house campaigns only</strong> (DESIGN §3): your own promotions on the real slots, so the engine meets real traffic before
+    money is involved. Where nothing is booked, backfill campaigns rotate by weight, then the built-in house ads fill in. Paid products
+    (<code>flags.ads_paid</code>) arrive with M8; there's no sell-through to give up yet.
+  </p>
+
+  <section>
+    <h2>New house campaign</h2>
+    <form method="post" class="campaign-form">
+      <input type="hidden" name="action" value="create" />
+      <label>Name <input name="name" maxlength="120" required /></label>
+      <label>Product
+        <select name="product">{AD_PRODUCTS.map((p) => <option value={p.key}>{p.name}</option>)}</select>
+      </label>
+      <label>Mode
+        <select name="mode"><option value="backfill">Backfill (fills unsold positions)</option><option value="reserved">Reserved (books the slot)</option></select>
+      </label>
+      <label>Slot (reserved: which one; backfill: leave empty for all)
+        <select name="slot"><option value="">Any</option>{AD_PRODUCTS.flatMap((p) => p.slots).map((s) => <option value={s}>{s}</option>)}</select>
+      </label>
+      <label>Book (slug or id; optional with a custom destination) <input name="book" maxlength="200" /></label>
+      <label>Tag or book slug (Tag Page and Books-Like sponsors) <input name="target" maxlength="200" /></label>
+      <label>Headline (≤ 60) <input name="headline" maxlength="60" required /></label>
+      <label>Body (≤ 200) <input name="body" maxlength="200" /></label>
+      <label>Call to action <select name="cta">{CTA_LABELS.map((c) => <option value={c}>{c}</option>)}</select></label>
+      <label>Custom destination (https, house only) <input name="url" maxlength="500" placeholder="https://" /></label>
+      <label>Start <input type="date" name="start" value={today} required /></label>
+      <label>End (empty: ongoing; reserved needs one) <input type="date" name="end" /></label>
+      <label>Weight (backfill rotation) <input name="weight" type="number" min="1" max="100" value="1" /></label>
+      <label class="check"><input type="checkbox" name="own" /> It's my own book as an author (labeled "Sponsored")</label>
+      <button class="button" type="submit">Create</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Campaigns</h2>
+    <table>
+      <thead><tr><th>Campaign</th><th>Product</th><th>Status</th><th>Dates</th><th>30 days: shown / seen / clicks</th><th></th></tr></thead>
+      <tbody>
+        {list.map((c) => {
+          const s = stats.get(c.id);
+          return (
+            <tr>
+              <td>{c.name} <span class="muted">{c.mode}{c.mode === "backfill" ? `, weight ${c.weight}` : ""}</span></td>
+              <td>{c.product}{c.targeting.tag ? ` · ${c.targeting.tag}` : ""}{c.targeting.book ? ` · ${c.targeting.book}` : ""}</td>
+              <td>{c.status}</td>
+              <td class="muted">{c.startAt.slice(0, 10)} → {c.endAt?.slice(0, 10) ?? "ongoing"}</td>
+              <td>{s ? `${s.impressions} / ${s.viewable} / ${s.clicks} (CTR ${pct(Number(s.clicks), Number(s.impressions))})` : "—"}</td>
+              <td>
+                {["scheduled", "live", "paused"].includes(c.status) && (
+                  <form method="post" class="inline">
+                    <input type="hidden" name="action" value="state" />
+                    <input type="hidden" name="id" value={c.id} />
+                    {c.status === "paused" ? <button class="button small secondary" name="to" value="scheduled" type="submit">Resume</button> : <button class="button small secondary" name="to" value="paused" type="submit">Pause</button>}
+                    <button class="button small secondary" name="to" value="completed" type="submit">End</button>
+                  </form>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+    {list.length === 0 && <p class="muted">No campaigns yet. The built-in house ads are filling every position.</p>}
+  </section>
+
+  {
+    house.length > 0 && (
+      <section>
+        <h2>Built-in house ads (30 days)</h2>
+        <table>
+          <tbody>{house.map((h) => <tr><td>{h.campaignKey.replace("house:", "")}</td><td>{h.impressions} shown · {h.viewable} seen · {h.clicks} clicks</td></tr>)}</tbody>
+        </table>
+      </section>
+    )
+  }
+
+  <section>
+    <h2>Inventory: the next two weeks</h2>
+    <table>
+      <thead><tr><th>Period</th><th>Slot</th><th>Sold / held / capacity</th><th>Booked by</th><th>Blackout</th></tr></thead>
+      <tbody>
+        {[...dailyUnits, ...weeklyUnits].map((u) => (
+          <tr>
+            <td>{u.periodStart}{u.periodEnd !== u.periodStart ? ` → ${u.periodEnd}` : ""}</td>
+            <td>{u.slot}{u.target ? ` · ${u.target}` : ""}</td>
+            <td>{u.sold} / {u.held} / {u.capacity}</td>
+            <td>{u.campaigns.join(", ") || <span class="muted">free</span>}</td>
+            <td>
+              <form method="post" class="inline">
+                <input type="hidden" name="action" value="blackout" />
+                <input type="hidden" name="unit" value={u.id} />
+                <button class="button small secondary" name="on" value={u.blackout ? "0" : "1"} type="submit">{u.blackout ? "Kept for house (release)" : "Keep for house"}</button>
+              </form>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</Console>
+
+<style>
+  .campaign-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: var(--space-3);
+    align-items: end;
+  }
+  .campaign-form label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+</style>

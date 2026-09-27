@@ -1,3 +1,4 @@
+import { createHouseCampaign, ensureAdCatalog } from "@rlr/core/ads";
 import { addConfirmation, ingestBook, setRelease, setVisibility, writeAiScores } from "@rlr/core/catalog";
 import { createDb, type Db } from "@rlr/core/db";
 import { buildMatrix, resetMatrixCache, storeMatrix } from "@rlr/core/match";
@@ -7,6 +8,7 @@ import {
   requestExport,
   requestSubscription,
   saveQuery,
+  saveReaderProfile,
   setConsent,
   setFollow,
   startSequence,
@@ -14,6 +16,7 @@ import {
   verifyLink,
 } from "@rlr/core/readers";
 import {
+  campaignStatsDaily,
   dataExports,
   emailSends,
   emailSequences,
@@ -247,6 +250,52 @@ describe("Patch Notes", () => {
     expect(issue?.status).toBe("sent");
     expect(String(queue.sent[0]?.subject)).toContain("Patch Notes 2 Oct 2026");
     expect(await sendDigestChunk(ctx(new Date("2026-10-02T13:10:00Z")))).toBe(0);
+  });
+
+  it("carries labeled newsletter placements that respect each reader's hard no's", async () => {
+    const grim = await published("Grim Tower", "Ann", { crunch: 8 }, ["grimdark", "tower-climbing"]);
+    const farm = await published("Bright Farm", "Cid", { crunch: 2 }, ["farming", "cozy"]);
+    await storeMatrix(kv.asKV(), await buildMatrix(db));
+    await ensureAdCatalog(db);
+    const ad = { createdBy: "owner", cta: "Read now" as const, body: null };
+    const top = await createHouseCampaign(db, {
+      ...ad,
+      name: "Grim",
+      headline: "Climb the grim tower",
+      productKey: "newsletter_top",
+      mode: "reserved",
+      slots: ["newsletter_top"],
+      bookId: grim,
+      startDate: "2026-10-02",
+      endDate: "2026-10-02",
+    });
+    const standard = await createHouseCampaign(db, {
+      ...ad,
+      name: "Farm",
+      headline: "Grow a bright farm",
+      productKey: "newsletter_standard",
+      mode: "backfill",
+      bookId: farm,
+      startDate: "2026-09-01",
+    });
+    await buildDigestIssue(ctx(new Date("2026-10-01T09:00:00Z")));
+    const picky = await reader("picky@example.com", ["weekly_digest"]);
+    await saveReaderProfile(db, picky, { noes: ["grimdark"] });
+    await reader("open@example.com", ["weekly_digest"]);
+
+    expect(await sendDigestChunk(ctx(new Date("2026-10-02T13:05:00Z")))).toBe(2);
+    const text = (to: string) => String(queue.sent.find((m) => m.to === to)?.text);
+    expect(text("open@example.com")).toContain("[FROM READLITRPG] Climb the grim tower");
+    expect(text("open@example.com")).toContain("[FROM READLITRPG] Grow a bright farm");
+    expect(text("open@example.com")).toMatch(/Read now: https:\/\/readlitrpg\.com\/go\//);
+    expect(text("picky@example.com")).not.toContain("grim tower");
+    expect(text("picky@example.com")).toContain("Grow a bright farm");
+    // Email has no beacon: each placement queued counts as a send.
+    const sends = await db.select().from(campaignStatsDaily).orderBy(campaignStatsDaily.surface);
+    expect(sends.map((r) => [r.campaignKey, r.surface, r.emailSends])).toEqual([
+      [standard.campaignId, "newsletter_standard_1", 2],
+      [top.campaignId, "newsletter_top", 1],
+    ]);
   });
 
   it("pauses the issue when complaints cross the limit", async () => {

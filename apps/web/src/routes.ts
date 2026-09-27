@@ -64,6 +64,8 @@ export const ROUTES = {
   "/news/[yyyy]/[mm]/[dd]": PUBLIC,
   "/feeds/blog.xml": PUBLIC,
   "/feeds/news.xml": PUBLIC,
+  // Ad clicks: a signed token, the destination from the database (M7).
+  "/go/[token]": PUBLIC,
   // Readers and email (M5). The webhook checks SNS signatures itself; /u and /m links carry
   // signed tokens; the subscribe endpoints have Turnstile and rate limits.
   "/api/webhooks/ses": PUBLIC,

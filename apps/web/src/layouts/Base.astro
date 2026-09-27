@@ -96,7 +96,36 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
         } catch {
           r = "";
         }
-        nav.sendBeacon("/e", JSON.stringify({ p: location.pathname, r }));
+        const ads = [...document.querySelectorAll<HTMLElement>("[data-ad]")]
+          .slice(0, 6)
+          .map((el) => [el.dataset.ad, el.dataset.slot]);
+        nav.sendBeacon("/e", JSON.stringify({ p: location.pathname, r, ...(ads.length ? { a: ads } : {}) }));
+        // Viewable: at least half of the ad on screen for a second (DESIGN §11.6), reported once.
+        if (ads.length && "IntersectionObserver" in window) {
+          const seen: string[][] = [];
+          let flush: number | undefined;
+          const timers = new Map<Element, number>();
+          const io = new IntersectionObserver(
+            (entries) => {
+              for (const e of entries) {
+                const el = e.target as HTMLElement;
+                if (e.isIntersecting) {
+                  timers.set(
+                    el,
+                    window.setTimeout(() => {
+                      io.unobserve(el);
+                      seen.push([el.dataset.ad ?? "", el.dataset.slot ?? ""]);
+                      clearTimeout(flush);
+                      flush = window.setTimeout(() => nav.sendBeacon("/e", JSON.stringify({ p: location.pathname, v: seen.splice(0) })), 500);
+                    }, 1000),
+                  );
+                } else clearTimeout(timers.get(el));
+              }
+            },
+            { threshold: 0.5 },
+          );
+          for (const el of document.querySelectorAll("[data-ad]")) io.observe(el);
+        }
       }
     </script>
   </body>

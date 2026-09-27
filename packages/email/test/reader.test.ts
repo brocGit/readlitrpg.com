@@ -83,6 +83,33 @@ describe("reader templates", () => {
     expect(busy.subject).toBe("Patch Notes 2026-W40: Fresh Pick and more for you");
     expect(busy.text).toContain('NEW FOR "crafting"');
     expect(busy.text).toContain("91% match");
+    const withAds = renderDigest({
+      week: "2026-W40",
+      className: null,
+      outFromFollows: [],
+      newMatches: [book("Fresh Pick")],
+      comingSoon: [],
+      savedSearches: [],
+      quiz: null,
+      ads: [
+        {
+          position: "top",
+          label: "Sponsored",
+          headline: "Climb the <tower>",
+          body: null,
+          cta: "Read now",
+          url: "https://readlitrpg.com/go/tok",
+          book: { title: "Iron Tower", series: null },
+        },
+      ],
+      footer,
+    });
+    // Labeled, escaped and above the picks.
+    expect(withAds.html).toContain("Climb the &lt;tower&gt;");
+    expect(withAds.text.indexOf("[SPONSORED] Climb the <tower>")).toBeLessThan(
+      withAds.text.indexOf("NEW MATCHES"),
+    );
+    expect(withAds.text).toContain("Read now: https://readlitrpg.com/go/tok");
     const quiet = renderDigest({
       week: "2026-W41",
       className: null,

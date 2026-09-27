@@ -354,3 +354,40 @@ ol.book-list.numbered {
   gap: var(--space-2);
   margin-block: var(--space-4);
 }
+
+/* Ad placements (DESIGN §11.5): a visible label and a distinct border. */
+.ad-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+  margin-block: var(--space-6);
+}
+.ad-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  align-items: start;
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius-small);
+  padding: var(--space-3);
+  background: var(--color-surface);
+}
+.ad-card .ad-label {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-family: var(--font-system);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+.ad-card h3 {
+  font-size: 1rem;
+  margin: 0 0 var(--space-1);
+}
+.ad-card p {
+  margin: 0 0 var(--space-2);
+}
+.ad-card.sponsored {
+  border-style: solid;
+}

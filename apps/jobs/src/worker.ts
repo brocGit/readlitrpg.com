@@ -4,6 +4,7 @@
 //   queue      rlr-jobs: run one job; rlr-email: send email; *-dlq: open an Owner Inbox item
 
 import { createLogger, type Logger, maskEmail, ulid } from "@rlr/core";
+import { advanceCampaigns, releaseExpiredHolds } from "@rlr/core/ads";
 import { publishDuePosts } from "@rlr/core/content";
 import { createDb, type Db } from "@rlr/core/db";
 import { openInboxItem, runInboxDefaults } from "@rlr/core/inbox";
@@ -31,6 +32,7 @@ import {
   SesError,
   SesProvider,
 } from "@rlr/email";
+import { generateAdInventory } from "./jobs/ads";
 import { sendReleaseAlerts } from "./jobs/alerts";
 import { verifyAudit } from "./jobs/audit-verify";
 import { rollover, sendAuthorNotices, sendChangeDigests, sendReleaseAsks } from "./jobs/authors";
@@ -94,6 +96,7 @@ export const JOB_HANDLERS: Record<JobKey, JobHandler> = {
   "news.daily_send": dailySend,
   "blog.weekly_roundup": weeklyRoundup,
   "blog.monthly_roundups": monthlyRoundups,
+  "inventory.generate": generateAdInventory,
 };
 
 type QueueKind = "jobs" | "email" | "dlq";
@@ -147,6 +150,14 @@ export default {
       }
     } catch (error) {
       log.error("heartbeat.posts_failed", { error });
+    }
+    // Campaigns start and end on their dates, and unpaid holds lapse (DESIGN §11.3).
+    try {
+      await advanceCampaigns(db, now);
+      const released = await releaseExpiredHolds(db, now);
+      if (released) log.info("ads.holds_released", { released });
+    } catch (error) {
+      log.error("heartbeat.ads_failed", { error });
     }
     if (result.dispatched.length || result.failed.length || defaults)
       log.info("heartbeat", { ...result, defaults });

@@ -63,6 +63,15 @@ export const BACKUP_TABLES = [
   "interview_responses",
   "editorial_slots",
   "news_tips",
+  // Ads (M7: house campaigns; orders and credits arrive with paid products).
+  "advertisers",
+  "ad_products",
+  "ad_slots",
+  "inventory_units",
+  "campaigns",
+  "creatives",
+  "bookings",
+  "campaign_stats_daily",
   // Analytics Engine keeps 90 days; these daily totals are the long-term record.
   "page_views_daily",
   "referrers_daily",

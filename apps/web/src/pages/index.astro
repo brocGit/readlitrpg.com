@@ -6,9 +6,11 @@ import { liveQuizzes } from "@rlr/core/quiz";
 import { books } from "@rlr/core/schema";
 import { newAndUpcoming, tagIndex } from "@rlr/core/site";
 import { and, count, eq, isNull } from "drizzle-orm";
+import AdSlot from "../components/ads/AdSlot.astro";
 import BooksYouLoved from "../components/BooksYouLoved";
 import ReleaseList from "../components/site/ReleaseList.astro";
 import Base from "../layouts/Base.astro";
+import { placements } from "../lib/ads";
 import { getDb } from "../lib/runtime";
 import { pageOptions } from "../lib/site";
 import "../styles/discover.css";
@@ -26,6 +28,10 @@ const [[catalog], quizzes, releases, tagsAll] = await Promise.all([
   tagIndex(db, pageOptions(settings)),
 ]);
 const size = catalog?.n ?? 0;
+// The Spotlight row (DESIGN §11.2): house campaigns now, paid placements from Phase 1.5.
+const spotlight = await placements(settings, {
+  slots: ["home_spotlight_1", "home_spotlight_2", "home_spotlight_3"],
+});
 const popular = tagsAll
   .filter((t) => t.books > 0 && t.facet !== "tone")
   .sort((a, b) => b.books - a.books)
@@ -43,6 +49,14 @@ Astro.cache.set({ tags: ["home"] });
   </section>
   <BooksYouLoved client:load />
   <p>Prefer questions? <a href="/match/quiz">Take the Match Quiz</a> (about two minutes). Or <a href="/find">filter the catalog</a>.</p>
+
+  {
+    spotlight.length > 0 && (
+      <section class="ad-row" aria-label="Spotlight">
+        {spotlight.map((p) => <AdSlot placement={p} />)}
+      </section>
+    )
+  }
 
   <p class="status-screen">
     <span class="label">[Early access]</span>{" "}

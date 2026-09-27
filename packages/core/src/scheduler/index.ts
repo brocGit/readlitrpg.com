@@ -80,7 +80,8 @@ export const JOBS = [
   {
     key: "stats.rollup",
     cron: "17 * * * *",
-    description: "Copy the last two days of page views from Analytics Engine into daily totals",
+    description:
+      "Copy the last two days of page views and ad delivery from Analytics Engine into daily totals",
   },
   {
     key: "og.render",
@@ -189,6 +190,11 @@ export const JOBS = [
     cron: "8 11 1,15 * *",
     description:
       "Build the monthly roundups: audiobooks and new series on the 1st, most followed on the 15th",
+  },
+  {
+    key: "inventory.generate",
+    cron: "30 4 * * *",
+    description: "Keep ad inventory 120 days ahead: one unit per slot and day (or week) with its price",
   },
 ] as const satisfies readonly JobDef[];
 

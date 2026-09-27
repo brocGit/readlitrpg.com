@@ -4,11 +4,13 @@
 import { findBooks, findQuerySchema, tagsOf } from "@rlr/core/match";
 import { bookItems, breadcrumbJsonLd, newAndUpcoming, tagLookup } from "@rlr/core/site";
 import { getTag } from "@rlr/core/taxonomy";
+import AdSlot from "../../components/ads/AdSlot.astro";
 import FollowButton from "../../components/FollowButton";
 import BookRow from "../../components/site/BookRow.astro";
 import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
 import ReleaseList from "../../components/site/ReleaseList.astro";
 import Base from "../../layouts/Base.astro";
+import { placements } from "../../lib/ads";
 import { getMatrix, matchOptions } from "../../lib/match";
 import { getDb } from "../../lib/runtime";
 import { movedTo, notFound, origin } from "../../lib/site";
@@ -46,6 +48,14 @@ const relatedTags = [...related.entries()]
   .slice(0, 10)
   .flatMap(([slug]) => (getTag(slug) ? [{ slug, name: getTag(slug)?.name ?? slug }] : []));
 const releases = await newAndUpcoming(db, { tagSlug: t.slug, pastDays: 30, aheadDays: 180, limit: 10 });
+// A Tag Page Sponsor must carry the tag (DESIGN §11.5 context guard).
+const carries = new Set(hits.slice(0, 500).map((h) => m?.ids[h.i] ?? ""));
+const [sponsor] = await placements(settings, {
+  slots: ["tag_sponsor"],
+  target: t.slug,
+  guard: (id) => carries.has(id),
+  exclude: new Set(top.map((b) => b.id)),
+});
 const heading = t.facet === "genre" ? `${t.name} books` : `${t.name} LitRPG and progression fantasy`;
 const lead = `${t.description.replace(/\.$/, "")}. ${total > 0 ? `${total} ${total === 1 ? "book" : "books"} here carry this tag.` : "Books with this tag appear here as the catalog grows."}`;
 const crumbs = [
@@ -73,6 +83,7 @@ Astro.cache.set({ tags: ["tags", `tag:${t.slug}`] });
     <a href={`/feeds/tags/${t.slug}.ics`}>Release calendar (ICS)</a>
   </p>
 
+  {sponsor && <AdSlot placement={sponsor} />}
   {top.length > 0 && <ol class="book-list">{top.map((b) => <BookRow book={b} />)}</ol>}
   {total > top.length && <p><a class="button secondary" href={`/find?inc=${t.slug}&page=2`}>See all {total}</a></p>}
 

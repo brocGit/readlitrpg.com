@@ -29,6 +29,7 @@ export const ROUTES = {
   "/quizzes": ADMIN,
   "/traffic": ADMIN,
   "/match": ADMIN,
+  "/ads": ADMIN,
   "/blog": ADMIN,
   "/blog/calendar": ADMIN,
   "/blog/[id]": ADMIN,

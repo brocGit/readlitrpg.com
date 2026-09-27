@@ -4,11 +4,14 @@
 // book has enough data to make the list meaningful.
 import { bookCards, dialPhrase, indexOfBook, similarTo, tagName } from "@rlr/core/match";
 import Appraise from "../../components/Appraise";
+import AdSlot from "../../components/ads/AdSlot.astro";
 import BookTile from "../../components/BookTile.astro";
 import Base from "../../layouts/Base.astro";
+import { placements } from "../../lib/ads";
 import { getMatrix, statusScreen } from "../../lib/match";
 import { getDb } from "../../lib/runtime";
 import "../../styles/discover.css";
+import "../../styles/site.css";
 
 const slug = Astro.params.slug ?? "";
 const m = await getMatrix();
@@ -36,6 +39,14 @@ const shown = Object.fromEntries(
     m.dialVal[i * m.dials.length + k] === 255 ? null : (m.dialVal[i * m.dials.length + k] ?? 0) / 10,
   ]),
 );
+// A Books-Like Sponsor must be among the book's top 50 matches (DESIGN §11.2), and not already shown.
+const top50 = new Set(similarTo(m, i, 50).map((s) => m.ids[s.i] ?? ""));
+const [sponsor] = await placements(await Astro.locals.settings(), {
+  slots: ["books_like_sponsor"],
+  target: slug,
+  guard: (id) => top50.has(id),
+  exclude: new Set([m.ids[i] ?? "", ...similar.map((s) => m.ids[s.i] ?? "")]),
+});
 Astro.cache.set({ tags: [`book:${m.ids[i]}`, "books-like"] });
 ---
 
@@ -59,6 +70,7 @@ Astro.cache.set({ tags: [`book:${m.ids[i]}`, "books-like"] });
     </dl>
     <Appraise client:idle slug={slug} shown={shown} />
   </section>
+  {sponsor && <AdSlot placement={sponsor} />}
   <h2>The closest matches</h2>
   {similar.length === 0 ? <p class="muted">Not enough data on this book yet.</p> : (
     <div class="grid">
