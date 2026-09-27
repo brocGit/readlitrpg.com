@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v2.0: M0 (foundations), M1 (catalog core and seed), M2 (editorial pipeline), M3 (match engine and discovery) and M4 (public site) built ([§20](#20-build-plan-and-milestones)) |
+| **Status** | v2.1: M0 (foundations), M1 (catalog core and seed), M2 (editorial pipeline), M3 (match engine and discovery), M4 (public site) and M5 (readers and email) built ([§20](#20-build-plan-and-milestones)) |
 | **Owner** | Site owner (sole admin) |
 | **Last updated** | 2026-09-27 |
 | **Companion docs** | [`STRATEGY.md`](./STRATEGY.md) (the three-layer strategy and flywheel) · [`TAXONOMY.md`](./TAXONOMY.md) (tags, dials, book stats) · [`QUIZZES.md`](./QUIZZES.md) (quiz drafts, lead-gen funnel, onboarding) |
@@ -2001,6 +2001,23 @@ The weekly email is branded ***Patch Notes: this week in LitRPG***. Its fixed se
 
 A daily job at 11:00 UTC collects each opted-in reader's followed releases for that day. It sends **one bundled email per reader per day at most** and respects the reader's quiet preferences.
 
+### 13.7 As built (M5)
+
+Where the build differs from the plan above (and from §9.6–9.8), and why:
+
+- **Lists and consent.** Three lists: `weekly_digest` (Patch Notes), `release_alerts` and `reading_list` (the quiz reading list and welcome emails). Consent is a row per reader and list (`email_consents`) with its source (`quiz:{slug}:{outcome}`, `match`, `newsletter`, `account`, `follow`, `saved_search`) and the daily-salted IP hash. Anyone can subscribe without an account: the address gets a `users` row in state `subscriber`, which becomes a full account (`active`, email verified) the first time it signs in.
+- **Double opt-in.** `/api/subscribe` (Turnstile, `RL_AUTH`, 3 confirmations per address a day, 20 per IP an hour) answers the same whether the address is new, subscribed or blocked. The emailed link opens `/subscribe/confirm`; only its button confirms, so link scanners can't. Confirming attaches this browser's quiz takes, seeds an *empty* profile from the quiz result or match (never overwriting stated tastes), starts the welcome sequence, and signs the reader in: the server asks Better Auth for a magic link, keeps it (it is never emailed), and redirects the browser to it. Signed-in readers switching a list on skip the email: the sign-in link already proved the address. Choosing "on release day" for a follow or "as soon as one is added" for a saved search is the opt-in to `release_alerts`.
+- **Signed links.** Unsubscribe (`/u/{token}`, never expires), one-click book choices (`/m/{token}`, 90 days) and export links are HMAC tokens over `[key id, purpose, data, expiry]` with `LINK_SIGNING_KEYS` (the first key signs, all verify). `/m/` shows the choice and records it on a confirm tap. Export downloads also require the owner to be signed in.
+- **Suppression** stores only `sha256("email:" + address)`. Hard bounces stop all mail; complaints, manual blocks, "unsubscribe from everything" and deleted accounts stop marketing mail. A new confirmed request (or a signed-in reader switching a list on) lifts "everything" and "deleted"; complaints and bounces stay. The email consumer checks suppression again at send time and logs every send (`email_sends`, 90 days).
+- **SNS webhook.** `/api/webhooks/ses` verifies each message before acting: certificate URL on `sns.<region>.amazonaws.com` over HTTPS, the RSA signature (SHA-1 for v1, SHA-256 for v2) with the key taken from the certificate, our topic ARN, and a timestamp within the hour. It confirms its own subscription. The public key is extracted from the certificate's DER by hand because WebCrypto imports keys, not certificates.
+- **Origin check.** Astro's `security.checkOrigin` can't exempt a route, and SNS and mail apps (RFC 8058 one-click) post without an `Origin`, so the same rule runs in the web middleware with an explicit list of cross-site routes (`CROSS_SITE_POSTS`), each authenticated by its own signature or token. Pages with tokens in the URL use `Referrer-Policy: same-origin`: `no-referrer` makes browsers send `Origin: null` on the page's own form posts.
+- **Jobs, not Workflows.** The digest is two jobs rather than a `NEWSLETTER_SEND` Workflow: `email.digest_build` freezes the issue on Thursday (new books of the week, quiz of the week), and `email.digest_send` builds `email.digest_chunk` readers a run from Friday 13:00 UTC with a keyset cursor on the issue, so each run stays under D1's query limit. Stop conditions: `flags.newsletter_send`, `email.daily_cap`, and the circuit breaker (complaint or bounce rate over `email.circuit.*` after 200 sends pauses the issue and opens an inbox item). Release alerts spread over several runs from 11:00 with a KV cursor per day. Emails are rendered by the job and queued whole (`rendered` messages, under the 128 KB queue limit); the per-book HTML cache (§13.4) isn't needed at this size.
+- **Picks in email** come from the same match engine, run on the reader's saved profile plus their book marks (`effectiveInputs`): loved books count as loved, did-not-finish or 1–2 stars as "not for me", and everything read stays out. Only real matches are sent; a thin profile gets the three best rather than nothing. "New matches" in Patch Notes are limited to the week's new books, and saved searches to books newer than their last alert.
+- **Welcome sequence** (`email_sequences`): E1 on confirmation, E2 day 2, E3 day 5, E4 day 9; "just the list" gets E1 only. Skip rules as built: E2 is skipped at profile level 3+, E3 points readers who already follow something at their follows, E4 needs the weekly consent. Readers who unsubscribe leave the sequence.
+- **Postal address.** Marketing mail waits in production until `email.postal_address` is set, with one inbox item (CAN-SPAM, §13.3).
+- **Account rights.** Export is a job (`exports.build`) writing JSON to `PRIVATE` with a 7-day link; `retention.purge` deletes the file after that. Deletion is immediate: follows, marks, saved searches, feed tokens, profile, consents, sequences, quiz takes, appraisals, imports, sessions and the user row go; the send log keeps its rows without the user; the address's hash goes on the suppression list; the deletion is audited. Reviews arrive in Phase 2, so the "deleted user or removed" choice waits for them.
+- **Not built yet:** the sunset policy (§13.3), the every-other-week cadence for readers who never click (QUIZZES §3.4), a global maximum email frequency (§9.6), email change with confirmation to both addresses and the active-sessions list (§9.8), sponsored slots and the latest post in Patch Notes (M7–M8), and a console page for subscribers (M7).
+
 ---
 
 ## 14. Blog and content system
@@ -2625,7 +2642,7 @@ The estimates assume one developer working with an AI coding assistant, part-tim
 | **M2: Editorial pipeline** ✅ built | `editorial_queue`, the editorial API (Access service token + scoped token), the `pnpm editorial pull/push` CLI, proposal schemas and server-side validation, publish policy engine, and skills for classify, dedupe, moderation and image review. Deterministic tag suggestions, Workers AI embeddings, eval harness + golden set (tags and dials), watchdog. Seed verification and the publication gate. **Scheduled routines** set up in the cloud environment. *Status:* all built and tested (unit, and in the browser: the console E2E drives a real run through the CLI). Research runs confirm seeds only after the server fetches the cited page. Embeddings use the Workers AI REST API and D1 instead of a binding and Vectorize (§7.2). The golden set's first slice is 74 books. The routines are written down (`docs/runbooks/editorial-runs.md`) and are created once the site is deployed and the tokens are in the environment | 2 wks |
 | **M3: Match engine and discovery** ✅ built | Feature matrix build and versioning; scoring (dials, one-sided stat floors, tag affinity, semantic, quality prior); heads-ups; wildcard; reader class cards; book status screens and the Appraise flow; hard filters; diversity re-rank; calibrated match %; deterministic explanations; quiz and "books you loved" flows; tune and feedback UI; `/find` with include/exclude and dial ranges; "books like X" pages; living lists; share links and taste profile cards; offline match eval. **Match Quiz** (9 steps, adaptive book rating, dislike reasons, live preview). **Quiz engine and quiz factory**, result pages, share cards, Party up, plus the launch set of fun quizzes (drafted in `data/quizzes/`). *Status:* all built and tested (unit, and in the browser: the console E2E rebuilds the model, matches from a loved book, and publishes, plays, shares and retires a quiz). Decisions are in §7.8 "As built". Each quiz in the code gets a `quiz_ready` inbox item and goes live 48 hours later unless the owner retires it in Admin → Quizzes (audited either way). The quiz factory (§7.16) is a skill plus a brief backlog. Pages rely on cache TTLs for freshness until cross-Worker cache purges are wired up | 4 wks |
 | **M4: Public site** ✅ built | Home (match-first), book/series/author/narrator/tag pages, New & upcoming (curated), RSS/ICS, SEO (JSON-LD, sitemaps, OG images), media pipeline, beacon + analytics. *Status:* all built and tested (unit, and in the browser: the console E2E sets a release date through to `/new` and the calendar feed, uploads a cover that the jobs Worker re-encodes with the Images binding, checks the entity pages' structured data, the beacon, robots.txt and the sitemap, and waits for the quiz's PNG share cards drawn inside workerd). Decisions are in the "As built (M4)" notes in §9.5 and §15.7. PNG link previews come from resvg compiled to WebAssembly with the DejaVu fonts bundled into the jobs Worker (a 2.1 MB gzipped bundle) | 1.5–2 wks |
-| **M5: Readers and email** | Signup (double opt-in), onboarding with profile levels, quiz email capture and the welcome sequence, book marks and appraisals, saved matches/searches → alerts, follows, account/privacy (export/delete), Goodreads/StoryGraph library import, SES integration, templates, weekly digest Workflow, alerts, unsubscribe/suppression, SNS webhooks | 2 wks |
+| **M5: Readers and email** ✅ built | Signup (double opt-in), onboarding with profile levels, quiz email capture and the welcome sequence, book marks and appraisals, saved matches/searches → alerts, follows, account/privacy (export/delete), Goodreads/StoryGraph library import, SES integration, templates, weekly digest Workflow, alerts, unsubscribe/suppression, SNS webhooks. *Status:* all built and tested (unit, and in the browser: the reader E2E goes from a quiz result through email capture, confirmation, onboarding, marks, follows with release-day emails, the private calendar, saved tastes and searches, a mail app's one-click unsubscribe, the jobs Worker's welcome email and export, to account deletion). Decisions are in §13.7. The digest is two chunked jobs instead of a Workflow. Waiting on the SES and SNS setup ([email-setup.md](./runbooks/email-setup.md)) and a postal address before marketing mail can go out | 2 wks |
 | **M6: Authors** | Author onboarding, verification methods, submission flow (including paste-anything import and dial nudges), dashboard (books, to-dos, stats including match appearances, change history), protected fields, change notifications, release confirmation asks, team members | 1.5–2 wks |
 | **M7: Owner console and blog** | Inbox with default actions, bulk actions, undo; blog (post types, living lists, editor, shortcodes, validator, editorial calendar, guest pitch/submit/review, interviews, auto roundups); owner digests; house ads + ad engine (slots, inventory, serving, beacons, `/go/`) | 2 wks |
 | **Launch (Phase 1)** | ≥ 2,000 verified books, legal pages, trust page, pre-launch security checklist, soft launch to a small community group, then public | 1 wk |
@@ -2724,23 +2741,26 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 | `/directory/{kind}` | Indexable directories: LitRPG podcasts, YouTube channels, publishers, review sites |
 | `/awards`, `/awards/{year}` | Annual ReadLitRPG Reader Awards |
 | `/r/{code}` | Subscriber referral link |
-| `/newsletter` | Signup + sample issue |
+| `/subscribe`, `/subscribe/confirm` | Patch Notes signup, and the confirmation page the emailed link opens (built in M5; a sample issue comes later) |
+| `/welcome` | Onboarding after sign-up or confirmation: "How should we learn your taste?" (built in M5) |
 | `/for-authors`, `/advertise`, `/write-for-us` | Author-facing marketing |
 | `/trust`, `/ai`, `/disclosures`, `/legal/{doc}` | Trust and legal |
 | `/feeds/releases.xml`, `/feeds/releases.ics`, `/feeds/tags/{slug}.xml`, `/feeds/blog.xml`, `/feeds/tags/{slug}.ics` | Public feeds (all but the blog feed built in M4) |
 | `/robots.txt`, `/sitemap.xml`, `/sitemaps/{type}-{n}.xml` | Crawler policy and sitemaps (built in M4) |
 | `/media/{key}` | MEDIA objects where `media.readlitrpg.com` isn't in front, e.g. local dev (built in M4) |
-| `/feeds/{token}.ics` | Private per-user calendar |
+| `/feeds/{token}.ics` | Private per-user calendar (built in M5) |
 | `/go/{token}` | Click redirect |
 | `/e` | Beacon (POST) |
-| `/u/{token}` | Unsubscribe (GET confirm page, POST action) |
+| `/u/{token}` | Unsubscribe (GET confirm page, POST action; RFC 8058 one-click) (built in M5) |
+| `/m/{token}` | One-click book choice from an email, recorded on a confirm tap (built in M5) |
+| `/goodbye` | After account deletion (built in M5) |
 
 **Account**
 
 | Route | Page |
 |---|---|
 | `/signin`, `/signin/confirm` | Magic link / passkey |
-| `/account`, `/account/preferences`, `/account/follows`, `/account/email`, `/account/security`, `/account/privacy` | Account |
+| `/account`, `/account/preferences`, `/account/follows`, `/account/books`, `/account/email`, `/account/import`, `/account/privacy`, `/account/export/{id}` | Account (built in M5). Passkeys and sign-out are on `/account`; `/account/security` (sessions, email change) comes later |
 
 **Author dashboard**
 
@@ -2756,7 +2776,7 @@ The owner asked Claude to make these calls (principle 11, §1.3). Each is **deci
 
 **APIs and webhooks (`web`)**
 
-`/api/me/*` (islands), `/api/match`, `/api/match/classics`, `/api/quiz/{slug}`, `/api/appraise/{slug}`, `/api/marks`, `/api/feel-checks`, `/api/saved`, `/api/search`, `/api/books/{id}/follow`, `/api/submissions`, `/api/uploads`, `/api/checkout`, `/api/webhooks/stripe`, `/api/webhooks/ses`, `/healthz`
+`/api/me` and, built in M5, `/api/me/{follow, marks, saved, profile, email, feed, import, export, delete, takes}` (islands and account forms), `/api/subscribe`, `/api/subscribe/confirm`, `/api/webhooks/ses`; `/api/match`, `/api/match/classics`, `/api/quiz/{slug}`, `/api/appraise/{slug}`, `/api/feel-checks`, `/api/search`, `/api/submissions`, `/api/uploads`, `/api/checkout`, `/api/webhooks/stripe`, `/healthz`
 
 **Admin (`admin.readlitrpg.com`)**
 
@@ -2778,9 +2798,12 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `release.rollover` | hourly | Scheduled → released |
 | `release.confirm_asks` | daily 15:00 | T–14 and T–3 emails |
 | `release.unconfirmed_check` | daily 16:00 | Past-date follow-ups |
-| `alerts.release_day` | daily 11:00 | Bundled release-day emails |
-| `digest.build` | Thu 18:00 | Freeze issue, compute candidates |
-| `digest.send` | Fri 13:00 | Fan-out with circuit breakers |
+| `email.release_alerts` | every 10 min, 11:00–13:50 | Bundled release-day emails (follows set to "on release day") plus new books for instant saved searches; one email per reader a day, a KV cursor per day (built in M5) |
+| `email.welcome` | every 5 min | Due welcome-sequence steps: E1 on confirmation, then days 2, 5 and 9 (built in M5) |
+| `email.digest_build` | Thu 09:00 | Freeze the Patch Notes issue: the week's new books and the quiz of the week (built in M5) |
+| `email.digest_send` | every 5 min, Fri–Sat 13:00–23:55 | Build and queue `email.digest_chunk` readers a run with a cursor; circuit breaker, daily cap and kill switch (built in M5) |
+| `exports.build` | every 10 min | "Export my data" files into `PRIVATE`, then a link by email (built in M5) |
+| `library.import` | every 5 min | Match imported Goodreads / StoryGraph rows to books, a few chunks a run (built in M5) |
 | `blog.weekly_roundup` | Mon 11:00 | Generate → validate → publish |
 | `blog.monthly_roundups` | 1st and 15th, 11:00 | Same |
 | `blog.editorial_drafts` | Wed 09:00 | Up to 2 drafts → inbox |
@@ -2789,7 +2812,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `vectors.update` | hourly :40 | Embed new and changed books (Workers AI REST, `embed.batch_size` a run) and flag near-duplicates; does nothing without `CF_ACCOUNT_ID`/`CF_API_TOKEN` (built in M2) |
 | `quiz.announce` | hourly :09 | Open a `quiz_ready` inbox item for each quiz in the code without a publish decision. The heartbeat publishes it after `quiz.auto_publish_hours` unless the owner retired it (built in M3) |
 | `match.model_build` | hourly :50 | Rebuild the feature matrix (dials, stats, tags, reduced embeddings, quality prior) and store it in KV under a content-derived version; skipped while a rollback pins the model (built in M3). "Books like X" is computed from it on request, so there is no `similar.update` job, and appraisals recalibrate as they arrive, so there is no `scores.recalibrate` job (§7.8 "As built") |
-| `saved_queries.alerts` | daily 12:00 (instant) / with the digest | New books matching saved matches and searches |
+| `saved_queries.alerts` | with the release alerts (instant) / with the digest | New books matching saved matches and searches: built in M5 inside `email.release_alerts` and `email.digest_send` rather than as a job of its own |
 | `search.sync` / `search.rebuild` | on change / weekly Sun 03:00 | FTS index |
 | `stats.rollup` | hourly :17 | Analytics Engine → `page_views_daily` and `referrers_daily` for the last two days, idempotent; needs `CF_ACCOUNT_ID`/`CF_API_TOKEN` (built in M4) |
 | `media.covers` | every 15 min | Licensed covers from Open Library for up to 10 books without one, by cover id then ISBN; retried after 30 days (built in M4) |
@@ -2799,7 +2822,7 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `inventory.generate` | nightly 04:30 | 120 days ahead |
 | `stripe.reconcile` | nightly 05:00 | 48 h lookback |
 | `backup.export` | nightly 03:00 | NDJSON parts plus a checksummed manifest → `BACKUPS` (`d1/daily/`, and `d1/monthly/` on the 1st). Live sessions and sign-in tokens are never exported (built in M0) |
-| `retention.purge` | nightly 05:30 | Expired sessions, sign-in tokens and rate counters; job history over 90 days; anonymous quiz takes over 90 days (M3); audit rows over 7 years (built in M0) |
+| `retention.purge` | nightly 05:30 | Expired sessions, sign-in tokens and rate counters; job history over 90 days; anonymous quiz takes over 90 days (M3); the email send log over 90 days, subscriptions never confirmed and expired export files (M5); audit rows over 7 years (built in M0) |
 | `links.health` | weekly Tue 06:00 | Non-Amazon/Royal Road links only |
 | `research.next_volume` | weekly Wed 06:00 (series expecting a release soon); monthly for the rest | The research agent checks ongoing series for announced next books and feeds New & upcoming |
 | `owner.daily_digest` | daily 13:00 | Only if action is needed |
@@ -2857,6 +2880,9 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 | `enrich.batch_size` / `enrich.retry_days` | 25 / 30 |
 | `import.chunk_size` | 20 rows per job run (D1 allows 1,000 queries per invocation) |
 | `email.circuit.complaint_rate` / `.bounce_rate` | 0.0008 / 0.04 |
+| `email.postal_address` | empty: production marketing mail waits until it's set (M5) |
+| `email.digest_quiet` | `send` (a short issue with top picks; `skip` leaves those readers out) |
+| `email.digest_chunk` | 40 readers per `email.digest_send` run |
 | `email.direct_affiliate_links` | false |
 | `blog.auto_publish_roundups` | false for the first 4 weeks, then true |
 | `blog.min_books_per_roundup` | 8 |
@@ -2869,9 +2895,9 @@ All jobs are dispatched by the 5-minute heartbeat from the `schedules` table (ed
 
 | Worker | Secrets / vars |
 |---|---|
-| `web` | Bindings (M4): `MEDIA` (read), `EVENTS`. Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (to validate), `PUBLIC_*` site config |
+| `web` | Bindings (M4): `MEDIA` (read), `EVENTS`; (M5) `PRIVATE` (export downloads and deletes only). Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `EMAIL_DELIVERY` (`queue`; `console` only locally), `TURNSTILE_SITE_KEY`. Secrets: `AUTH_SECRET`, `LINK_SIGNING_KEYS` (JSON, kid → key), `IP_HASH_SALT_SEED`, `TURNSTILE_SECRET`, `STRIPE_SECRET_KEY` (restricted: Checkout, Customers, Portal), `STRIPE_WEBHOOK_SECRET`, `SNS_TOPIC_ARN` (the topic SES publishes bounces and complaints to; M5), `PUBLIC_*` site config |
 | `admin` | Bindings (M4): `PRIVATE`. Vars: `ENVIRONMENT`, `PUBLIC_ORIGIN`, `PUBLIC_MEDIA_ORIGIN`, `RP_ID`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Secrets: `ADMIN_AUTH_SECRET`, `EDITORIAL_TOKEN_HASH` (SHA-256 of the editorial token; two comma-separated during rotation), `EDITORIAL_ACCESS_CLIENT_IDS` (the Access service token allowed to call the editorial API), `STRIPE_SECRET_KEY` (restricted: refunds, read), `LINK_SIGNING_KEYS` |
-| `jobs` | Bindings (M4): `MEDIA`, `PRIVATE`, `IMAGES`. Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `SES_REGION`, `PUBLIC_MEDIA_ORIGIN`, `EVENTS_DATASET`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `CF_ACCOUNT_ID` and `CF_API_TOKEN` (Workers AI for embeddings, and *Account Analytics · Read* for `stats.rollup`; cache purges run inside the Worker; optional until embeddings are wanted), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY` (optional: without it, enrichment uses Open Library only), `DISCORD_ALERT_WEBHOOK` (optional) |
+| `jobs` | Bindings (M4): `MEDIA`, `PRIVATE`, `IMAGES`. Vars: `ENVIRONMENT`, `EMAIL_PROVIDER` (`ses`; `console` only locally), `EMAIL_FROM`, `EMAIL_FROM_NEWS` (M5), `PUBLIC_ORIGIN` (M5, links in emails), `SES_REGION`, `PUBLIC_MEDIA_ORIGIN`, `EVENTS_DATASET`. Secrets: `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY`, `LINK_SIGNING_KEYS` (M5, the same value as web), `CF_ACCOUNT_ID` and `CF_API_TOKEN` (Workers AI for embeddings, and *Account Analytics · Read* for `stats.rollup`; cache purges run inside the Worker; optional until embeddings are wanted), `STRIPE_SECRET_KEY` (restricted: refunds, read), `AMAZON_CREATORS_CLIENT_ID`/`_SECRET` (once eligible), `GOOGLE_BOOKS_API_KEY` (optional: without it, enrichment uses Open Library only), `DISCORD_ALERT_WEBHOOK` (optional) |
 | Cloud environment (editorial runs) | `EDITORIAL_TOKEN`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; network allowlist: readlitrpg.com plus web search |
 | CI (GitHub environments) | `CLOUDFLARE_API_TOKEN` (Workers + D1 edit, one account), `CLOUDFLARE_ACCOUNT_ID`, off-platform backup credentials |
 

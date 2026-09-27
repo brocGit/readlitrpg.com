@@ -2,15 +2,16 @@
 
 A free discovery engine, book database and marketing network for LitRPG, progression fantasy, GameLit and cultivation fiction. Tell it three books you loved and it finds your next read. A release calendar grows in behind it.
 
-**Status:** M0 (foundations) through M4 (public site) are built:
+**Status:** M0 (foundations) through M5 (readers and email) are built:
 
 - three Cloudflare Workers, passwordless sign-in, the owner console behind Cloudflare Access, the job scheduler, the audit log and CI;
 - the catalog: taxonomy, provenance, duplicate detection, Open Library and Google Books lookups, CSV and seed imports, and merges, with a first seed of 101 series;
 - editorial runs: Claude sessions that classify, pre-judge duplicates and confirm seeds with cited sources, through a locked-down API, a CLI, a publish policy and an eval harness ([runbook](docs/runbooks/editorial-runs.md));
 - discovery: matches from books you loved or the nine-step Match Quiz, with reasons, honest heads-ups and a reader class; `/find`, "books like X" pages, living lists, Appraise, and the quiz engine with shareable results and Party up;
-- the public site: book, series, author, narrator and tag pages with structured data, New & upcoming, RSS and calendar feeds, sitemaps, licensed covers, PNG share images and cookie-free page counts.
+- the public site: book, series, author, narrator and tag pages with structured data, New & upcoming, RSS and calendar feeds, sitemaps, licensed covers, PNG share images and cookie-free page counts;
+- readers and email: double opt-in signup from quiz results, matches and searches, onboarding with profile levels, follows with release-day emails, book marks, saved searches, a private calendar, Goodreads/StoryGraph import, export and account deletion, the welcome emails and the weekly *Patch Notes*, one-click unsubscribe, and verified SES bounce and complaint handling.
 
-It runs locally; going live needs the Cloudflare account ([runbook](docs/runbooks/cloudflare-setup.md)). M5 (readers and email) is next.
+It runs locally; going live needs the Cloudflare account ([runbook](docs/runbooks/cloudflare-setup.md)) and, for email, Amazon SES ([runbook](docs/runbooks/email-setup.md)). M6 (authors) is next.
 
 ## Documents
 
@@ -20,7 +21,7 @@ It runs locally; going live needs the Cloudflare account ([runbook](docs/runbook
 | [`docs/DESIGN.md`](docs/DESIGN.md) | The full system design: architecture, data model, AI automation, owner approval inbox, ads and payments, email, blog, security, privacy, costs, and build plan |
 | [`docs/QUIZZES.md`](docs/QUIZZES.md) | Quiz lead magnets: 8 drafted (personality, trivia and series fan quizzes; previews in [`docs/quizzes/`](docs/quizzes/)), the lead-gen funnel, the welcome email sequence and onboarding |
 | [`docs/TAXONOMY.md`](docs/TAXONOMY.md) | The starter tag vocabulary, the 17 taste dials and the 12 book stats (Competent MC, Rule of Cool, Number Go Up…) that power matching |
-| [`docs/runbooks/`](docs/runbooks/) | Operations: Cloudflare setup and first deploy, making the owner an admin, rotating secrets, scheduled jobs |
+| [`docs/runbooks/`](docs/runbooks/) | Operations: Cloudflare setup and first deploy, email (SES, SNS, link keys), making the owner an admin, rotating secrets, scheduled jobs |
 | [`CLAUDE.md`](CLAUDE.md) | Conventions, commands and gotchas for Claude sessions working on the code |
 
 ## Stack at a glance

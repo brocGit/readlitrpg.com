@@ -10,6 +10,8 @@
 | `CLOUDFLARE_API_TOKEN` | GitHub env + Claude env | Roll it in the Cloudflare dashboard and update both secret stores | None |
 | Editorial token | admin (`EDITORIAL_TOKEN_HASH`) + Claude env (`EDITORIAL_TOKEN`) | Two hashes side by side, then the new one alone: [editorial-runs.md](editorial-runs.md#rotating-or-revoking) | None if done in that order |
 | Access service token (`rlr-editorial`) | Zero Trust + admin (`EDITORIAL_ACCESS_CLIENT_IDS`) + Claude env | [editorial-runs.md](editorial-runs.md#rotating-or-revoking) | None if both IDs are allowed during the switch |
+| `LINK_SIGNING_KEYS` | web + jobs (same value) | Add a new key in front and keep the old ones: [email-setup.md](email-setup.md#3-link-signing-keys-web-and-jobs) | None; dropping an old key breaks the unsubscribe links it signed |
+| `SNS_TOPIC_ARN` | web | Only changes with the topic: set the new ARN, then move the SES event destinations | Bounce and complaint events are refused until both match |
 | `CF_API_TOKEN` (Workers AI) | jobs | Roll it in the Cloudflare dashboard, then `wrangler secret put CF_API_TOKEN` in `apps/jobs` | Embeddings pause until updated |
 
 If a secret may have leaked, also:
