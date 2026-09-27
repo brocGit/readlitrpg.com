@@ -33,6 +33,37 @@ export const SETTINGS = {
     "Alert the owner when no editorial run has succeeded for this long",
   ),
   "editorial.max_claim": def(z.number().int().min(1).max(1000), 200, "Most items one pull may claim"),
+  "editorial.claim_hours": def(
+    z.number().int().min(1).max(24),
+    3,
+    "Hours a run may hold claimed items before they go back to the queue",
+  ),
+  "editorial.priorities": def(
+    z.object({
+      moderate: z.number().int().min(0).max(100),
+      image_review: z.number().int().min(0).max(100),
+      classify: z.number().int().min(0).max(100),
+      dedupe: z.number().int().min(0).max(100),
+      research: z.number().int().min(0).max(100),
+    }),
+    { moderate: 80, image_review: 80, classify: 60, dedupe: 55, research: 50 },
+    "Queue priority per kind of work (higher is claimed first)",
+  ),
+  "editorial.queue_batch": def(
+    z.number().int().min(1).max(1000),
+    200,
+    "Most items the queue builder adds per kind each time it runs",
+  ),
+  "editorial.circuit_reject_share": def(
+    share,
+    0.2,
+    "Share of a run's proposals failing validation that holds the rest of the run for review",
+  ),
+  "editorial.circuit_min_proposals": def(
+    z.number().int().min(1).max(1000),
+    10,
+    "Proposals a run must push before the circuit breaker can trip",
+  ),
 
   // Publishing (§7.6)
   "publish.t0_default_action_hours": def(hours, 72, "Hours before a T0 submission's default action runs"),
@@ -64,6 +95,12 @@ export const SETTINGS = {
     30,
     "Days before a book with no match is looked up again",
   ),
+  "catalog.embedding_dup_min": def(
+    share,
+    0.92,
+    "Embedding similarity (with a shared author) that flags a possible duplicate",
+  ),
+  "embed.batch_size": def(z.number().int().min(1).max(100), 50, "Books embedded per run of the vectors job"),
   "import.chunk_size": def(
     z.number().int().min(1).max(40),
     20,

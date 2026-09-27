@@ -31,6 +31,9 @@ export const BACKUP_TABLES = [
   "catalog_merges",
   "catalog_imports",
   "catalog_import_rows",
+  "editorial_queue",
+  "editorial_runs",
+  "editorial_proposals",
 ] as const;
 
 /**
@@ -38,4 +41,10 @@ export const BACKUP_TABLES = [
  * people simply sign in again. Rate counters expire within hours. Derived data (`book_similar`,
  * the search index, vectors) is rebuilt, not backed up.
  */
-export const BACKUP_EXCLUDED = ["sessions", "verifications", "rate_counters", "book_similar"] as const;
+export const BACKUP_EXCLUDED = [
+  "sessions",
+  "verifications",
+  "rate_counters",
+  "book_similar",
+  "book_embeddings",
+] as const;

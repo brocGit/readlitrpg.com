@@ -1,6 +1,6 @@
 // Tag evidence per source, and the resolved score (DESIGN §6.2).
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import type { Db } from "../db";
 import { bookTags, type FieldSource, tags } from "../db/schema";
 import { nowIso } from "../time";
@@ -100,4 +100,40 @@ export async function writeBookTags(
   }
   if (statements.length) await db.batch(statements as [(typeof statements)[number], ...typeof statements]);
   return { written: slugs.filter((s) => idBySlug.has(s)), unknown };
+}
+
+/**
+ * A classification is the AI's whole answer about a book's tags: record the listed tags and clear
+ * the AI's earlier evidence for any tag it no longer lists. Other sources' evidence is untouched.
+ */
+export async function replaceAiTags(
+  db: Db,
+  bookId: string,
+  writes: TagWrite[],
+  crowdMinVotes: number,
+): Promise<{ written: string[]; cleared: string[]; unknown: string[] }> {
+  const result = await writeBookTags(db, bookId, writes, "ai", crowdMinVotes);
+  const keep = new Set(result.written);
+  const rows = await db
+    .select({ row: bookTags, slug: tags.slug })
+    .from(bookTags)
+    .innerJoin(tags, eq(tags.id, bookTags.tagId))
+    .where(and(eq(bookTags.bookId, bookId), isNotNull(bookTags.aiConfidence)));
+  const stale = rows.filter((r) => !keep.has(r.slug));
+  if (stale.length === 0) return { ...result, cleared: [] };
+  const now = nowIso();
+  const statements = stale.map(({ row }) => {
+    const next = { ...row, aiConfidence: null, sources: (row.sources ?? []).filter((s) => s !== "ai") };
+    return db
+      .update(bookTags)
+      .set({
+        aiConfidence: null,
+        sources: next.sources,
+        score: resolveTagScore(next, crowdMinVotes),
+        updatedAt: now,
+      })
+      .where(and(eq(bookTags.bookId, bookId), eq(bookTags.tagId, row.tagId)));
+  });
+  await db.batch(statements as [(typeof statements)[number], ...typeof statements]);
+  return { ...result, cleared: stale.map((r) => r.slug) };
 }

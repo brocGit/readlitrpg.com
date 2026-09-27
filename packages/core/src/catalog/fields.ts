@@ -32,6 +32,7 @@ export const FIELD_SCHEMAS: Record<BookField, z.ZodType> = {
   pubStatus: z.enum(PUB_STATUS),
   blurbAuthor: z.string().max(5_000).nullable(),
   summaryAi: z.string().max(1_000).nullable(),
+  hookAi: z.string().max(300).nullable(),
   primaryGenre: z
     .string()
     .refine((g) => GENRE_SLUGS.has(g), "not a genre tag")

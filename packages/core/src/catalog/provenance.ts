@@ -25,6 +25,7 @@ export const BOOK_FIELD_CLASSES = {
   pubStatus: "fact",
   blurbAuthor: "blurb",
   summaryAi: "summary",
+  hookAi: "summary",
   primaryGenre: "subjective",
   inScope: "subjective",
   crunchLevel: "subjective",

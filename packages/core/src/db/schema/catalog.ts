@@ -145,6 +145,8 @@ export const books = sqliteTable(
     blurbAuthor: text("blurb_author"),
     /** Our own 2–3 sentence summary, written in an editorial run. */
     summaryAi: text("summary_ai"),
+    /** One line (≤ 25 words) for cards and emails, from the same run as the summary. */
+    hookAi: text("hook_ai"),
     coverMediaId: text("cover_media_id"),
     pageCount: integer("page_count"),
     wordCountEst: integer("word_count_est"),
@@ -169,6 +171,8 @@ export const books = sqliteTable(
     createdBy: text("created_by"),
     claimed: integer("claimed", { mode: "boolean" }).notNull().default(false),
     classificationVersion: integer("classification_version"),
+    /** When an editorial run's classification was last applied (DESIGN §7.5). */
+    classifiedAt: text("classified_at"),
     redirectTo: text("redirect_to"),
     publishedAt: text("published_at"),
     createdAt: createdAt(),

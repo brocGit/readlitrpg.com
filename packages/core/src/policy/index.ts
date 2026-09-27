@@ -240,3 +240,5 @@ export function checkRoute(actor: Actor, access: RouteAccess, now = new Date()):
       return can(actor, access.action, { type: "any" }, now);
   }
 }
+
+export * from "./publish";

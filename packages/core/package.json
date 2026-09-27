@@ -10,6 +10,7 @@
     "./catalog": "./src/catalog/index.ts",
     "./db": "./src/db/index.ts",
     "./db/backup": "./src/db/backup.ts",
+    "./editorial": "./src/editorial/index.ts",
     "./inbox": "./src/inbox/index.ts",
     "./net": "./src/net/safe-fetch.ts",
     "./policy": "./src/policy/index.ts",

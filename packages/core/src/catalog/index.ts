@@ -1,4 +1,5 @@
 export * from "./confirm";
+export * from "./embeddings";
 export * from "./enrich";
 export * from "./fields";
 export * from "./imports";
@@ -9,4 +10,6 @@ export * from "./normalize";
 export * from "./provenance";
 export * from "./queries";
 export * from "./resolve";
+export * from "./scores";
+export * from "./suggest";
 export * from "./tags";

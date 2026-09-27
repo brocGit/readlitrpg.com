@@ -6,12 +6,18 @@ import { DO_NOT_FETCH } from "../catalog/normalize";
 export const BOT_USER_AGENT = "ReadLitRPG-Bot/1.0 (+https://readlitrpg.com/bot)";
 
 export interface SafeFetchOptions {
-  /** Hostnames this call may reach (exact match, or a subdomain of one). */
+  /**
+   * Hostnames this call may reach (exact match, or a subdomain of one). `"*"` allows any public
+   * host, for checking a cited source; private hosts and the do-not-fetch list stay blocked.
+   */
   allowHosts: string[];
   timeoutMs?: number;
   maxBytes?: number;
   maxRedirects?: number;
   headers?: Record<string, string>;
+  /** POST is for JSON APIs (Workers AI). Redirects are never followed for a POST. */
+  method?: "GET" | "POST";
+  body?: string;
   fetch?: typeof fetch;
 }
 
@@ -51,7 +57,7 @@ export function checkUrl(raw: string, allowHosts: string[]): URL {
   if (DO_NOT_FETCH.some((pattern) => pattern.test(host))) {
     throw new SafeFetchError("blocked", `${host} is on the do-not-fetch list`);
   }
-  if (!allowHosts.some((h) => host === h || host.endsWith(`.${h}`))) {
+  if (!allowHosts.includes("*") && !allowHosts.some((h) => host === h || host.endsWith(`.${h}`))) {
     throw new SafeFetchError("blocked", `${host} is not allowed for this call`);
   }
   return url;
@@ -65,6 +71,8 @@ export async function safeFetch(raw: string, opts: SafeFetchOptions): Promise<Sa
     let response: Response;
     try {
       response = await doFetch(url.toString(), {
+        method: opts.method ?? "GET",
+        body: opts.body,
         redirect: "manual",
         headers: { "user-agent": BOT_USER_AGENT, accept: "application/json", ...opts.headers },
         signal: AbortSignal.timeout(opts.timeoutMs ?? 5_000),
@@ -75,6 +83,7 @@ export async function safeFetch(raw: string, opts: SafeFetchOptions): Promise<Sa
       throw new SafeFetchError(timedOut ? "timeout" : "network", timedOut ? "timed out" : String(error));
     }
     if (response.status >= 300 && response.status < 400 && response.headers.get("location")) {
+      if (opts.method === "POST") throw new SafeFetchError("blocked", "a POST was redirected");
       if (hop >= (opts.maxRedirects ?? 3))
         throw new SafeFetchError("too_many_redirects", "too many redirects");
       url = checkUrl(new URL(response.headers.get("location") ?? "", url).toString(), opts.allowHosts);
