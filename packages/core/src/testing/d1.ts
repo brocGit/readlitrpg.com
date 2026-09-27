@@ -1,13 +1,17 @@
 // Test-only: a D1Database stand-in backed by Node's built-in SQLite, so unit tests run the real
 // migrations and the real Drizzle D1 driver without Miniflare. Never import this from Worker code.
 // Behavior differences from D1 that matter here: none for the statements we use. D1's `batch` is
-// atomic, and so is this one (it wraps the statements in a transaction).
+// atomic, and so is this one (it wraps the statements in a transaction). D1's limit of 100 bound
+// parameters per statement is enforced too: SQLite allows far more, and the gap hid a heartbeat
+// that would fail in production.
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync, type SQLInputValue, type StatementSync } from "node:sqlite";
 
 type Row = Record<string, unknown>;
+
+export const D1_MAX_PARAMS = 100;
 
 function toSqlValue(value: unknown): SQLInputValue {
   if (value === undefined) return null;
@@ -25,6 +29,8 @@ class ShimStatement {
   ) {}
 
   bind(...values: unknown[]): ShimStatement {
+    if (values.length > D1_MAX_PARAMS)
+      throw new Error(`too many SQL variables: ${values.length} (D1 allows ${D1_MAX_PARAMS} per statement)`);
     return new ShimStatement(this.db, this.sql, values);
   }
 

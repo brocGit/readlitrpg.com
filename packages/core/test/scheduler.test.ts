@@ -28,6 +28,16 @@ beforeEach(() => {
 const t = (iso: string) => new Date(iso);
 
 describe("scheduler", () => {
+  it("seeds any number of jobs within D1's parameter limit", async () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      key: `job${i}`,
+      cron: "0 * * * *",
+      description: "",
+    }));
+    await ensureSchedules(db, many, t("2026-09-26T12:01:00Z"));
+    expect(await db.select().from(schedules)).toHaveLength(60);
+  });
+
   it("seeds schedules without overwriting edits", async () => {
     await ensureSchedules(db, JOBS, t("2026-09-26T12:01:00Z"));
     await updateSchedule(db, "daily", { cronExpr: "0 6 * * *" }, t("2026-09-26T12:01:00Z"));

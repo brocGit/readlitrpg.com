@@ -14,6 +14,7 @@ const actor = await Astro.locals.actor();
 if (actor.kind !== "user") return Astro.redirect("/signin?next=/dashboard/start", 303);
 const db = getDb();
 let error: string | null = null;
+let notice: string | null = null;
 
 if (Astro.request.method === "POST") {
   if (!(await withinLimit(env.RL_WRITE, "dash:start", Astro.request, Astro.clientAddress)))
@@ -24,17 +25,18 @@ if (Astro.request.method === "POST") {
     try {
       if (form.get("intent") === "claim") {
         const r = await claimProfile(db, actor.userId, String(form.get("author") ?? ""));
-        return Astro.redirect(
-          r.status === "conflict" ? "/dashboard?claimed=conflict" : "/dashboard?claimed=1",
-          303,
-        );
+        // Said here: with no profile yet, the dashboard would send them straight back.
+        if (r.status !== "conflict") return Astro.redirect("/dashboard?claimed=1", 303);
+        notice = "That profile already has a manager, so we'll check your claim by hand and email you.";
+      } else {
+        const r = await createProfile(db, actor.userId, {
+          name: String(form.get("name") ?? ""),
+          bio: String(form.get("bio") ?? ""),
+        });
+        if (r.status === "created") return Astro.redirect(`/dashboard/verify/${r.authorId}?created=1`, 303);
+        error =
+          "That name is already in our catalog. Find it below and claim it, so your books stay together.";
       }
-      const r = await createProfile(db, actor.userId, {
-        name: String(form.get("name") ?? ""),
-        bio: String(form.get("bio") ?? ""),
-      });
-      if (r.status === "created") return Astro.redirect(`/dashboard/verify/${r.authorId}?created=1`, 303);
-      error = "That name is already in our catalog. Find it below and claim it, so your books stay together.";
     } catch (e) {
       if (!(e instanceof MembershipError)) throw e;
       error = e.message;
@@ -49,6 +51,7 @@ const results = q ? await searchProfiles(db, q) : [];
   <h1>I'm an author</h1>
   <DashNav />
   {error && <p class="notice error" role="alert">{error}</p>}
+  {notice && <p class="notice" role="status">{notice}</p>}
   <p class="lead">Your books may already be listed: readers suggest them and we add well-known series. Find your pen name and claim it, or add a new one.</p>
   <form method="get" class="field-row">
     <div class="field">

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { validateProposal } from "../src/editorial";
+import { EDITORIAL_KINDS } from "../src/db/schema";
+import { pullRequestSchema, validateProposal } from "../src/editorial";
 import { circuitTrips, decideClassification, decideListing, type ListingInput } from "../src/policy/publish";
 import { classification } from "./helpers/proposals";
 
@@ -7,6 +8,15 @@ const errorsOf = (raw: unknown) => {
   const v = validateProposal(raw);
   return v.ok ? [] : v.errors;
 };
+
+describe("pull requests", () => {
+  it("accept every kind the queue holds", () => {
+    const run = "01J00000000000000000000000";
+    for (const kind of EDITORIAL_KINDS)
+      expect(pullRequestSchema.safeParse({ run_id: run, kinds: [kind], limit: 10 }).success).toBe(true);
+    expect(pullRequestSchema.safeParse({ run_id: run, kinds: ["nope"], limit: 10 }).success).toBe(false);
+  });
+});
 
 describe("proposal validation", () => {
   it("accepts a well-formed classification", () => {

@@ -178,17 +178,18 @@ export async function ensureSchedules(
   jobs: readonly JobDef[] = JOBS,
   now = new Date(),
 ): Promise<void> {
-  if (jobs.length === 0) return;
-  await db
-    .insert(schedules)
-    .values(
-      jobs.map((j) => ({
-        key: j.key,
-        cronExpr: j.cron,
-        nextRunAt: nextCronTime(j.cron, now).toISOString(),
-      })),
-    )
-    .onConflictDoNothing({ target: schedules.key });
+  // 4 bound parameters a row; D1 allows 100 a statement, which the job list outgrew.
+  for (let i = 0; i < jobs.length; i += 20)
+    await db
+      .insert(schedules)
+      .values(
+        jobs.slice(i, i + 20).map((j) => ({
+          key: j.key,
+          cronExpr: j.cron,
+          nextRunAt: nextCronTime(j.cron, now).toISOString(),
+        })),
+      )
+      .onConflictDoNothing({ target: schedules.key });
 }
 
 export type ScheduleRow = typeof schedules.$inferSelect;

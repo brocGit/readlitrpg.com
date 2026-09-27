@@ -3,7 +3,7 @@ import { SubmissionError, submitBook } from "@rlr/core/authors";
 import { suggestTags } from "@rlr/core/catalog";
 import { authorSubmissions, authors } from "@rlr/core/schema";
 import { and, eq } from "drizzle-orm";
-import type BookFields from "../../../components/dashboard/BookFields.astro";
+import BookFields from "../../../components/dashboard/BookFields.astro";
 import DashNav from "../../../components/dashboard/DashNav.astro";
 import Base from "../../../layouts/Base.astro";
 import { profileAccess, TRUST_LABEL } from "../../../lib/authors";

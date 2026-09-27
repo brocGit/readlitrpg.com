@@ -64,10 +64,10 @@ const title = (p: unknown) =>
 <Base title="Author dashboard" noIndex>
   <h1>Author dashboard</h1>
   <DashNav authorId={first?.id} />
+  {q.get("claimed") === "1" && <p class="notice" role="status">It's yours. Verify the profile so your books publish without waiting.</p>}
   {q.get("submitted") === "published" && <p class="notice" role="status">Your book is live.</p>}
   {q.get("submitted") === "review" && <p class="notice" role="status">Thanks! It's in review, usually within 72 hours. We'll email you.</p>}
   {q.get("submitted") === "rejected" && <p class="notice error" role="alert">We couldn't list that book: {q.get("why") ?? "it's outside what we cover"}.</p>}
-  {q.get("claimed") === "conflict" && <p class="notice" role="status">That profile already has a manager, so we'll check your claim by hand and email you.</p>}
 
   <section>
     <h2>Your profiles</h2>

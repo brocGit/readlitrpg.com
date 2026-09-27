@@ -34,7 +34,7 @@ Astro.cache.set({ tags: [`author:${a.slug}`] });
   jsonLd={[personJsonLd(a, origin(), "authors"), breadcrumbJsonLd(crumbs, origin())]}
 >
   <Breadcrumbs crumbs={crumbs} />
-  <h1>{a.name}{a.verifiedAt && <> <span class="badge ok" title="This author verified their profile">Verified author</span></>}</h1>
+  <h1>{a.name}{a.verified && <> <span class="badge ok" title="This author verified their profile">Verified author</span></>}</h1>
   <p class="lead">{lead}</p>
   <FollowButton client:idle type="author" slug={a.slug} name={a.name} />
   {a.bio && <p class="prose">{a.bio}</p>}

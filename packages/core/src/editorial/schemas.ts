@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { DO_NOT_FETCH } from "../catalog/normalize";
 import { CONFIDENCE_VALUES } from "../catalog/provenance";
+import { EDITORIAL_KINDS } from "../db/schema/editorial";
 import {
   ACTIVE_TAG_SLUGS,
   CONTENT_FLAGS,
@@ -385,9 +386,10 @@ export const pushRequestSchema = z.object({
 export const pullRequestSchema = z.object({
   run_id: id,
   kinds: z
-    .array(z.enum(["classify", "dedupe", "research", "moderate", "image_review"]))
+    // Every kind the queue holds: a hand-kept list here once left a new kind unpullable.
+    .array(z.enum(EDITORIAL_KINDS))
     .min(1)
-    .max(5),
+    .max(EDITORIAL_KINDS.length),
   limit: z.number().int().min(1).max(1000),
 });
 
