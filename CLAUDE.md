@@ -190,3 +190,6 @@ Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on
 - An island that renders `null` until `/api/me` answers pushes the page down when it appears (Follow moved content 67px). Render the signed-out state while waiting, and don't read `location` in the render: the server renders islands too. Build paths from props instead.
 - Astro's scoped `<style>` rules carry an attribute selector, so `nav { gap }` in Base outranks `.site-nav { gap }` in a global sheet. Override with two classes (`.site-header .site-nav`), and put page-sheet overrides (reader.css, site.css) in those sheets: they load after `feel.css`.
 - `src/pages/500.astro` stands alone (no Base): the layout reads settings, and the error it reports may be the database.
+- Browser tests that click through a quiz wait for the next question or the result after each click. A click on the answer just picked can land while the result renders, and Playwright then waits 30 s for a button that never comes back.
+- Match tiers (`matchTier`, the names and cut-offs) live in `@rlr/ui/tokens`, so the site and the emails agree; `packages/email` depends on `@rlr/ui` for them.
+- In the web app, `[tabindex="-1"]:focus` has no ring: those are headings that take focus so it can follow a quiz, not controls. Don't give a control `tabindex="-1"` and expect a visible focus.

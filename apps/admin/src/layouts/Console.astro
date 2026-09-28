@@ -1,6 +1,8 @@
 ---
 import "@rlr/ui/tokens.css";
 import "@rlr/ui/base.css";
+import { countOpenInbox } from "@rlr/core/inbox";
+import { getDb } from "../lib/runtime";
 
 interface Props {
   title: string;
@@ -36,6 +38,8 @@ const best = nav
   .filter(matches)
   .sort((a, b) => b.length - a.length)[0];
 const current = (href: string) => href === best;
+// The inbox tab carries its count, like unread mail in a game's menu; red when something is urgent.
+const inbox = admin ? await countOpenInbox(getDb()) : null;
 ---
 
 <!doctype html>
@@ -50,20 +54,25 @@ const current = (href: string) => href === best;
   <body>
     <header class="console-header">
       <div class="container bar">
-        <span class="wordmark">[ReadLitRPG · admin]</span>
-        {
-          admin && (
-            <nav aria-label="Console">
-              {nav.map(([href, label]) => (
-                <a href={href} aria-current={current(href) ? "page" : undefined}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-          )
-        }
-        {admin && <span class="muted who">{admin.email}</span>}
+        <a class="wordmark" href="/"><span>[</span>ReadLitRPG<span>]</span> <small>admin</small></a>
+        {admin && <span class="who">{admin.email}</span>}
       </div>
+      {
+        admin && (
+          <nav aria-label="Console" class="container tabs">
+            {nav.map(([href, label]) => (
+              <a href={href} aria-current={current(href) ? "page" : undefined}>
+                {label}
+                {href === "/inbox" && inbox && inbox.open > 0 && (
+                  <span class={inbox.urgent > 0 ? "count urgent" : "count"} title={inbox.urgent > 0 ? `${inbox.urgent} urgent` : undefined}>
+                    {inbox.open}<span class="visually-hidden"> open{inbox.urgent > 0 ? `, ${inbox.urgent} urgent` : ""}</span>
+                  </span>
+                )}
+              </a>
+            ))}
+          </nav>
+        )
+      }
     </header>
     <main class="container">
       <h1>{title}</h1>
@@ -71,39 +80,122 @@ const current = (href: string) => href === best;
       {error && <p class="notice error" role="alert">{error}</p>}
       <slot />
     </main>
+    <script>
+      // On a narrow screen the tab strip scrolls: centre the current section in it. Only the strip
+      // moves (scrollIntoView could scroll the page too, undoing a restored scroll position).
+      const strip = document.querySelector<HTMLElement>(".tabs");
+      const here = strip?.querySelector<HTMLElement>("[aria-current]");
+      if (strip && here && strip.scrollWidth > strip.clientWidth)
+        strip.scrollLeft = here.offsetLeft - strip.offsetLeft - (strip.clientWidth - here.offsetWidth) / 2;
+    </script>
   </body>
 </html>
 
 <style>
+  /* A dark bar in both themes, so the console never looks like the public site. */
   .console-header {
-    background: var(--color-ink);
-    color: var(--color-paper);
+    --bar-bg: var(--color-ink);
+    --bar-fg: var(--color-paper);
+    background: var(--bar-bg);
+    color: var(--bar-fg);
+  }
+  @media (prefers-color-scheme: dark) {
+    .console-header {
+      --bar-bg: #0b0a08;
+      --bar-fg: var(--color-ink);
+      border-bottom: 1px solid var(--color-line);
+    }
   }
   .bar {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-4);
+    gap: var(--space-2) var(--space-4);
     align-items: center;
-    min-height: 3.25rem;
+    min-height: 3rem;
   }
   .wordmark {
     font-family: var(--font-system);
     font-weight: 700;
+    color: var(--bar-fg);
+    text-decoration: none;
+  }
+  .wordmark span {
     color: var(--color-accent);
   }
-  nav {
-    display: flex;
-    gap: var(--space-4);
-  }
-  nav a {
-    color: var(--color-paper);
-  }
-  nav a[aria-current="page"] {
-    text-decoration-thickness: 3px;
+  .wordmark small {
+    margin-inline-start: var(--space-1);
+    padding: 0 0.4em;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-small);
+    color: var(--color-accent);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    vertical-align: 0.15em;
   }
   .who {
     margin-left: auto;
     font-size: 0.85rem;
+    opacity: 0.7;
+  }
+  @media (max-width: 30rem) {
+    .who {
+      display: none;
+    }
+  }
+  /* The sections as a tab strip: one line, scrolling sideways on a narrow screen instead of wrapping. */
+  .tabs {
+    display: flex;
+    gap: var(--space-1);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  /* On a phone the strip fades at the edge, so it's plain there's more to scroll to. */
+  @media (max-width: 75rem) {
+    .tabs {
+      mask-image: linear-gradient(to right, #000 88%, transparent);
+    }
+  }
+  .tabs a {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-2) calc(var(--space-2) - 3px);
+    border-bottom: 3px solid transparent;
+    color: var(--bar-fg);
+    font-size: 0.9rem;
+    text-decoration: none;
+    white-space: nowrap;
+    opacity: 0.78;
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
+  }
+  .tabs a:hover {
+    opacity: 1;
+    border-bottom-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  .tabs a[aria-current="page"] {
+    opacity: 1;
+    font-weight: 600;
+    border-bottom-color: var(--color-accent);
+  }
+  .count {
+    min-width: 1.4em;
+    padding: 0 0.35em;
+    border-radius: 999px;
+    background: var(--bar-fg);
+    color: var(--bar-bg);
+    font-family: var(--font-system);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.5;
+    text-align: center;
+  }
+  .count.urgent {
+    background: var(--color-danger);
+    color: #fff;
   }
   main {
     padding-block: var(--space-6) var(--space-12);
@@ -132,6 +224,32 @@ const current = (href: string) => href === best;
     display: inline-flex;
     gap: var(--space-2);
     align-items: center;
+  }
+  @media (max-width: 48rem) {
+    :global(table) {
+      display: block;
+      overflow-x: auto;
+    }
+  }
+  :global(tbody tr) {
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  :global(tbody tr:hover) {
+    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+  }
+  :global(kbd) {
+    display: inline-block;
+    min-width: 1.5em;
+    padding: 0 0.35em;
+    border: 1px solid var(--color-line);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-small);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-system);
+    font-size: 0.8em;
+    line-height: 1.5;
+    text-align: center;
   }
   :global(.button.small) {
     padding: var(--space-1) var(--space-3);

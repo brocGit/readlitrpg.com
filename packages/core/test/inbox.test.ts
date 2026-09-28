@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createDb, type Db } from "../src/db";
-import { decideInboxItem, listOpenInbox, openInboxItem } from "../src/inbox";
+import { countOpenInbox, decideInboxItem, listOpenInbox, openInboxItem } from "../src/inbox";
 import { createTestD1 } from "../src/testing";
 
 let db: Db;
@@ -25,5 +25,14 @@ describe("inbox", () => {
     expect(await decideInboxItem(db, high?.id ?? "", { status: "resolved", decidedBy: "owner" })).toBe(true);
     expect(await decideInboxItem(db, high?.id ?? "", { status: "resolved", decidedBy: "owner" })).toBe(false);
     expect(await listOpenInbox(db)).toHaveLength(1);
+  });
+
+  it("counts open and urgent items for the console badge", async () => {
+    expect(await countOpenInbox(db)).toEqual({ open: 0, urgent: 0 });
+    await openInboxItem(db, { type: "a", title: "low", priority: 10 });
+    await openInboxItem(db, { type: "b", title: "urgent", priority: 80 });
+    const closed = await openInboxItem(db, { type: "c", title: "closed", priority: 100 });
+    await decideInboxItem(db, closed?.id ?? "", { status: "resolved", decidedBy: "owner" });
+    expect(await countOpenInbox(db)).toEqual({ open: 2, urgent: 1 });
   });
 });

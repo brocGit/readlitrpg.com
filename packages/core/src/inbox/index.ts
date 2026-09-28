@@ -102,6 +102,18 @@ export async function listOpenInbox(
     .limit(limit);
 }
 
+/** Open items and how many of them are urgent (priority 80+), in one query: the console's inbox badge. */
+export async function countOpenInbox(db: Db): Promise<{ open: number; urgent: number }> {
+  const [row] = await db
+    .select({
+      open: sql<number>`count(*)`,
+      urgent: sql<number>`coalesce(sum(case when ${inboxItems.priority} >= 80 then 1 else 0 end), 0)`,
+    })
+    .from(inboxItems)
+    .where(eq(inboxItems.status, "open"));
+  return { open: Number(row?.open ?? 0), urgent: Number(row?.urgent ?? 0) };
+}
+
 export async function countSnoozed(db: Db): Promise<number> {
   const [row] = await db
     .select({ n: sql<number>`count(*)` })

@@ -212,7 +212,7 @@ const recommendation: Record<string, string> = {
 <Console title={showSnoozed ? "Inbox: snoozed" : "Inbox"}>
   <p class="inbox-bar">
     {showSnoozed ? <a href="/inbox">← Back to the inbox</a> : <a href="/inbox?snoozed=1">Snoozed ({snoozedCount})</a>}
-    · <a href="/audit?undoable=1">Undo a recent decision</a>
+    {" · "}<a href="/audit?undoable=1">Undo a recent decision</a>
   </p>
   {!showSnoozed && <InboxKeys client:load />}
   {
@@ -245,7 +245,7 @@ const recommendation: Record<string, string> = {
         <p>{showSnoozed ? "Nothing is snoozed." : "Nothing needs you right now."}</p>
       </div>
     ) : (
-      <table>
+      <table class="inbox-table">
         <thead>
           <tr><th>Priority</th><th>Item</th><th>Opened</th><th>Decide</th></tr>
         </thead>
@@ -387,7 +387,7 @@ const recommendation: Record<string, string> = {
                   </details>
                 )}
               </td>
-              <td>{item.createdAt.slice(0, 16).replace("T", " ")}</td>
+              <td class="when">{item.createdAt.slice(0, 16).replace("T", " ")}</td>
               <td class="decide">
                 {item.status === "snoozed" ? (
                   <form method="post" class="inline">
@@ -465,8 +465,67 @@ const recommendation: Record<string, string> = {
     gap: var(--space-2);
     margin-bottom: var(--space-2);
   }
+  .when {
+    white-space: nowrap;
+  }
+  /* Touch screens have no keys to press. */
+  @media (hover: none) and (pointer: coarse) {
+    :global(.keys-hint) {
+      display: none;
+    }
+  }
+  /* On a phone each item is a card with its decision underneath: the inbox is where the owner acts. */
+  @media (max-width: 48rem) {
+    .inbox-table,
+    .inbox-table > tbody,
+    .inbox-table > tbody > tr,
+    .inbox-table > tbody > tr > td {
+      display: block;
+    }
+    .inbox-table {
+      overflow: visible;
+      background: none;
+    }
+    .inbox-table > thead {
+      display: none;
+    }
+    .inbox-table > tbody > tr {
+      margin-bottom: var(--space-3);
+      padding: var(--space-3);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius);
+      background: var(--color-surface);
+    }
+    .inbox-table > tbody > tr > td {
+      padding: var(--space-1) 0;
+      border: 0;
+    }
+    /* No keys to move with on a phone: the cursor's place says what the number is. */
+    .inbox-table > tbody > tr > td:first-child::before {
+      content: "Priority";
+      color: var(--color-muted);
+      opacity: 1;
+      transform: none;
+    }
+  }
   tr[data-inbox-item]:focus {
     outline: 2px solid var(--color-focus);
     outline-offset: -2px;
+  }
+  /* j / k move a menu cursor down the cards. */
+  tr[data-inbox-item] > td:first-child::before {
+    content: "▶";
+    display: inline-block;
+    margin-inline-end: var(--space-1);
+    color: var(--color-accent);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out);
+  }
+  tr[data-inbox-item]:focus > td:first-child::before {
+    opacity: 1;
+    transform: none;
   }
 </style>

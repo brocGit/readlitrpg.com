@@ -1,6 +1,6 @@
 ---
 import { hoursBetween, nowIso } from "@rlr/core";
-import { listOpenInbox } from "@rlr/core/inbox";
+import { countOpenInbox } from "@rlr/core/inbox";
 import { HEARTBEAT_KV_KEY } from "@rlr/core/scheduler";
 import { jobRuns } from "@rlr/core/schema";
 import { desc } from "drizzle-orm";
@@ -10,13 +10,12 @@ import { env, getDb } from "../lib/runtime";
 const db = getDb();
 const [heartbeat, inbox, runs, settings] = await Promise.all([
   env.CONFIG.get(HEARTBEAT_KV_KEY),
-  listOpenInbox(db, 200),
+  countOpenInbox(db),
   db.select().from(jobRuns).orderBy(desc(jobRuns.queuedAt)).limit(10),
   Astro.locals.settings(),
 ]);
 const heartbeatAgeHours = heartbeat ? hoursBetween(heartbeat, nowIso()) : null;
 const heartbeatOk = heartbeatAgeHours !== null && heartbeatAgeHours < 0.25;
-const urgent = inbox.filter((i) => i.priority >= 80).length;
 const switches = Object.entries(settings).filter(([k]) => k.startsWith("flags."));
 ---
 
@@ -24,13 +23,14 @@ const switches = Object.entries(settings).filter(([k]) => k.startsWith("flags.")
   <section class="grid">
     <div class="status-screen">
       <p class="label">Scheduler</p>
-      <p>
-        {heartbeat ? (heartbeatOk ? "✓ Heartbeat is running." : `⚠ Last heartbeat ${heartbeatAgeHours?.toFixed(1)} h ago.`) : "⚠ No heartbeat recorded yet."}
+      <p class={heartbeatOk ? "light ok" : "light warn"}>
+        {heartbeat ? (heartbeatOk ? "Heartbeat is running." : `Last heartbeat ${heartbeatAgeHours?.toFixed(1)} h ago.`) : "No heartbeat recorded yet."}
       </p>
     </div>
     <div class="status-screen">
       <p class="label">Inbox</p>
-      <p><a href="/inbox">{inbox.length} open</a>{urgent > 0 && <strong> · {urgent} urgent</strong>}</p>
+      <p class="big"><a href="/inbox">{inbox.open}</a></p>
+      <p>{inbox.open === 0 ? "Nothing needs you." : "open"}{inbox.urgent > 0 && <strong class="urgent"> · {inbox.urgent} urgent</strong>}</p>
     </div>
     <div class="status-screen">
       <p class="label">Switches</p>
@@ -75,5 +75,41 @@ const switches = Object.entries(settings).filter(([k]) => k.startsWith("flags.")
   .switches {
     margin: 0;
     padding-left: 1.2rem;
+  }
+  .big {
+    font-size: 1.8rem;
+    margin: 0;
+  }
+  .big a {
+    text-decoration: none;
+  }
+  .urgent {
+    color: var(--color-danger);
+  }
+  /* A status light: steady green while the heartbeat runs, amber when it's late. */
+  .light::before {
+    content: "";
+    display: inline-block;
+    inline-size: 0.6em;
+    block-size: 0.6em;
+    margin-inline-end: var(--space-2);
+    border-radius: 50%;
+    vertical-align: 0.05em;
+  }
+  .light.ok::before {
+    background: var(--color-primary);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 50%, transparent);
+    animation: pulse 2.4s var(--ease-out) infinite;
+  }
+  .light.warn::before {
+    background: var(--color-accent);
+  }
+  @keyframes pulse {
+    70% {
+      box-shadow: 0 0 0 0.5em transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
   }
 </style>

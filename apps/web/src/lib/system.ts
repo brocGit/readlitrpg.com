@@ -4,6 +4,7 @@
 // never in the way of a click (styles/feel.css).
 
 import type { LevelUp } from "@rlr/core/readers";
+import { play } from "./sound";
 
 function region(): HTMLElement {
   const found = document.querySelector<HTMLElement>(".system-toasts");
@@ -27,6 +28,7 @@ export function announce(label: string, text: string, opts: { tone?: "level-up";
   toast.appendChild(head);
   toast.appendChild(document.createTextNode(text));
   box.appendChild(toast);
+  play(opts.tone === "level-up" ? "level" : "toast");
   // Three at most: the oldest makes room.
   while (box.children.length > 3) box.firstElementChild?.remove();
   window.setTimeout(() => {

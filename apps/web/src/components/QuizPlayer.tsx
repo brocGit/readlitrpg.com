@@ -1,9 +1,10 @@
 // Playing a quiz (QUIZZES.md §3.2): one question at a time, the server scores it, and the result
 // comes with three books, a share card, Party up and "Sharpen my matches". No email gate.
 
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import type { ResultCard } from "../lib/match";
 import type { PlayableQuiz } from "../lib/quiz";
+import { play } from "../lib/sound";
 import { announce } from "../lib/system";
 import SubscribeForm from "./SubscribeForm";
 
@@ -79,11 +80,21 @@ export default function QuizPlayer({
   const [chosen, setChosen] = useState<string | null>(null);
   const [back, setBack] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Focus follows play: the picked button disappears with its question, so focus moves to the next
+  // question's heading (and then the result's name), where a screen reader reads it and Tab carries on.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
+  useEffect(() => {
+    if (!moved.current) return;
+    heading.current?.focus({ preventScroll: Boolean(result) });
+  }, [index, result]);
 
   // Options stay enabled (a disabled button swallows the click without a sound); extra clicks
   // while an answer is lit or the result is on its way are ignored here instead.
   function pick(optionId: string) {
     if (chosen || busy) return;
+    moved.current = true;
+    play("pick");
     setChosen(optionId);
     setBack(false);
     window.setTimeout(
@@ -111,6 +122,7 @@ export default function QuizPlayer({
         pick(option.id);
       } else if ((e.key === "Backspace" || e.key === "ArrowLeft") && index > 0 && !busy && !chosen) {
         e.preventDefault();
+        moved.current = true;
         setBack(true);
         setIndex(index - 1);
       }
@@ -140,6 +152,7 @@ export default function QuizPlayer({
     const data = (await res.json()) as TakeResponse;
     remember(data.take);
     setResult(data);
+    play("reveal");
     window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
   }
 
@@ -155,7 +168,9 @@ export default function QuizPlayer({
               ? `[Quest complete · Score ${result.score}/${result.total}]`
               : "[New title acquired]"}
           </p>
-          <h2 class="reveal-name">{result.outcome.name}</h2>
+          <h2 class="reveal-name" ref={heading} tabIndex={-1}>
+            {result.outcome.name}
+          </h2>
           <p>
             <strong>{result.outcome.tagline}</strong>
           </p>
@@ -252,7 +267,9 @@ export default function QuizPlayer({
       </p>
       <progress max={quiz.questions.length} value={index + 1} aria-label="Progress" />
       <div class={back ? "question from-back" : "question"} key={index}>
-        <h2>{q.prompt}</h2>
+        <h2 ref={heading} tabIndex={-1}>
+          {q.prompt}
+        </h2>
         <div class={locked ? "options locked" : "options"}>
           {q.options.map((o, i) => (
             <button
@@ -283,6 +300,7 @@ export default function QuizPlayer({
           type="button"
           class="link-button"
           onClick={() => {
+            moved.current = true;
             setBack(true);
             setIndex(index - 1);
           }}

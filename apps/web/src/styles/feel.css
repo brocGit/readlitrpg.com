@@ -221,6 +221,40 @@ html {
   color: var(--color-muted);
 }
 
+/* The System sounds switch (lib/sound.ts): a footer link that says whether it's on. */
+.sound-toggle {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sound-toggle .state {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  color: var(--color-muted);
+  padding: 0 0.4em;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-small);
+  font-family: var(--font-system);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sound-toggle[aria-pressed="true"] .state {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Headings that take focus so it can follow a quiz (QuizPlayer, MatchQuiz) aren't controls: no ring. */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
 /* Cards lift toward the pointer. A card with one destination is clickable anywhere on it. */
 .cards li,
 .book-tile,

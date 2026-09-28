@@ -40,11 +40,11 @@ export default function InboxKeys() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  if (!on) return <p class="muted keys-hint">Keyboard shortcuts load with the page.</p>;
   return (
     <p class="muted keys-hint">
-      {on
-        ? "Keys: j / k move · a approve · r reject · e open · s snooze"
-        : "Keyboard shortcuts load with the page."}
+      Keys: <kbd>j</kbd> / <kbd>k</kbd> move · <kbd>a</kbd> approve · <kbd>r</kbd> reject · <kbd>e</kbd> open
+      · <kbd>s</kbd> snooze
     </p>
   );
 }

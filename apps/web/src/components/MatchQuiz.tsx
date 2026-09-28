@@ -134,6 +134,13 @@ export default function MatchQuiz({ initial }: { initial: MatchInputs }) {
   const [shown, setShown] = useState<Classic[]>([]);
   const [preview, setPreview] = useState<MatchResponse | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  // Focus follows the steps: Next can vanish (the last step has none) and the new step's content
+  // is above it, so focus moves to the step's heading, where a screen reader reads it (DESIGN §9.10).
+  const heading = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
+  useEffect(() => {
+    if (moved.current) heading.current?.focus();
+  }, [step]);
 
   const set = (patch: Partial<MatchInputs>) => setInputs((prev) => ({ ...prev, ...patch }));
   const rated = Object.entries(ratings).filter(([, r]) => r.rating !== "unread");
@@ -180,15 +187,16 @@ export default function MatchQuiz({ initial }: { initial: MatchInputs }) {
   }
 
   const go = (next: number) => {
+    moved.current = true;
     setBack(next < step);
     setStep(next);
   };
 
   return (
     <div class="match-quiz">
-      <p class="label">
+      <h2 class="label step-label" ref={heading} tabIndex={-1}>
         [Step {step + 1} of {STEPS.length}] {STEPS[step]}
-      </p>
+      </h2>
       <progress max={STEPS.length} value={step + 1} aria-label="Progress" />
 
       <div class={back ? "question from-back" : "question"} key={step}>

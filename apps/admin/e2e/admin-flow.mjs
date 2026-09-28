@@ -394,9 +394,17 @@ try {
   await visitor.page.goto(`${WEB}/quiz`);
   await visitor.page.click(`a[href="/quiz/${quizSlug}"]`);
   await visitor.hydrated();
+  // Wait for the next question (or the result) after each answer: a click on the answer just
+  // picked can land while the result renders, and then waits for a button that never comes back.
   for (let i = 0; i < 20 && !(await visitor.page.isVisible(".quiz-result")); i++) {
+    const step = await visitor.page.textContent(".quiz-player > .label");
     await visitor.page.locator(".options button").first().click();
-    await visitor.page.waitForTimeout(100);
+    await visitor.page.waitForFunction(
+      (before) =>
+        document.querySelector(".quiz-result") !== null ||
+        document.querySelector(".quiz-player > .label")?.textContent !== before,
+      step,
+    );
   }
   await visitor.page.waitForSelector(".quiz-result h2");
   check(await visitor.page.isVisible("text=books for you"), "a reader plays the quiz and gets a result");

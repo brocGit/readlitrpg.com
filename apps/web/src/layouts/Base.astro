@@ -104,6 +104,7 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
       <p>ReadLitRPG: a free discovery engine for LitRPG, progression fantasy and GameLit.</p>
       <ul class="footer-links">
         {FOOTER.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
+        <li hidden><button type="button" class="sound-toggle" aria-pressed="false">System sounds<span class="state" aria-hidden="true">off</span></button></li>
       </ul>
       {affiliate && <p>As an Amazon Associate I earn from qualifying purchases.</p>}
     </footer>
@@ -148,6 +149,27 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
           );
           for (const el of document.querySelectorAll("[data-ad]")) io.observe(el);
         }
+      }
+    </script>
+    <script>
+      // System sounds are opt-in (DESIGN §9.10). The footer switch shows only once this runs, since
+      // without scripts there's nothing to play.
+      import { play, setSound, soundOn } from "../lib/sound";
+      const toggle = document.querySelector<HTMLButtonElement>(".sound-toggle");
+      if (toggle) {
+        const show = () => {
+          const on = soundOn();
+          toggle.setAttribute("aria-pressed", String(on));
+          const state = toggle.querySelector(".state");
+          if (state) state.textContent = on ? "on" : "off";
+        };
+        show();
+        toggle.closest("li")?.removeAttribute("hidden");
+        toggle.addEventListener("click", () => {
+          setSound(!soundOn());
+          show();
+          play("toast");
+        });
       }
     </script>
     <script>

@@ -75,9 +75,17 @@ try {
   // Quiz → email capture (QUIZZES §3.3)
   await page.goto(`${BASE}/quiz/whats-your-litrpg-class`);
   await hydrated();
+  // Wait for the next question (or the result) after each answer: a click on the answer just
+  // picked can land while the result renders, and then waits for a button that never comes back.
   for (let i = 0; i < 30 && !(await page.isVisible(".quiz-result")); i++) {
+    const step = await page.textContent(".quiz-player > .label");
     await page.locator(".options button").first().click();
-    await sleep(150);
+    await page.waitForFunction(
+      (before) =>
+        document.querySelector(".quiz-result") !== null ||
+        document.querySelector(".quiz-player > .label")?.textContent !== before,
+      step,
+    );
   }
   await page.waitForSelector(".quiz-result h2");
   const className = (await page.textContent(".quiz-result h2"))?.trim();
