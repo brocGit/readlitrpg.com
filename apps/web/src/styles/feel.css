@@ -22,6 +22,15 @@
   }
 }
 
+/* Selecting text and the scrollbar wear the brand too. */
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+html {
+  scrollbar-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-line)) transparent;
+}
+
 /* Header navigation: quiet until pointed at; the current section is marked. */
 .site-nav a {
   position: relative;
@@ -174,6 +183,91 @@
   .book-row:hover .cover {
     transform: translateY(-3px) rotate(-2deg);
   }
+}
+
+/* Book tiles lead with the cover, which tilts toward the pointer like a book pulled off a shelf. */
+.tile-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.tile-head .cover {
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+@media (hover: hover) {
+  .book-tile:hover .tile-head .cover {
+    transform: translateY(-2px) rotate(-2deg);
+  }
+}
+
+/* A series' reading order is a quest chain: covers linked by a dotted path. */
+.book-list.chain {
+  position: relative;
+}
+
+.book-list.chain::before {
+  content: "";
+  position: absolute;
+  top: var(--space-6);
+  bottom: var(--space-6);
+  left: 35px;
+  inline-size: 2px;
+  background: repeating-linear-gradient(to bottom, var(--color-line) 0 6px, transparent 6px 10px);
+}
+
+.book-list.chain:has(> li:only-child)::before {
+  display: none;
+}
+
+/* The reader's own marks on the chain (SeriesProgress adds them after /api/me). */
+.mark-tag {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  font-family: var(--font-system);
+  font-size: 0.7rem;
+  font-weight: 600;
+  vertical-align: middle;
+  box-shadow: inset 0 0 0 1px currentcolor;
+  animation: pop var(--dur) var(--ease-spring) backwards;
+}
+
+.mark-tag.mark-loved,
+.mark-tag.mark-read {
+  color: var(--rarity-uncommon);
+}
+
+.mark-tag.mark-loved {
+  color: var(--rarity-legendary);
+}
+
+.mark-tag.mark-dnf {
+  color: var(--color-muted);
+}
+
+.mark-tag.mark-want {
+  color: var(--rarity-rare);
+}
+
+.book-row.mark-done .cover {
+  box-shadow:
+    0 0 0 2px var(--color-paper),
+    0 0 0 4px var(--rarity-uncommon);
+}
+
+.series-progress {
+  margin-block: var(--space-4);
+}
+
+.series-progress.complete {
+  border-color: var(--rarity-legendary);
+  animation:
+    boot var(--dur-slow) var(--ease-out) backwards,
+    glow 1.6s var(--ease-out) 300ms backwards;
 }
 
 /* Tags and chips: a clear chosen state that pops when picked. */
@@ -433,6 +527,85 @@ meter::-moz-meter-bar {
   border-radius: 999px;
 }
 
+/* Game sliders (GameSlider): a filled track and a gem handle that grows while you drag it. */
+.game-range {
+  appearance: none;
+  inline-size: 100%;
+  block-size: 1.6rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.game-range::-webkit-slider-runnable-track {
+  block-size: 0.45rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-primary) var(--fill, 50%),
+    var(--color-line) var(--fill, 50%)
+  );
+}
+
+.game-range::-moz-range-track {
+  block-size: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-line);
+}
+
+.game-range::-moz-range-progress {
+  block-size: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.game-range::-webkit-slider-thumb {
+  appearance: none;
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  margin-top: -0.3rem;
+  border: 2px solid var(--color-surface);
+  border-radius: 3px;
+  background: var(--color-accent);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  transform: rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.game-range::-moz-range-thumb {
+  inline-size: 0.85rem;
+  block-size: 0.85rem;
+  border: 2px solid var(--color-surface);
+  border-radius: 3px;
+  background: var(--color-accent);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  transform: rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.game-range:hover::-webkit-slider-thumb {
+  transform: rotate(45deg) scale(1.12);
+}
+
+.game-range:active::-webkit-slider-thumb {
+  transform: rotate(45deg) scale(1.3);
+}
+
+.game-range:active::-moz-range-thumb {
+  transform: rotate(45deg) scale(1.3);
+}
+
+.game-range:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-small);
+}
+
+.slider {
+  display: grid;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
 /* Progress is experience: a bar with a leading glint that slides as it grows. */
 progress {
   appearance: none;
@@ -587,6 +760,7 @@ progress::-moz-progress-bar {
   text-decoration: none;
 }
 
+.lists-board .label,
 .quest-board .label {
   margin: 0 0 var(--space-1);
 }

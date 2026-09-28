@@ -20,10 +20,10 @@ const { title, stats, dials } = Astro.props;
           <dt>{s.name}</dt>
           <dd>
             {s.value === null ? (
-              <span class="unknown">???</span>
+              <span class="unknown" title="Not appraised yet: readers who have read it can reveal it"><span aria-hidden="true">???</span><span class="visually-hidden">Not appraised yet</span></span>
             ) : (
               <>
-                <meter min="0" max="10" value={s.value} /> {s.value}{" "}
+                <meter min="0" max="10" value={s.value} aria-label={`${s.name}: ${s.value} of 10`} /> {s.value}{" "}
                 <span class="muted">
                   · {s.label}
                   {s.label === "Readers say" && ` (${s.appraisals})`}

@@ -2,14 +2,25 @@
 import { LIVING_LISTS } from "@rlr/core/match";
 import Base from "../../layouts/Base.astro";
 import "../../styles/discover.css";
+import "../../styles/site.css";
 
 Astro.cache.set({ tags: ["lists"] });
+// Cards show the intro's first sentence; the list page has the rest.
+const firstSentence = (text: string) => text.match(/^.*?[.!?](\s|$)/)?.[0]?.trim() ?? text;
 ---
 
 <Base title="Reading lists" description="LitRPG and progression fantasy lists that update themselves as the catalog grows.">
   <h1>Reading lists</h1>
   <p class="muted">Each list is a saved search: it updates itself as books are added and readers appraise them.</p>
-  <ul>
-    {LIVING_LISTS.map((l) => <li><a href={`/lists/${l.slug}`}>{l.title}</a></li>)}
+  <ul class="cards lists-board">
+    {
+      LIVING_LISTS.map((l) => (
+        <li>
+          <p class="label">[Living list]</p>
+          <h3><a href={`/lists/${l.slug}`}>{l.title}</a></h3>
+          <p class="muted">{firstSentence(l.intro)}</p>
+        </li>
+      ))
+    }
   </ul>
 </Base>

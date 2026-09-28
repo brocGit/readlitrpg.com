@@ -5,6 +5,7 @@ import type { DislikeReason, HardNo, MatchInputs, McType } from "@rlr/core/match
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { MatchResponse } from "../lib/match";
 import { tierOf } from "../lib/tiers";
+import GameSlider from "./GameSlider";
 
 interface Classic {
   slug: string;
@@ -240,16 +241,10 @@ export default function MatchQuiz({ initial }: { initial: MatchInputs }) {
         )}
         {step === 2 && (
           <div class="sliders">
-            <label>
-              Tone: grim ↔ hopeful
-              <input
-                type="range"
-                min={0}
-                max={10}
-                value={inputs.tone ?? 5}
-                onChange={(e) => set({ tone: Number((e.target as HTMLInputElement).value) })}
-              />
-            </label>
+            <div class="slider">
+              <label for="mq-tone">Tone: grim ↔ hopeful</label>
+              <GameSlider id="mq-tone" value={inputs.tone ?? 5} onCommit={(tone) => set({ tone })} />
+            </div>
             <div class="chips">
               {[
                 [1, "Serious"],
@@ -295,26 +290,18 @@ export default function MatchQuiz({ initial }: { initial: MatchInputs }) {
         )}
         {step === 4 && (
           <div class="sliders">
-            <label>
-              Slow-burn deep dive ↔ constant escalation
-              <input
-                type="range"
-                min={0}
-                max={10}
-                value={inputs.pacing ?? 5}
-                onChange={(e) => set({ pacing: Number((e.target as HTMLInputElement).value) })}
-              />
-            </label>
-            <label>
-              How fast should the MC grow?
-              <input
-                type="range"
-                min={0}
-                max={10}
+            <div class="slider">
+              <label for="mq-pacing">Slow-burn deep dive ↔ constant escalation</label>
+              <GameSlider id="mq-pacing" value={inputs.pacing ?? 5} onCommit={(pacing) => set({ pacing })} />
+            </div>
+            <div class="slider">
+              <label for="mq-progression">How fast should the MC grow?</label>
+              <GameSlider
+                id="mq-progression"
                 value={inputs.progression ?? 5}
-                onChange={(e) => set({ progression: Number((e.target as HTMLInputElement).value) })}
+                onCommit={(progression) => set({ progression })}
               />
-            </label>
+            </div>
           </div>
         )}
         {step === 5 && <Chips items={MCS} value={inputs.mc ?? []} onChange={(mc) => set({ mc })} />}

@@ -2,6 +2,7 @@
 // A book in a server-rendered list (find, living lists, books like X). Same HTML for everyone.
 import type { BookCard } from "@rlr/core/match";
 import type { StatusRow } from "../lib/match";
+import Cover from "./site/Cover.astro";
 
 interface Props {
   card: BookCard;
@@ -13,14 +14,19 @@ const shown = status.filter((s) => s.value !== null).slice(0, 3);
 ---
 
 <article class="book-tile">
-  <h3><a href={`/books/${card.slug}`}>{card.title}</a></h3>
-  <p class="muted">
-    {card.authors.map((a) => a.name).join(", ")}
-    {card.series && ` · ${card.series.name}${card.series.position ? ` #${card.series.position}` : ""}`}
-    {card.series?.status === "complete" && " · complete"}
-    {card.formats.includes("audiobook") && " · audio"}
-    {card.kindleUnlimited && " · KU"}
-  </p>
+  <div class="tile-head">
+    <Cover cover={card.cover} title={card.title} author={card.authors[0]?.name} width={72} />
+    <div>
+      <h3><a href={`/books/${card.slug}`}>{card.title}</a></h3>
+      <p class="muted">
+        {card.authors.map((a) => a.name).join(", ")}
+        {card.series && ` · ${card.series.name}${card.series.position ? ` #${card.series.position}` : ""}`}
+        {card.series?.status === "complete" && " · complete"}
+        {card.formats.includes("audiobook") && " · audio"}
+        {card.kindleUnlimited && " · KU"}
+      </p>
+    </div>
+  </div>
   {card.hook && <p class="hook">{card.hook}</p>}
   {note && <p>{note}</p>}
   {

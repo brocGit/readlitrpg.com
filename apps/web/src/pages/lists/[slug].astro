@@ -6,6 +6,7 @@ import Base from "../../layouts/Base.astro";
 import { getMatrix, matchOptions, statusScreen } from "../../lib/match";
 import { getDb } from "../../lib/runtime";
 import "../../styles/discover.css";
+import "../../styles/site.css";
 
 const list = getList(Astro.params.slug ?? "");
 if (!list) return new Response(null, { status: 404 });

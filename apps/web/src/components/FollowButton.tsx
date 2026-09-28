@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "preact/hooks";
 import { postJson, whoAmI } from "../lib/client";
+import { announce } from "../lib/system";
 
 type Notify = "digest" | "instant" | "none";
 const LABELS: Record<Notify, string> = {
@@ -10,6 +11,13 @@ const LABELS: Record<Notify, string> = {
   instant: "Email me on release day",
   none: "No emails (calendar only)",
 };
+const PATHS = {
+  author: "authors",
+  series: "series",
+  narrator: "narrators",
+  tag: "tags",
+  book: "books",
+} as const;
 
 export default function FollowButton({
   type,
@@ -45,15 +53,19 @@ export default function FollowButton({
       notify: next,
     });
     setBusy(false);
-    if (res.ok && res.data) setNotify(res.data.notify);
-    else setError(res.data?.error ?? "That didn't save. Try again in a moment.");
+    if (res.ok && res.data) {
+      if (res.data.notify && !notify) announce("[Now following]", `${name}. ${LABELS[res.data.notify]}.`);
+      else if (!res.data.notify && notify) announce("[Unfollowed]", `${name}. No more news about it.`);
+      setNotify(res.data.notify);
+    } else setError(res.data?.error ?? "That didn't save. Try again in a moment.");
   }
 
-  if (signedIn === null) return null;
+  // Until /api/me answers, show what most visitors see: the signed-out button. It's the same size as
+  // the signed-in one, so the page doesn't jump when the answer comes (and the server renders it).
   if (!signedIn)
     return (
       <p class="follow">
-        <a class="button secondary" href={`/signin?next=${encodeURIComponent(location.pathname)}`}>
+        <a class="button secondary" href={`/signin?next=${encodeURIComponent(`/${PATHS[type]}/${slug}`)}`}>
           Follow {type === "book" ? "this book" : name}
         </a>
       </p>

@@ -4,7 +4,7 @@
 import { and, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { nameKey, titleKey } from "../catalog/normalize";
 import type { Db } from "../db";
-import { authors, bookAuthors, bookLinks, books, editions, series } from "../db/schema";
+import { authors, bookAuthors, bookLinks, books, editions, media, series } from "../db/schema";
 
 export interface BookCard {
   id: string;
@@ -21,6 +21,8 @@ export interface BookCard {
   harem: string;
   contentFlags: string[];
   links: { kind: string; url: string }[];
+  /** The approved cover, if any (DESIGN §16.5); tiles fall back to a bound placeholder. */
+  cover: { key: string; width: number | null; height: number | null } | null;
 }
 
 /** Retail and platform links shown as "where to read", in a stable order. */
@@ -44,11 +46,20 @@ export async function bookCards(db: Db, ids: string[]): Promise<Map<string, Book
   for (let k = 0; k < unique.length; k += 90) {
     const part = unique.slice(k, k + 90);
     const rows = await db
-      .select({ book: books, seriesName: series.name, seriesSlug: series.slug, seriesStatus: series.status })
+      .select({
+        book: books,
+        seriesName: series.name,
+        seriesSlug: series.slug,
+        seriesStatus: series.status,
+        coverKey: media.key,
+        coverWidth: media.width,
+        coverHeight: media.height,
+      })
       .from(books)
       .leftJoin(series, eq(series.id, books.seriesId))
+      .leftJoin(media, and(eq(media.id, books.coverMediaId), eq(media.status, "approved")))
       .where(and(inArray(books.id, part), eq(books.visibility, "published")));
-    for (const { book: b, seriesName, seriesSlug, seriesStatus } of rows) {
+    for (const { book: b, seriesName, seriesSlug, seriesStatus, coverKey, coverWidth, coverHeight } of rows) {
       out.set(b.id, {
         id: b.id,
         slug: b.slug,
@@ -72,6 +83,7 @@ export async function bookCards(db: Db, ids: string[]): Promise<Map<string, Book
         harem: b.harem,
         contentFlags: b.contentFlags,
         links: [],
+        cover: coverKey ? { key: coverKey, width: coverWidth, height: coverHeight } : null,
       });
     }
     const authorRows = await db

@@ -64,7 +64,7 @@ Astro.cache.set({ tags: [`book:${m.ids[i]}`, "books-like"] });
       {status.map((s) => (
         <div>
           <dt>{s.name}</dt>
-          <dd>{s.value === null ? <span class="unknown">???</span> : <><meter min="0" max="10" value={s.value} /> {s.value} <span class="muted">· {s.label}</span></>}</dd>
+          <dd>{s.value === null ? <span class="unknown" title="Not appraised yet"><span aria-hidden="true">???</span><span class="visually-hidden">Not appraised yet</span></span> : <><meter min="0" max="10" value={s.value} /> {s.value} <span class="muted">· {s.label}</span></>}</dd>
         </div>
       ))}
     </dl>

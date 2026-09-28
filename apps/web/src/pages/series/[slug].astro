@@ -8,6 +8,7 @@ import {
   seriesPage,
 } from "@rlr/core/site";
 import FollowButton from "../../components/FollowButton";
+import SeriesProgress from "../../components/SeriesProgress";
 import BookRow from "../../components/site/BookRow.astro";
 import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
 import ReleaseList from "../../components/site/ReleaseList.astro";
@@ -57,8 +58,10 @@ Astro.cache.set({ tags: [`series:${s.slug}`, ...s.books.map((b) => `book:${b.id}
   </dl>
   {first && <p><a class="button" href={`/books/${first.slug}`}>Start with {first.title}</a></p>}
 
+  <SeriesProgress client:idle books={s.books.map((b) => ({ slug: b.slug, title: b.title }))} />
+
   <h2>Reading order</h2>
-  <ol class="book-list">{s.books.map((b) => <BookRow book={b} showSeries={false} />)}</ol>
+  <ol class="book-list chain">{s.books.map((b) => <BookRow book={b} showSeries={false} />)}</ol>
 
   {
     s.upcoming.length > 0 && (

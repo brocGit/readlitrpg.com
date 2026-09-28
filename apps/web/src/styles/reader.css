@@ -31,7 +31,16 @@
 .marks {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
+  /* The signed-out line and the signed-in chips take the same room, so the page doesn't jump. */
+  min-height: 2.25rem;
+}
+
+fieldset.marks {
+  border: 0;
+  padding: 0;
+  margin-inline: 0;
 }
 
 .follow select {

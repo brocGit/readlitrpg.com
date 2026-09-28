@@ -42,12 +42,12 @@ export default function MarkButtons({ slug }: { slug: string }) {
     }
   }
 
-  if (signedIn === null) return null;
+  // Until /api/me answers, render the signed-out line (the server renders it too), so nothing jumps.
   if (!signedIn)
     return (
       <p class="marks muted small">
-        <a href={`/signin?next=${encodeURIComponent(location.pathname)}`}>Sign in</a> to mark books you've
-        read and sharpen your matches.
+        <a href={`/signin?next=${encodeURIComponent(`/books/${slug}`)}`}>Sign in</a> to mark books you've read
+        and sharpen your matches.
       </p>
     );
   return (

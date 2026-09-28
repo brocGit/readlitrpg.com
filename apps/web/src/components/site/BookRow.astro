@@ -12,7 +12,7 @@ const { book, showSeries = true, note } = Astro.props;
 const number = bookNumber(book.position);
 ---
 
-<li class="book-row">
+<li class="book-row" data-book={book.slug}>
   <Cover cover={book.cover} title={book.title} width={72} />
   <div>
     <h3><a href={`/books/${book.slug}`}>{book.title}</a></h3>

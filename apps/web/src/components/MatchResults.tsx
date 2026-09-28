@@ -8,6 +8,7 @@ import type { MatchResponse, ResultCard } from "../lib/match";
 import type { SponsoredCard } from "../lib/sponsored";
 import { announce } from "../lib/system";
 import { TIER_NAMES, tierOf } from "../lib/tiers";
+import GameSlider from "./GameSlider";
 import SaveMatch from "./SaveMatch";
 
 const TUNE_DIALS = [
@@ -39,7 +40,8 @@ function StatusMini({ card }: { card: ResultCard }) {
           <dd>
             {s.value === null ? (
               <span class="unknown" title="Readers haven't appraised this yet">
-                ???
+                <span aria-hidden="true">???</span>
+                <span class="visually-hidden">Not appraised yet</span>
               </span>
             ) : (
               <>
@@ -327,19 +329,16 @@ export default function MatchResults({
       <details class="tune">
         <summary>Tune it</summary>
         {TUNE_DIALS.map((d) => (
-          <label key={d.key} class="tune-row">
-            <span>{d.label}</span>
+          <div key={d.key} class="tune-row">
+            <label for={`tune-${d.key}`}>{d.label}</label>
             <span class="muted">{d.low}</span>
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
+            <GameSlider
+              id={`tune-${d.key}`}
               value={inputs.tune?.[d.key] ?? 5}
-              onChange={(e) => tune(d.key, Number((e.target as HTMLInputElement).value))}
+              onCommit={(v) => tune(d.key, v)}
             />
             <span class="muted">{d.high}</span>
-          </label>
+          </div>
         ))}
       </details>
       <p class="share">
