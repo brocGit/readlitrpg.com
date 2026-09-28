@@ -1,7 +1,9 @@
 // Appraise (DESIGN §6.7): the reader's LitRPG skill. Up to five one-tap questions about a book's
 // hidden or least-certain stats and dials. Signed-in readers only; the page itself stays cached.
 
+import type { LevelUp } from "@rlr/core/readers";
 import { useEffect, useState } from "preact/hooks";
+import { announceLevelUp } from "../lib/system";
 
 interface Question {
   key: string;
@@ -38,7 +40,12 @@ export default function Appraise({ slug, shown }: { slug: string; shown: Record<
       </p>
     );
   }
-  if (message) return <p class="notice">{message}</p>;
+  if (message)
+    return (
+      <p class={message.startsWith("[Identified!]") ? "notice identified" : "notice"} role="status">
+        {message}
+      </p>
+    );
   if (questions.length === 0) return null;
 
   async function submit(e: Event) {
@@ -55,7 +62,9 @@ export default function Appraise({ slug, shown }: { slug: string; shown: Record<
       message?: string;
       revealed?: string[];
       held?: boolean;
+      levelUp?: LevelUp | null;
     };
+    announceLevelUp(data.levelUp);
     if (!res.ok) setMessage(data.message ?? "That didn't go through.");
     else if (data.revealed?.length)
       setMessage(`[Identified!] You helped reveal: ${data.revealed.join(", ").replaceAll("_", " ")}.`);

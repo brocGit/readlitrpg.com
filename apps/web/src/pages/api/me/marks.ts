@@ -1,4 +1,4 @@
-import { ActivityError, marksFor, setMark } from "@rlr/core/readers";
+import { ActivityError, levelUp, marksFor, setMark } from "@rlr/core/readers";
 import { MARK_STATUS } from "@rlr/core/schema";
 import type { APIRoute } from "astro";
 import { z } from "zod";
@@ -31,9 +31,9 @@ export const POST: APIRoute = async (ctx) => {
   );
   if (!parsed.success) return fail("invalid");
   try {
-    const mark = await setMark(getDb(), userId, parsed.data.book, parsed.data.mark);
+    const r = await setMark(getDb(), userId, parsed.data.book, parsed.data.mark);
     if (form) return ctx.redirect("/account/books?saved=1", 303);
-    return Response.json({ mark });
+    return Response.json({ mark: r.status, levelUp: levelUp(r.level, r.previousLevel) });
   } catch (error) {
     if (error instanceof ActivityError) return fail(error.message);
     throw error;

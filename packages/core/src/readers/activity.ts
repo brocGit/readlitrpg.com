@@ -171,7 +171,7 @@ export async function setMark(
   status: MarkStatus | null,
   source: "site" | "email" | "import" = "site",
   rating: number | null = null,
-): Promise<MarkStatus | null> {
+): Promise<{ status: MarkStatus | null; level: number; previousLevel: number }> {
   const [book] = await db
     .select({ id: books.id })
     .from(books)
@@ -189,8 +189,8 @@ export async function setMark(
         set: { status, rating, source, updatedAt: now },
       });
   }
-  await refreshLevel(db, userId);
-  return status;
+  const level = await refreshLevel(db, userId);
+  return { status, ...level };
 }
 
 export async function marksFor(db: Db, userId: string, bookSlugs?: string[]) {

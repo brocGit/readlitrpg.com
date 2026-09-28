@@ -4,6 +4,7 @@
 import { useState } from "preact/hooks";
 import type { ResultCard } from "../lib/match";
 import type { PlayableQuiz } from "../lib/quiz";
+import { announce } from "../lib/system";
 import SubscribeForm from "./SubscribeForm";
 
 interface Outcome {
@@ -35,6 +36,11 @@ function remember(take: string) {
     // Storage may be off; the result still works.
   }
 }
+
+/** How long a picked answer stays lit before the next question: long enough to feel, short enough not to wait. */
+const CHOSEN_MS = 220;
+const reducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 function Books({ books }: { books: ResultCard[] }) {
   if (books.length === 0) return <p class="muted">Book picks appear once the catalog opens.</p>;
@@ -69,6 +75,25 @@ export default function QuizPlayer({
   const [result, setResult] = useState<TakeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The answer just picked (lit for a moment), and which way the questions are moving.
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [back, setBack] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Options stay enabled (a disabled button swallows the click without a sound); extra clicks
+  // while an answer is lit or the result is on its way are ignored here instead.
+  function pick(optionId: string) {
+    if (chosen || busy) return;
+    setChosen(optionId);
+    setBack(false);
+    window.setTimeout(
+      () => {
+        setChosen(null);
+        void answer(optionId);
+      },
+      reducedMotion() ? 0 : CHOSEN_MS,
+    );
+  }
 
   async function answer(optionId: string) {
     const next = [...answers.slice(0, index), optionId];
@@ -91,7 +116,7 @@ export default function QuizPlayer({
     const data = (await res.json()) as TakeResponse;
     remember(data.take);
     setResult(data);
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
   }
 
   if (result) {
@@ -100,23 +125,29 @@ export default function QuizPlayer({
     const sharpen = `/match/quiz?quiz=${quiz.slug}&outcome=${result.outcome.key}`;
     return (
       <div class="quiz-result">
-        <section class="status-screen">
-          <p class="label">
-            {quiz.kind === "trivia" ? `[Score: ${result.score}/${result.total}]` : "[Result]"}
+        <section class="status-screen reveal">
+          <p class="label reveal-label">
+            {quiz.kind === "trivia"
+              ? `[Quest complete · Score ${result.score}/${result.total}]`
+              : "[New title acquired]"}
           </p>
-          <h2>{result.outcome.name}</h2>
+          <h2 class="reveal-name">{result.outcome.name}</h2>
           <p>
             <strong>{result.outcome.tagline}</strong>
           </p>
           <p>{result.outcome.description}</p>
           {result.outcome.loves.length > 0 && (
-            <ul>
+            <ul class="perks" aria-label="Loves">
               {result.outcome.loves.map((l) => (
                 <li key={l}>{l}</li>
               ))}
             </ul>
           )}
-          {result.outcome.watchOut && <p class="muted">Watch out for: {result.outcome.watchOut}</p>}
+          {result.outcome.watchOut && (
+            <p class="debuff">
+              <span class="label">[Debuff]</span> Watch out for: {result.outcome.watchOut}
+            </p>
+          )}
         </section>
 
         {result.review && (
@@ -167,9 +198,13 @@ export default function QuizPlayer({
           <button
             type="button"
             class="button secondary"
-            onClick={() => navigator.clipboard?.writeText(partyUrl)}
+            onClick={async () => {
+              await navigator.clipboard?.writeText(partyUrl).catch(() => undefined);
+              setCopied(true);
+              announce("[Party link copied]", "Send it to a friend. Their result joins yours.");
+            }}
           >
-            Copy a Party up link
+            {copied ? "Party link copied" : "Copy a Party up link"}
           </button>
           <a class="button secondary" href="/quiz">
             Take another quiz
@@ -181,6 +216,7 @@ export default function QuizPlayer({
 
   const q = quiz.questions[index];
   if (!q) return null;
+  const locked = Boolean(chosen) || busy;
   return (
     <div class="quiz-player">
       {quiz.disclaimer && <p class="muted">{quiz.disclaimer}</p>}
@@ -190,17 +226,37 @@ export default function QuizPlayer({
           {index + 1} / {quiz.questions.length}
         </span>
       </p>
-      <progress max={quiz.questions.length} value={index} aria-label="Progress" />
-      <h2>{q.prompt}</h2>
-      <div class="options">
-        {q.options.map((o) => (
-          <button key={o.id} type="button" class="option" disabled={busy} onClick={() => answer(o.id)}>
-            {o.label}
-          </button>
-        ))}
+      <progress max={quiz.questions.length} value={index + 1} aria-label="Progress" />
+      <div class={back ? "question from-back" : "question"} key={index}>
+        <h2>{q.prompt}</h2>
+        <div class={locked ? "options locked" : "options"}>
+          {q.options.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              class={chosen === o.id ? "option chosen" : "option"}
+              aria-pressed={chosen === o.id}
+              onClick={() => pick(o.id)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
       </div>
-      {index > 0 && (
-        <button type="button" class="link-button" onClick={() => setIndex(index - 1)}>
+      {busy && (
+        <p class="label calculating" role="status">
+          {quiz.kind === "trivia" ? "[Counting your score]" : "[Calculating your result]"}
+        </p>
+      )}
+      {index > 0 && !busy && (
+        <button
+          type="button"
+          class="link-button"
+          onClick={() => {
+            setBack(true);
+            setIndex(index - 1);
+          }}
+        >
           Back
         </button>
       )}

@@ -1,8 +1,10 @@
 // Book marks on a book page (DESIGN §9.6): loved it, read it, didn't finish, want to read. Marks
 // sharpen matches and keep read books out of them.
 
+import type { LevelUp } from "@rlr/core/readers";
 import { useEffect, useState } from "preact/hooks";
 import { postJson, whoAmI } from "../lib/client";
+import { announceLevelUp } from "../lib/system";
 
 type Mark = "loved" | "read" | "dnf" | "want";
 const MARKS: { key: Mark; label: string }[] = [
@@ -29,9 +31,15 @@ export default function MarkButtons({ slug }: { slug: string }) {
   async function choose(next: Mark) {
     const value = next === mark ? null : next;
     setBusy(true);
-    const res = await postJson<{ mark: Mark | null }>("/api/me/marks", { book: slug, mark: value });
+    const res = await postJson<{ mark: Mark | null; levelUp?: LevelUp | null }>("/api/me/marks", {
+      book: slug,
+      mark: value,
+    });
     setBusy(false);
-    if (res.ok && res.data) setMark(res.data.mark);
+    if (res.ok && res.data) {
+      setMark(res.data.mark);
+      announceLevelUp(res.data.levelUp);
+    }
   }
 
   if (signedIn === null) return null;

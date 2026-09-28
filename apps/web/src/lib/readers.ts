@@ -36,7 +36,7 @@ export async function saveTastes(
   inputs: MatchInputs,
   settings: Settings,
   opts: { replace?: boolean; onboarded?: boolean } = {},
-): Promise<ReaderProfile> {
+): Promise<ReaderProfile & { previousLevel: number }> {
   const current = await getReaderProfile(db, userId);
   const merged = opts.replace ? inputs : { ...current.inputs, ...inputs };
   const cls = await classForInputs(merged, settings);

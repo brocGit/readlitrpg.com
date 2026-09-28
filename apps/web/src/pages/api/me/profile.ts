@@ -1,4 +1,5 @@
 import { decodeInputs, matchInputsSchema } from "@rlr/core/match";
+import { levelUp } from "@rlr/core/readers";
 import type { APIRoute } from "astro";
 import { z } from "zod";
 import { fail, formBody, readerId, slowDown, unauthorized, writeAllowed } from "../../../lib/api";
@@ -20,7 +21,11 @@ export const POST: APIRoute = async (ctx) => {
     const inputs = body.success ? decodeInputs(body.data.inputs) : null;
     if (!inputs) return fail("invalid");
     const profile = await saveTastes(db, userId, inputs, settings, { replace: true, onboarded: true });
-    return Response.json({ level: profile.level, readerClass: profile.readerClass });
+    return Response.json({
+      level: profile.level,
+      readerClass: profile.readerClass,
+      levelUp: levelUp(profile.level, profile.previousLevel),
+    });
   }
   const form = await formBody(ctx.request);
   if (form.get("action") === "clear") {

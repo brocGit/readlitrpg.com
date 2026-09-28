@@ -6,6 +6,8 @@ import type { MatchInputs } from "@rlr/core/match";
 import { useEffect, useState } from "preact/hooks";
 import type { MatchResponse, ResultCard } from "../lib/match";
 import type { SponsoredCard } from "../lib/sponsored";
+import { announce } from "../lib/system";
+import { TIER_NAMES, tierOf } from "../lib/tiers";
 import SaveMatch from "./SaveMatch";
 
 const TUNE_DIALS = [
@@ -58,23 +60,28 @@ function Card({
   onRelax,
   onFeedback,
   label,
+  leaving,
 }: {
   card: ResultCard;
   full: boolean;
   onRelax: (key: string) => void;
   onFeedback: (slug: string, kind: "loved" | "bounced" | "read") => void;
   label?: string;
+  leaving?: boolean;
 }) {
+  const tier = card.isMatch ? tierOf(card.percent) : null;
+  const classes = ["match-card", tier === "legendary" ? "tier-legendary" : "", leaving ? "gone" : ""];
   return (
-    <article class="match-card">
+    <article class={classes.filter(Boolean).join(" ")}>
       {label && <p class="label">{label}</p>}
       <header>
         <h3>
           <a href={`/books/${card.slug}`}>{card.title}</a>
         </h3>
-        <p class="match-percent">
+        <p class={tier ? `match-percent tier-${tier}` : "match-percent tier-common"}>
           {card.isMatch ? `${card.percent}%` : "Close"}
           <span class="visually-hidden"> match</span>
+          {tier && <span class="tier-name">{TIER_NAMES[tier]}</span>}
         </p>
       </header>
       <p class="muted">
@@ -158,6 +165,8 @@ export default function MatchResults({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // A card the reader just dismissed slides out while the list re-ranks.
+  const [leaving, setLeaving] = useState<string | null>(null);
 
   // Report which books were shown, for authors' "match appearances" (counts only, no identifiers).
   useEffect(() => {
@@ -193,7 +202,7 @@ export default function MatchResults({
     };
   }, [data]);
 
-  async function rerun(next: MatchInputs) {
+  async function rerun(next: MatchInputs, done?: [label: string, text: string]) {
     setInputs(next);
     setBusy(true);
     setError(null);
@@ -201,19 +210,43 @@ export default function MatchResults({
       const res = await fetchMatch(next);
       setData(res);
       window.history.replaceState(null, "", `/match/r?p=${res.share}`);
+      if (done) announce(...done);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
+      setLeaving(null);
     }
   }
 
-  const relax = (key: string) => rerun({ ...inputs, relax: [...new Set([...(inputs.relax ?? []), key])] });
+  const titleOf = (slug: string) =>
+    [...data.best, ...data.more, ...(data.wildcard ? [data.wildcard] : [])].find((c) => c.slug === slug)
+      ?.title ?? "That book";
+  const relax = (key: string) =>
+    rerun({ ...inputs, relax: [...new Set([...(inputs.relax ?? []), key])] }, [
+      "[Filter relaxed]",
+      "Noted: that doesn't bother you. The list re-ranked.",
+    ]);
   const feedback = (slug: string, kind: "loved" | "bounced" | "read") => {
-    if (kind === "loved") rerun({ ...inputs, loved: [...(inputs.loved ?? []), slug].slice(-5) });
-    else if (kind === "bounced")
-      rerun({ ...inputs, bounced: [...(inputs.bounced ?? []), { book: slug }].slice(-5) });
-    else rerun({ ...inputs, read: [...(inputs.read ?? []), slug] });
+    const title = titleOf(slug);
+    if (kind === "loved")
+      rerun({ ...inputs, loved: [...(inputs.loved ?? []), slug].slice(-5) }, [
+        "[Taste updated]",
+        `You loved ${title}. Matches re-ranked around it.`,
+      ]);
+    else {
+      setLeaving(slug);
+      if (kind === "bounced")
+        rerun({ ...inputs, bounced: [...(inputs.bounced ?? []), { book: slug }].slice(-5) }, [
+          "[Taste updated]",
+          `${title} is out, and so is more like it.`,
+        ]);
+      else
+        rerun({ ...inputs, read: [...(inputs.read ?? []), slug] }, [
+          "[Marked as read]",
+          `${title} won't come up again.`,
+        ]);
+    }
   };
   const tune = (key: string, value: number) =>
     rerun({ ...inputs, tune: { ...(inputs.tune ?? {}), [key]: value } });
@@ -230,6 +263,11 @@ export default function MatchResults({
   const empty = data.best.length === 0;
   return (
     <div class="match-results" aria-busy={busy}>
+      {busy && (
+        <p class="label recalc calculating" role="status">
+          [Recalculating]
+        </p>
+      )}
       {data.readerClass && (
         <section class="status-screen class-badge">
           <p class="label">[Class identified]</p>
@@ -254,12 +292,26 @@ export default function MatchResults({
         <>
           <h2>Best bets</h2>
           {data.best.map((c) => (
-            <Card key={c.slug} card={c} full onRelax={relax} onFeedback={feedback} />
+            <Card
+              key={c.slug}
+              card={c}
+              full
+              onRelax={relax}
+              onFeedback={feedback}
+              leaving={leaving === c.slug}
+            />
           ))}
           {sponsored && <Sponsored card={sponsored} />}
           {data.more.length > 0 && <h2>More matches</h2>}
           {data.more.map((c) => (
-            <Card key={c.slug} card={c} full={false} onRelax={relax} onFeedback={feedback} />
+            <Card
+              key={c.slug}
+              card={c}
+              full={false}
+              onRelax={relax}
+              onFeedback={feedback}
+              leaving={leaving === c.slug}
+            />
           ))}
           {data.wildcard && (
             <Card
@@ -296,8 +348,11 @@ export default function MatchResults({
           type="button"
           class="link-button"
           onClick={async () => {
-            await navigator.clipboard?.writeText(new URL(shareUrl, window.location.href).toString());
+            await navigator.clipboard
+              ?.writeText(new URL(shareUrl, window.location.href).toString())
+              .catch(() => undefined);
             setCopied(true);
+            announce("[Link copied]", "Anyone with it sees these matches. It carries no account.");
           }}
         >
           {copied ? "Copied" : "Copy link"}

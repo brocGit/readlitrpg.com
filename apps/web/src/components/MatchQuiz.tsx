@@ -4,6 +4,7 @@
 import type { DislikeReason, HardNo, MatchInputs, McType } from "@rlr/core/match";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { MatchResponse } from "../lib/match";
+import { tierOf } from "../lib/tiers";
 
 interface Classic {
   slug: string;
@@ -125,6 +126,7 @@ function Chips<T extends string>({
 
 export default function MatchQuiz({ initial }: { initial: MatchInputs }) {
   const [step, setStep] = useState(0);
+  const [back, setBack] = useState(false);
   const [inputs, setInputs] = useState<MatchInputs>(initial);
   const [ratings, setRatings] = useState<Record<string, { rating: Rating; reasons: DislikeReason[] }>>({});
   const [classics, setClassics] = useState<Classic[]>([]);
@@ -176,202 +178,217 @@ export default function MatchQuiz({ initial }: { initial: MatchInputs }) {
     if (answered && Object.keys(next).length < 16) moreClassics(Object.keys(next));
   }
 
+  const go = (next: number) => {
+    setBack(next < step);
+    setStep(next);
+  };
+
   return (
     <div class="match-quiz">
       <p class="label">
         [Step {step + 1} of {STEPS.length}] {STEPS[step]}
       </p>
+      <progress max={STEPS.length} value={step + 1} aria-label="Progress" />
 
-      {step === 0 && (
-        <div class="classics">
-          <p class="muted">Rate the ones you've read. Skip any you haven't.</p>
-          {shown.map((c) => (
-            <fieldset key={c.slug} class="classic">
-              <legend>
-                <strong>{c.title}</strong> <span class="muted">{c.authors}</span>
-              </legend>
-              {(["loved", "liked", "disliked", "unread"] as Rating[]).map((r) => (
-                <label key={r} class="chip">
+      <div class={back ? "question from-back" : "question"} key={step}>
+        {step === 0 && (
+          <div class="classics">
+            <p class="muted">Rate the ones you've read. Skip any you haven't.</p>
+            {shown.map((c) => (
+              <fieldset
+                key={c.slug}
+                class={ratings[c.slug] ? `classic rated-${ratings[c.slug]?.rating}` : "classic"}
+              >
+                <legend>
+                  <strong>{c.title}</strong> <span class="muted">{c.authors}</span>
+                </legend>
+                {(["loved", "liked", "disliked", "unread"] as Rating[]).map((r) => (
+                  <label key={r} class="chip">
+                    <input
+                      type="radio"
+                      name={`rate-${c.slug}`}
+                      checked={ratings[c.slug]?.rating === r}
+                      onChange={() => rate(c.slug, r)}
+                    />{" "}
+                    {r === "loved"
+                      ? "Loved"
+                      : r === "liked"
+                        ? "Liked"
+                        : r === "disliked"
+                          ? "Didn't like"
+                          : "Haven't read"}
+                  </label>
+                ))}
+                {ratings[c.slug]?.rating === "disliked" && (
+                  <Chips
+                    items={REASONS}
+                    value={ratings[c.slug]?.reasons ?? []}
+                    max={4}
+                    onChange={(reasons) =>
+                      setRatings({ ...ratings, [c.slug]: { rating: "disliked", reasons } })
+                    }
+                  />
+                )}
+              </fieldset>
+            ))}
+          </div>
+        )}
+        {step === 1 && (
+          <div class="noes">
+            <Chips items={NOES} value={inputs.noes ?? []} onChange={(noes) => set({ noes })} />
+          </div>
+        )}
+        {step === 2 && (
+          <div class="sliders">
+            <label>
+              Tone: grim ↔ hopeful
+              <input
+                type="range"
+                min={0}
+                max={10}
+                value={inputs.tone ?? 5}
+                onChange={(e) => set({ tone: Number((e.target as HTMLInputElement).value) })}
+              />
+            </label>
+            <div class="chips">
+              {[
+                [1, "Serious"],
+                [5, "Some banter"],
+                [9, "Comedy first"],
+              ].map(([v, label]) => (
+                <label key={v} class="chip">
                   <input
                     type="radio"
-                    name={`rate-${c.slug}`}
-                    checked={ratings[c.slug]?.rating === r}
-                    onChange={() => rate(c.slug, r)}
+                    name="humor"
+                    checked={inputs.humor === v}
+                    onChange={() => set({ humor: v as number })}
                   />{" "}
-                  {r === "loved"
-                    ? "Loved"
-                    : r === "liked"
-                      ? "Liked"
-                      : r === "disliked"
-                        ? "Didn't like"
-                        : "Haven't read"}
+                  {label}
                 </label>
               ))}
-              {ratings[c.slug]?.rating === "disliked" && (
-                <Chips
-                  items={REASONS}
-                  value={ratings[c.slug]?.reasons ?? []}
-                  max={4}
-                  onChange={(reasons) =>
-                    setRatings({ ...ratings, [c.slug]: { rating: "disliked", reasons } })
-                  }
-                />
-              )}
-            </fieldset>
-          ))}
-        </div>
-      )}
-      {step === 1 && <Chips items={NOES} value={inputs.noes ?? []} onChange={(noes) => set({ noes })} />}
-      {step === 2 && (
-        <div class="sliders">
-          <label>
-            Tone: grim ↔ hopeful
-            <input
-              type="range"
-              min={0}
-              max={10}
-              value={inputs.tone ?? 5}
-              onChange={(e) => set({ tone: Number((e.target as HTMLInputElement).value) })}
-            />
-          </label>
-          <div class="chips">
-            {[
-              [1, "Serious"],
-              [5, "Some banter"],
-              [9, "Comedy first"],
-            ].map(([v, label]) => (
-              <label key={v} class="chip">
+            </div>
+            <div class="chips">
+              {[
+                [-1, "Sincere"],
+                [0, "Either"],
+                [1, "Satirical"],
+              ].map(([v, label]) => (
+                <label key={v} class="chip">
+                  <input
+                    type="radio"
+                    name="satire"
+                    checked={(inputs.satire ?? 0) === v}
+                    onChange={() => set({ satire: v as -1 | 0 | 1 })}
+                  />{" "}
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {step === 3 && (
+          <Chips
+            items={SUBGENRES}
+            value={inputs.subgenres ?? []}
+            onChange={(subgenres) => set({ subgenres })}
+          />
+        )}
+        {step === 4 && (
+          <div class="sliders">
+            <label>
+              Slow-burn deep dive ↔ constant escalation
+              <input
+                type="range"
+                min={0}
+                max={10}
+                value={inputs.pacing ?? 5}
+                onChange={(e) => set({ pacing: Number((e.target as HTMLInputElement).value) })}
+              />
+            </label>
+            <label>
+              How fast should the MC grow?
+              <input
+                type="range"
+                min={0}
+                max={10}
+                value={inputs.progression ?? 5}
+                onChange={(e) => set({ progression: Number((e.target as HTMLInputElement).value) })}
+              />
+            </label>
+          </div>
+        )}
+        {step === 5 && <Chips items={MCS} value={inputs.mc ?? []} onChange={(mc) => set({ mc })} />}
+        {step === 6 && (
+          <div class="crunch-gauge">
+            {CRUNCH.map((c, i) => (
+              <label key={c.label} class="crunch-stop">
                 <input
                   type="radio"
-                  name="humor"
-                  checked={inputs.humor === v}
-                  onChange={() => set({ humor: v as number })}
+                  name="crunch"
+                  checked={inputs.crunch === i}
+                  onChange={() => set({ crunch: i })}
                 />{" "}
-                {label}
+                <strong>{c.label}</strong>
+                <pre>{c.sample}</pre>
               </label>
             ))}
-          </div>
-          <div class="chips">
-            {[
-              [-1, "Sincere"],
-              [0, "Either"],
-              [1, "Satirical"],
-            ].map(([v, label]) => (
-              <label key={v} class="chip">
-                <input
-                  type="radio"
-                  name="satire"
-                  checked={(inputs.satire ?? 0) === v}
-                  onChange={() => set({ satire: v as -1 | 0 | 1 })}
-                />{" "}
-                {label}
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-      {step === 3 && (
-        <Chips
-          items={SUBGENRES}
-          value={inputs.subgenres ?? []}
-          onChange={(subgenres) => set({ subgenres })}
-        />
-      )}
-      {step === 4 && (
-        <div class="sliders">
-          <label>
-            Slow-burn deep dive ↔ constant escalation
-            <input
-              type="range"
-              min={0}
-              max={10}
-              value={inputs.pacing ?? 5}
-              onChange={(e) => set({ pacing: Number((e.target as HTMLInputElement).value) })}
-            />
-          </label>
-          <label>
-            How fast should the MC grow?
-            <input
-              type="range"
-              min={0}
-              max={10}
-              value={inputs.progression ?? 5}
-              onChange={(e) => set({ progression: Number((e.target as HTMLInputElement).value) })}
-            />
-          </label>
-        </div>
-      )}
-      {step === 5 && <Chips items={MCS} value={inputs.mc ?? []} onChange={(mc) => set({ mc })} />}
-      {step === 6 && (
-        <div class="crunch-gauge">
-          {CRUNCH.map((c, i) => (
-            <label key={c.label} class="crunch-stop">
-              <input
-                type="radio"
-                name="crunch"
-                checked={inputs.crunch === i}
-                onChange={() => set({ crunch: i })}
-              />{" "}
-              <strong>{c.label}</strong>
-              <pre>{c.sample}</pre>
-            </label>
-          ))}
-          <label class="chip">
-            <input
-              type="checkbox"
-              checked={inputs.hardRules ?? false}
-              onChange={(e) => set({ hardRules: (e.target as HTMLInputElement).checked })}
-            />{" "}
-            Hard rules matter to me
-          </label>
-        </div>
-      )}
-      {step === 7 && (
-        <div class="chips">
-          {[
-            ["female", "Female MC"],
-            ["male", "Male MC"],
-            ["", "No preference"],
-          ].map(([v, label]) => (
-            <label key={v} class="chip">
-              <input
-                type="radio"
-                name="gender"
-                checked={(inputs.gender ?? "") === v}
-                onChange={() =>
-                  set({
-                    gender: (v || undefined) as MatchInputs["gender"],
-                    genderOnly: v ? inputs.genderOnly : undefined,
-                  })
-                }
-              />{" "}
-              {label}
-            </label>
-          ))}
-          {inputs.gender && (
             <label class="chip">
               <input
                 type="checkbox"
-                checked={inputs.genderOnly ?? false}
-                onChange={(e) => set({ genderOnly: (e.target as HTMLInputElement).checked })}
+                checked={inputs.hardRules ?? false}
+                onChange={(e) => set({ hardRules: (e.target as HTMLInputElement).checked })}
               />{" "}
-              Only show those
+              Hard rules matter to me
             </label>
-          )}
-        </div>
-      )}
-      {step === 8 && (
-        <Chips items={MUSTS} value={inputs.musts ?? []} max={3} onChange={(musts) => set({ musts })} />
-      )}
+          </div>
+        )}
+        {step === 7 && (
+          <div class="chips">
+            {[
+              ["female", "Female MC"],
+              ["male", "Male MC"],
+              ["", "No preference"],
+            ].map(([v, label]) => (
+              <label key={v} class="chip">
+                <input
+                  type="radio"
+                  name="gender"
+                  checked={(inputs.gender ?? "") === v}
+                  onChange={() =>
+                    set({
+                      gender: (v || undefined) as MatchInputs["gender"],
+                      genderOnly: v ? inputs.genderOnly : undefined,
+                    })
+                  }
+                />{" "}
+                {label}
+              </label>
+            ))}
+            {inputs.gender && (
+              <label class="chip">
+                <input
+                  type="checkbox"
+                  checked={inputs.genderOnly ?? false}
+                  onChange={(e) => set({ genderOnly: (e.target as HTMLInputElement).checked })}
+                />{" "}
+                Only show those
+              </label>
+            )}
+          </div>
+        )}
+        {step === 8 && (
+          <Chips items={MUSTS} value={inputs.musts ?? []} max={3} onChange={(musts) => set({ musts })} />
+        )}
+      </div>
 
       <div class="quiz-nav">
         {step > 0 && (
-          <button type="button" class="button secondary" onClick={() => setStep(step - 1)}>
+          <button type="button" class="button secondary" onClick={() => go(step - 1)}>
             Back
           </button>
         )}
         {step < STEPS.length - 1 ? (
-          <button type="button" class="button" onClick={() => setStep(step + 1)}>
+          <button type="button" class="button" onClick={() => go(step + 1)}>
             Next
           </button>
         ) : null}
@@ -383,10 +400,13 @@ export default function MatchQuiz({ initial }: { initial: MatchInputs }) {
       {preview?.ready && preview.best.length > 0 && (
         <aside class="status-screen preview" aria-live="polite">
           <p class="label">[Live preview]{preview.readerClass ? ` ${preview.readerClass.name}` : ""}</p>
-          <ol>
+          <ol class="loot">
             {preview.best.map((b) => (
               <li key={b.slug}>
-                {b.title} <span class="muted">{b.isMatch ? `${b.percent}%` : ""}</span>
+                {b.title}{" "}
+                {b.isMatch && (
+                  <span class={`match-percent small tier-${tierOf(b.percent)}`}>{b.percent}%</span>
+                )}
               </li>
             ))}
           </ol>

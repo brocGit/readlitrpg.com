@@ -81,6 +81,10 @@ try {
   }
   await page.waitForSelector(".quiz-result h2");
   const className = (await page.textContent(".quiz-result h2"))?.trim();
+  // The System answers in a toast (styles/feel.css): built in the DOM, so no CSP trouble.
+  await page.click('button:has-text("Copy a Party up link")');
+  await page.waitForSelector('.system-toast:has-text("[Party link copied]")');
+  check(true, "copying the Party up link says so in a System toast");
   await page.click('button:has-text("Email me my full reading list")');
   const email = `reader-${Date.now()}@example.com`;
   await page.fill(".subscribe-form input[type=email]", email);
@@ -114,8 +118,13 @@ try {
   // Book marks and follows (DESIGN §9.6)
   await page.goto(`${BASE}/books/${bookSlug}`);
   await hydrated();
+  const marked = page.waitForResponse(
+    (r) => r.url().endsWith("/api/me/marks") && r.request().method() === "POST",
+  );
   await page.click('.marks button:has-text("Loved it")');
   await page.waitForSelector('.marks button[aria-pressed="true"]:has-text("Loved it")');
+  const markBody = await (await marked).json();
+  check("levelUp" in markBody, "a mark reports whether the profile levelled up (for the level-up toast)");
   await page.reload();
   await hydrated();
   await page.waitForSelector('.marks button[aria-pressed="true"]:has-text("Loved it")');

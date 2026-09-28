@@ -1,4 +1,5 @@
 import { AppraisalError, appraisalQuestions, submitAppraisals } from "@rlr/core/catalog";
+import { levelUp, refreshLevel } from "@rlr/core/readers";
 import { books } from "@rlr/core/schema";
 import type { APIRoute } from "astro";
 import { and, eq } from "drizzle-orm";
@@ -49,7 +50,9 @@ export const POST: APIRoute = async ({ params, request, locals, clientAddress })
       shown: parsed.data.shown,
       minAppraisals: (await locals.settings())["stats.display_min_appraisals"],
     });
-    return Response.json({ ok: true, ...result });
+    // Appraising counts toward the reader's profile level (level 5 is "Appraiser").
+    const level = await refreshLevel(getDb(), actor.userId);
+    return Response.json({ ok: true, ...result, levelUp: levelUp(level.level, level.previousLevel) });
   } catch (error) {
     if (error instanceof AppraisalError) {
       return Response.json({ error: error.reason, message: error.message }, { status: 403 });

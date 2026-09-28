@@ -3,6 +3,7 @@ import { jsonLdText } from "@rlr/core/site";
 import { siteOgUrl } from "../lib/site";
 import "@rlr/ui/tokens.css";
 import "@rlr/ui/base.css";
+import "../styles/feel.css";
 
 interface Props {
   title: string;
@@ -34,6 +35,28 @@ const {
 } = Astro.props;
 const canonicalOrigin = Astro.site?.origin ?? Astro.url.origin;
 const fullTitle = title === "ReadLitRPG" ? title : `${title} · ReadLitRPG`;
+const NAV = [
+  { href: "/match", label: "Match" },
+  { href: "/find", label: "Find" },
+  { href: "/quiz", label: "Quizzes" },
+  { href: "/lists", label: "Lists" },
+  { href: "/news", label: "News" },
+  { href: "/account", label: "Account" },
+];
+// The section you're in (the same for every reader of this URL, so it's safe in cached HTML).
+const here = Astro.url.pathname;
+const current = (href: string) => (here === href ? "page" : here.startsWith(`${href}/`) ? "true" : undefined);
+const FOOTER = [
+  { href: "/new", label: "New & upcoming" },
+  { href: "/tags", label: "Tags" },
+  { href: "/lists", label: "Lists" },
+  { href: "/quiz", label: "Quizzes" },
+  { href: "/subscribe", label: "Patch Notes (weekly email)" },
+  { href: "/news", label: "News" },
+  { href: "/blog", label: "Blog" },
+  { href: "/for-authors", label: "For authors" },
+  { href: "/feeds/releases.xml", label: "RSS" },
+];
 // Amazon's required disclosure, shown site-wide once store links carry our tag (DESIGN §16.4).
 const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_web"]);
 ---
@@ -61,13 +84,8 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
     <header class="site-header">
       <div class="container bar">
         <a class="wordmark" href="/" aria-label="ReadLitRPG home"><span aria-hidden="true">[</span>ReadLitRPG<span aria-hidden="true">]</span></a>
-        <nav aria-label="Site">
-          <a href="/match">Match</a>
-          <a href="/find">Find</a>
-          <a href="/quiz">Quizzes</a>
-          <a href="/lists">Lists</a>
-          <a href="/news">News</a>
-          <a href="/account">Account</a>
+        <nav class="site-nav" aria-label="Site">
+          {NAV.map((n) => <a href={n.href} aria-current={current(n.href)}>{n.label}</a>)}
         </nav>
       </div>
     </header>
@@ -76,13 +94,9 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
     </main>
     <footer class="site-footer container muted">
       <p>ReadLitRPG: a free discovery engine for LitRPG, progression fantasy and GameLit.</p>
-      <p>
-        <a href="/new">New &amp; upcoming</a> · <a href="/tags">Tags</a> · <a href="/lists">Lists</a> ·
-        <a href="/quiz">Quizzes</a> · <a href="/subscribe">Patch Notes (weekly email)</a> ·
-        <a href="/news">News</a> · <a href="/blog">Blog</a> ·
-        <a href="/for-authors">For authors</a> ·
-        <a href="/feeds/releases.xml">RSS</a>
-      </p>
+      <ul class="footer-links">
+        {FOOTER.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
+      </ul>
       {affiliate && <p>As an Amazon Associate I earn from qualifying purchases.</p>}
     </footer>
     <script>

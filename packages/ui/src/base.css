@@ -65,6 +65,7 @@ h3 {
   max-width: var(--measure);
 }
 
+/* Buttons press like buttons: a bevel, a lift on hover, a dip when pressed. */
 .button {
   display: inline-flex;
   align-items: center;
@@ -74,21 +75,55 @@ h3 {
   border-radius: var(--radius-small);
   background: var(--color-primary);
   color: var(--color-primary-ink);
+  box-shadow: var(--bevel);
   font: inherit;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    opacity var(--dur) var(--ease-out);
 }
 
 .button[disabled] {
   opacity: 0.6;
   cursor: progress;
+  box-shadow: none;
 }
 
 .button.secondary {
   background: transparent;
   color: var(--color-primary);
   box-shadow: inset 0 0 0 1.5px var(--color-primary);
+}
+
+@media (hover: hover) {
+  .button:not([disabled]):hover {
+    transform: translateY(-1px);
+    box-shadow:
+      var(--bevel),
+      0 4px 14px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  }
+
+  .button.secondary:not([disabled]):hover {
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    box-shadow:
+      inset 0 0 0 1.5px var(--color-primary),
+      0 4px 12px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+}
+
+.button:not([disabled]):active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 0 rgb(0 0 0 / 0.18);
+  transition-duration: 40ms;
+}
+
+.button.secondary:not([disabled]):active {
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 
 .field {
@@ -104,6 +139,11 @@ h3 {
   border-radius: var(--radius-small);
   background: var(--color-surface);
   color: var(--color-ink);
+  transition: border-color var(--dur) var(--ease-out);
+}
+
+.field input:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-line));
 }
 
 /* The "status screen": anything the System says. */
@@ -114,6 +154,10 @@ h3 {
   padding: var(--space-4) var(--space-6);
   font-family: var(--font-system);
   font-size: 0.95rem;
+}
+
+.status-screen {
+  animation: boot var(--dur-slow) var(--ease-out) backwards;
 }
 
 .status-screen .label {
@@ -128,6 +172,7 @@ h3 {
   background: var(--color-surface);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-small);
+  animation: notify var(--dur-slow) var(--ease-spring) backwards;
 }
 
 .notice.error {
@@ -145,4 +190,50 @@ h3 {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* A System window powering on, and a notification sliding in. */
+@keyframes boot {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+    clip-path: inset(0 0 60% 0 round var(--radius));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 0 0 round var(--radius));
+  }
+}
+
+@keyframes notify {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Anyone who asked for less motion gets none: every animation and transition finishes at once. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-slow: 0ms;
+  }
+
+  /* biome-ignore-start lint/complexity/noImportantStyles: reduced motion must beat every component's own timing */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* biome-ignore-end lint/complexity/noImportantStyles: reduced motion must beat every component's own timing */
 }

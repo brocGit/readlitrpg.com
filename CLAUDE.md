@@ -177,3 +177,11 @@ Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on
 - `ads.checkout_attempts_per_hour` limits the browser test too: the money E2E raises it (and the Sponsored Match score) through the settings page, then resets both.
 - A `waitForURL` predicate that also matches the form's own URL (`/dashboard/promote/new` starts with `/dashboard/promote/`) passes before a refusal shows. Check for `.notice.error` first, then wait for the exact next URL.
 - Browser flows that book inventory use up the local database's places: the money E2E picks the first days with a place left, so it can run again.
+
+## Gotchas learned in the game-feel pass
+
+- Playwright treats `disabled` **and** `aria-disabled="true"` as not enabled: a click waits, and times out when a re-render replaces the button. Controls that lock briefly (the quiz answer flash) stay enabled and ignore extra clicks in the handler.
+- An entrance animation with `animation-fill-mode: both` keeps its last keyframe, which beats the cascade, so a later `:hover { transform }` never applies. Entrance animations use `backwards`.
+- In the web app, DOM `append` type-checks as HTMLRewriter's `Element.append` (the Workers types are global). Use `appendChild` in island code.
+- Biome's `noDescendingSpecificity` compares selectors across the whole stylesheet: put lower-specificity rules for the same element first, or give the element its own class.
+- Motion lives in `styles/feel.css` (web) and `@rlr/ui` (tokens, buttons). `prefers-reduced-motion` must turn off anything new (base.css does it for all animations). The rules are in DESIGN §9.10.

@@ -1,8 +1,10 @@
 // Under match and find results: keep these tastes (signed in), save the query for alerts, or ask
 // for new matches by email (signed out). DESIGN §9.6, §9.7 option B.
 
+import type { LevelUp } from "@rlr/core/readers";
 import { useEffect, useState } from "preact/hooks";
 import { postJson, whoAmI } from "../lib/client";
+import { announceLevelUp } from "../lib/system";
 import SubscribeForm from "./SubscribeForm";
 
 export default function SaveMatch({
@@ -40,9 +42,14 @@ export default function SaveMatch({
   }
 
   async function saveTastes() {
-    const res = await postJson<{ level?: number; error?: string }>("/api/me/profile", { inputs });
-    if (res.ok) setSaved("Saved as your tastes. Your weekly matches now start from these.");
-    else setError(res.data?.error ?? "That didn't save. Try again in a moment.");
+    const res = await postJson<{ level?: number; levelUp?: LevelUp | null; error?: string }>(
+      "/api/me/profile",
+      { inputs },
+    );
+    if (res.ok) {
+      setSaved("Saved as your tastes. Your weekly matches now start from these.");
+      announceLevelUp(res.data?.levelUp);
+    } else setError(res.data?.error ?? "That didn't save. Try again in a moment.");
   }
 
   if (signedIn === null) return null;

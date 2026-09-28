@@ -1595,6 +1595,18 @@ Every answer is editable at `/account/preferences`. We explain in plain words th
 - **Phase 3:** deals feed and deal alerts.
 - **Phase 4:** ARC reviewer profile.
 
+### 9.10 Game feel
+
+The site should answer like a good game menu: every touch gets a response, and the moments that matter (a result, a level, a match) are reveals rather than page loads. Rules, so it stays tasteful and cheap:
+
+- **Motion is quick and optional.** Durations come from tokens in `@rlr/ui` (120, 200 and 420 ms, with a spring easing for pops). `prefers-reduced-motion` zeroes them and turns off page cross-fades. Nothing waits on an animation: a picked quiz answer stays lit for 220 ms, and extra clicks in that time are ignored rather than blocked by a disabled button.
+- **Touch feedback everywhere.** Buttons have a bevel, lift on hover and dip when pressed. Cards lift, and a card with one destination is clickable anywhere. A picked chip pops, and a picked hard no turns the danger color. The header marks the section you're in, and same-site pages cross-fade (CSS view transitions, no JavaScript).
+- **Rarity is the visual language.** The five rarity colors grade match percentages: 90%+ legendary, 80% epic, 70% rare, the rest uncommon. Quiz results reveal as a "[New title acquired]" status window with a gold glow, perks marked "+" and the watch-out line as a "[Debuff]". Rarity never grades a book's own stats: a low "Low Drama" is a fact, not a bad grade, and authors shouldn't see their books marked down.
+- **The System speaks in toasts.** Short bracketed lines in the corner (`lib/system.ts`) confirm what happened: a copied link, a taste the match results learned, a book marked as read. They are polite live regions, never block a click, and at most three are shown.
+- **Levels are moments.** Marks, saved tastes and appraisals report `levelUp` when the reader's profile level rises (QUIZZES §4.2), and the page shows a gold "[Level up!]" toast. Appraising refreshes the level, so level 5 ("Appraiser") arrives when earned.
+- **Waiting looks like work.** Re-ranking dims the old list under a "[Recalculating]" line, a dismissed card slides out, and new cards drop in one after another. Unappraised `???` stats flicker now and then, like an item waiting to be identified.
+- **CSP holds.** Everything is classes and keyframes. Toasts are built with DOM calls, never inline styles or HTML strings.
+
 ---
 
 ## 10. Author and publisher features

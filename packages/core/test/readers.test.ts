@@ -26,6 +26,7 @@ import {
   issueFeedToken,
   LibraryImportError,
   levelFor,
+  levelUp,
   marksFor,
   parseLibrary,
   parseLinkKeys,
@@ -194,8 +195,13 @@ describe("taste profiles", () => {
       await book(t);
       slugs.push(t.toLowerCase());
     }
-    for (const s of slugs.slice(0, 5)) await setMark(db, id, s, "loved");
-    await setMark(db, id, "zeta", "dnf");
+    for (const s of slugs.slice(0, 4)) await setMark(db, id, s, "loved");
+    // The mark that reaches level 3 says so, once, for the level-up toast.
+    const fifth = await setMark(db, id, "epsilon", "loved");
+    expect(fifth).toMatchObject({ status: "loved", level: 3, previousLevel: 2 });
+    expect(levelUp(fifth.level, fifth.previousLevel)).toEqual({ level: 3, title: "Well-Read" });
+    const sixth = await setMark(db, id, "zeta", "dnf");
+    expect(levelUp(sixth.level, sixth.previousLevel)).toBeNull();
     const p = await getReaderProfile(db, id);
     expect(p.level).toBe(3);
     expect(p.readerClass).toBe("min-maxer");

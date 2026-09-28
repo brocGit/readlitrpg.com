@@ -1,0 +1,787 @@
+/* Game feel (site-wide): the page answers when you touch it. Hover lifts, presses dip, results
+   reveal themselves, match percentages wear loot rarity, and the System speaks in toasts. Classes
+   only (the CSP forbids inline styles); base.css turns all motion off for reduced-motion readers. */
+
+/* Pages cross-fade instead of blinking; the header stays put. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 150ms;
+}
+
+.site-header {
+  view-transition-name: site-header;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}
+
+/* Header navigation: quiet until pointed at; the current section is marked. */
+.site-nav a {
+  position: relative;
+  text-decoration: none;
+  padding-block: var(--space-1);
+}
+
+.site-nav a::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  block-size: 2px;
+  background: currentcolor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.site-nav a:hover::after,
+.site-nav a[aria-current]::after {
+  transform: scaleX(1);
+}
+
+.site-nav a[aria-current] {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.site-nav a[aria-current]::after {
+  background: var(--color-accent);
+}
+
+/* On a phone the wordmark stays on one line and the nav wraps beneath it. */
+.site-header .bar {
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+}
+
+.wordmark {
+  white-space: nowrap;
+}
+
+.site-nav {
+  column-gap: var(--space-4);
+  row-gap: 0;
+}
+
+.wordmark span {
+  display: inline-block;
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.wordmark:hover span:first-child {
+  transform: translateX(-3px);
+}
+
+.wordmark:hover span:last-child {
+  transform: translateX(3px);
+}
+
+/* Footer links as a list, so the separators never lose their spaces. */
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) 0;
+  list-style: none;
+  padding: 0;
+}
+
+.footer-links li + li::before {
+  content: "·";
+  margin-inline: var(--space-2);
+  color: var(--color-muted);
+}
+
+/* Cards lift toward the pointer. A card with one destination is clickable anywhere on it. */
+.cards li,
+.book-tile,
+.match-card,
+.ad-card,
+.quiz-list li {
+  transition:
+    transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .cards li:hover,
+  .book-tile:hover,
+  .ad-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--lift);
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-line));
+  }
+
+  .match-card:hover {
+    box-shadow: var(--lift);
+    border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-line));
+  }
+}
+
+.cards li,
+.book-tile {
+  position: relative;
+}
+
+.book-tile h3 a::after,
+.cards li h3 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.book-tile button,
+.cards li button,
+.book-tile a:not(h3 a),
+.cards li a:not(h3 a) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Tags and chips: a clear chosen state that pops when picked. */
+.tag-list a {
+  transition:
+    border-color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.tag-list a:hover {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
+.tag-list a:active {
+  transform: scale(0.96);
+}
+
+.chip {
+  transition:
+    border-color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+  user-select: none;
+}
+
+.chip:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-line));
+}
+
+.chip:active {
+  transform: scale(0.96);
+}
+
+.chip:has(input:checked),
+.chip.on,
+.chip[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  font-weight: 600;
+  animation: pop var(--dur) var(--ease-spring);
+}
+
+/* A hard no is a "no": the chosen chip turns the danger color. */
+.noes .chip:has(input:checked) {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
+  color: var(--color-danger);
+}
+
+.chip input {
+  accent-color: var(--color-primary);
+}
+
+/* Picking books for a match: each joins the party with a pop, and the button powers up. */
+.picked {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-6);
+}
+
+.picked li {
+  animation: pop var(--dur) var(--ease-spring);
+}
+
+.picked li::marker {
+  font-family: var(--font-system);
+  color: var(--color-accent);
+}
+
+.loved-form .button:not([disabled]) {
+  animation: ready 900ms var(--ease-out) 1;
+}
+
+@keyframes ready {
+  0% {
+    box-shadow:
+      var(--bevel),
+      0 0 0 0 color-mix(in srgb, var(--color-primary) 55%, transparent);
+  }
+  100% {
+    box-shadow:
+      var(--bevel),
+      0 0 0 14px color-mix(in srgb, var(--color-primary) 0%, transparent);
+  }
+}
+
+/* Lists of results arrive one after another, like loot dropping. */
+.match-results .match-card,
+.grid > *,
+.cards > li,
+.quiz-books > li,
+.loot > li {
+  animation: drop var(--dur-slow) var(--ease-out) backwards;
+}
+
+.match-results .match-card:nth-of-type(2),
+.grid > :nth-child(2),
+.cards > li:nth-child(2),
+.quiz-books > li:nth-child(2),
+.loot > li:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.match-results .match-card:nth-of-type(3),
+.grid > :nth-child(3),
+.cards > li:nth-child(3),
+.quiz-books > li:nth-child(3),
+.loot > li:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.match-results .match-card:nth-of-type(4),
+.grid > :nth-child(4),
+.cards > li:nth-child(4) {
+  animation-delay: 170ms;
+}
+
+.match-results .match-card:nth-of-type(5),
+.grid > :nth-child(5),
+.cards > li:nth-child(5) {
+  animation-delay: 210ms;
+}
+
+.match-results .match-card:nth-of-type(n + 6),
+.grid > :nth-child(n + 6),
+.cards > li:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
+
+/* Match percentages wear loot rarity (DESIGN §9.10; tiers from lib/tiers.ts). */
+.match-percent {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-small);
+  white-space: nowrap;
+  animation: pop var(--dur-slow) var(--ease-spring) backwards;
+  animation-delay: 150ms;
+}
+
+.match-percent.tier-legendary {
+  color: var(--rarity-legendary);
+  box-shadow:
+    inset 0 0 0 1.5px var(--rarity-legendary),
+    0 0 14px color-mix(in srgb, var(--rarity-legendary) 35%, transparent);
+}
+
+.match-percent.tier-epic {
+  color: var(--rarity-epic);
+  box-shadow: inset 0 0 0 1.5px var(--rarity-epic);
+}
+
+.match-percent.tier-rare {
+  color: var(--rarity-rare);
+  box-shadow: inset 0 0 0 1.5px var(--rarity-rare);
+}
+
+.match-percent.tier-uncommon {
+  color: var(--rarity-uncommon);
+  box-shadow: inset 0 0 0 1.5px var(--rarity-uncommon);
+}
+
+.match-percent.tier-common {
+  color: var(--rarity-common);
+}
+
+.match-percent .tier-name {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.match-card.tier-legendary {
+  border-color: color-mix(in srgb, var(--rarity-legendary) 55%, var(--color-line));
+}
+
+/* Re-ranking after feedback: the old list dims while the System recalculates. */
+.match-results[aria-busy="true"] .match-card {
+  opacity: 0.55;
+  filter: saturate(0.6);
+  transition: opacity var(--dur) var(--ease-out);
+}
+
+.recalc {
+  position: sticky;
+  top: var(--space-2);
+  z-index: 2;
+  margin: 0 0 var(--space-3);
+  animation: notify var(--dur) var(--ease-out) backwards;
+}
+
+.match-card.gone {
+  animation: fade-out var(--dur) var(--ease-out) forwards;
+}
+
+/* Bars: stat and dial meters share one look and fill in from the left. */
+meter {
+  appearance: none;
+  block-size: 0.6rem;
+  border-radius: 999px;
+  background: var(--color-line);
+  overflow: hidden;
+  animation: fill var(--dur-slow) var(--ease-out) both;
+  animation-delay: 120ms;
+}
+
+meter::-webkit-meter-bar {
+  background: var(--color-line);
+  border: 0;
+  border-radius: 999px;
+  block-size: 0.6rem;
+}
+
+meter::-webkit-meter-optimum-value,
+meter::-webkit-meter-suboptimum-value,
+meter::-webkit-meter-even-less-good-value {
+  background: var(--color-primary);
+  border-radius: 999px;
+}
+
+meter::-moz-meter-bar {
+  background: var(--color-primary);
+  border-radius: 999px;
+}
+
+/* Progress is experience: a bar with a leading glint that slides as it grows. */
+progress {
+  appearance: none;
+  block-size: 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-line);
+  overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+  background: var(--color-line);
+  border-radius: 999px;
+}
+
+progress::-webkit-progress-value {
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    color-mix(in srgb, var(--color-primary) 60%, var(--color-accent))
+  );
+  border-radius: 999px;
+  transition: inline-size var(--dur-slow) var(--ease-spring);
+}
+
+progress::-moz-progress-bar {
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    color-mix(in srgb, var(--color-primary) 60%, var(--color-accent))
+  );
+  border-radius: 999px;
+}
+
+/* Stats nobody has appraised yet flicker, like something waiting to be identified. */
+.unknown {
+  display: inline-block;
+  animation: flicker 3.2s steps(1) infinite;
+}
+
+.status-mini div:nth-child(3n + 2) .unknown {
+  animation-delay: 1.1s;
+}
+
+.status-mini div:nth-child(3n) .unknown {
+  animation-delay: 2.3s;
+}
+
+/* Appraising revealed a stat: the notice flashes like an identified item. */
+.notice.identified {
+  border-left-color: var(--rarity-legendary);
+  font-family: var(--font-system);
+  animation:
+    pop var(--dur-slow) var(--ease-spring) backwards,
+    glow 1.4s var(--ease-out) 150ms backwards;
+}
+
+/* Match Quiz: each book to rate is its own box, and a rated one shows its verdict. */
+.match-quiz > progress {
+  inline-size: 100%;
+  margin-block: var(--space-1) var(--space-4);
+}
+
+.classic,
+.bounced {
+  border-left-width: 4px;
+  background: var(--color-surface);
+  transition: border-color var(--dur) var(--ease-out);
+}
+
+.classic legend,
+.bounced legend {
+  float: left;
+  inline-size: 100%;
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+
+.classic legend + *,
+.bounced legend + * {
+  clear: left;
+}
+
+.classic.rated-loved {
+  border-left-color: var(--rarity-legendary);
+}
+
+.classic.rated-liked {
+  border-left-color: var(--rarity-uncommon);
+}
+
+.classic.rated-disliked {
+  border-left-color: var(--color-danger);
+}
+
+.classic.rated-unread {
+  opacity: 0.7;
+}
+
+.match-quiz .preview {
+  margin-top: var(--space-6);
+}
+
+.match-percent.small {
+  font-size: 0.8rem;
+  animation: none;
+}
+
+/* Quizzes: questions slide in, a picked answer lights up, the result is a reveal. */
+.question {
+  animation: slide-in var(--dur-slow) var(--ease-out) backwards;
+}
+
+.question.from-back {
+  animation-name: slide-in-back;
+}
+
+.option {
+  position: relative;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur) var(--ease-out),
+    opacity var(--dur) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .options:not(.locked) .option:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--lift);
+  }
+}
+
+.options:not(.locked) .option:active {
+  transform: scale(0.98);
+}
+
+.option.chosen {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+  animation: pop var(--dur) var(--ease-spring);
+}
+
+.options.locked .option:not(.chosen) {
+  opacity: 0.45;
+}
+
+.options.locked .option {
+  cursor: default;
+}
+
+.calculating::after {
+  content: "";
+  animation: dots 900ms steps(4) infinite;
+}
+
+.status-screen.reveal {
+  border-color: var(--rarity-legendary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rarity-legendary) 40%, transparent);
+  animation:
+    boot var(--dur-slow) var(--ease-out) backwards,
+    glow 1.6s var(--ease-out) 300ms backwards;
+}
+
+.status-screen > .reveal-label {
+  color: var(--rarity-legendary);
+}
+
+.reveal-name {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  margin: var(--space-2) 0 var(--space-3);
+  animation: focus-in 600ms var(--ease-out) 200ms backwards;
+}
+
+.perks {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.perks li {
+  animation: drop var(--dur-slow) var(--ease-out) backwards;
+}
+
+ul.perks > li::before {
+  content: "+ ";
+  color: var(--rarity-uncommon);
+  font-weight: 700;
+}
+
+.perks li:nth-child(1) {
+  animation-delay: 450ms;
+}
+
+.perks li:nth-child(2) {
+  animation-delay: 530ms;
+}
+
+.perks li:nth-child(3) {
+  animation-delay: 610ms;
+}
+
+.perks li:nth-child(n + 4) {
+  animation-delay: 690ms;
+}
+
+.debuff {
+  color: var(--color-muted);
+}
+
+.debuff .label {
+  display: inline;
+  color: var(--color-danger);
+}
+
+.quiz-result .quiz-books {
+  list-style: none;
+  padding: 0;
+}
+
+.quiz-books > li {
+  border: 1.5px solid var(--color-line);
+  border-left: 4px solid var(--rarity-epic);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  padding: var(--space-3) var(--space-4);
+}
+
+.quiz-books > li:first-child {
+  border-left-color: var(--rarity-legendary);
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--rarity-legendary) 40%, transparent);
+  }
+  30% {
+    box-shadow:
+      0 0 0 2px var(--rarity-legendary),
+      0 0 40px color-mix(in srgb, var(--rarity-legendary) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--rarity-legendary) 40%, transparent);
+  }
+}
+
+@keyframes focus-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.2em;
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    letter-spacing: normal;
+    filter: none;
+  }
+}
+
+@keyframes dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75% {
+    content: "...";
+  }
+}
+
+/* The System's toasts: bottom corner, above everything, never in the way of a click. */
+.system-toasts {
+  position: fixed;
+  inset: auto var(--space-4) var(--space-4) auto;
+  z-index: 50;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: end;
+  max-inline-size: min(26rem, calc(100vw - 2 * var(--space-4)));
+  pointer-events: none;
+}
+
+.system-toast {
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--lift);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-system);
+  font-size: 0.9rem;
+  animation: toast-in var(--dur-slow) var(--ease-spring) backwards;
+}
+
+.system-toast .label {
+  display: block;
+  margin: 0 0 var(--space-1);
+}
+
+.system-toast.level-up {
+  border-color: var(--rarity-legendary);
+  box-shadow:
+    var(--lift),
+    0 0 22px color-mix(in srgb, var(--rarity-legendary) 40%, transparent);
+}
+
+.system-toast.level-up .label {
+  color: var(--rarity-legendary);
+}
+
+.system-toast.leaving {
+  animation: toast-out var(--dur) var(--ease-out) forwards;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fill {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes flicker {
+  0%,
+  86%,
+  92%,
+  100% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 0.35;
+  }
+  90% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}

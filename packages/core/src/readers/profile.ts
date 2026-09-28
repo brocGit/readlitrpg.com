@@ -25,6 +25,16 @@ export const LEVEL_TITLES = [
   "Appraiser",
 ] as const;
 
+/** What a level-up toast says (QUIZZES §4.2); null when the level didn't rise. */
+export interface LevelUp {
+  level: number;
+  title: string;
+}
+
+export function levelUp(level: number, previousLevel: number): LevelUp | null {
+  return level > previousLevel ? { level, title: LEVEL_TITLES[level] ?? "" } : null;
+}
+
 export interface LevelFacts {
   quizTaken: boolean;
   /** Books rated in the Match Quiz or marked (loved, read, not finished). */
@@ -86,7 +96,7 @@ export async function saveReaderProfile(
   userId: string,
   patch: Partial<MatchInputs>,
   opts: { source?: string; readerClass?: string | null; onboarded?: boolean } = {},
-): Promise<ReaderProfile> {
+): Promise<ReaderProfile & { previousLevel: number }> {
   const current = await getReaderProfile(db, userId);
   const merged = matchInputsSchema.parse(
     Object.fromEntries(
@@ -107,12 +117,16 @@ export async function saveReaderProfile(
     .insert(readerProfiles)
     .values({ userId, ...values, createdAt: now })
     .onConflictDoUpdate({ target: readerProfiles.userId, set: values });
-  return { ...values, inputs: merged };
+  return { ...values, inputs: merged, previousLevel: current.level };
 }
 
 /** Recompute the level after marks or appraisals change, without touching the stated tastes. */
-export async function refreshLevel(db: Db, userId: string): Promise<number> {
-  return (await saveReaderProfile(db, userId, {})).level;
+export async function refreshLevel(
+  db: Db,
+  userId: string,
+): Promise<{ level: number; previousLevel: number }> {
+  const { level, previousLevel } = await saveReaderProfile(db, userId, {});
+  return { level, previousLevel };
 }
 
 /**
