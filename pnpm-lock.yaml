@@ -220,6 +220,9 @@ importers:
 
   packages/email:
     dependencies:
+      '@rlr/ui':
+        specifier: workspace:*
+        version: link:../ui
       aws4fetch:
         specifier: 1.0.20
         version: 1.0.20

@@ -1,15 +1,8 @@
-// Match percentages wear loot rarity (DESIGN §9.10; the rarity tokens in @rlr/ui). Calibrated
-// matches start at `match.min_display_score`, so the lowest shown tier is uncommon.
+// Match rarity tiers for the islands (DESIGN §9.10). The thresholds live in @rlr/ui so the site and
+// the emails agree.
 
-export type Tier = "legendary" | "epic" | "rare" | "uncommon";
-
-export function tierOf(percent: number): Tier {
-  return percent >= 90 ? "legendary" : percent >= 80 ? "epic" : percent >= 70 ? "rare" : "uncommon";
-}
-
-export const TIER_NAMES: Record<Tier, string> = {
-  legendary: "Legendary",
-  epic: "Epic",
-  rare: "Rare",
-  uncommon: "Uncommon",
-};
+export {
+  MATCH_TIER_NAMES as TIER_NAMES,
+  type MatchTier as Tier,
+  matchTier as tierOf,
+} from "@rlr/ui/tokens";

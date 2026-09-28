@@ -126,7 +126,7 @@ export async function pickBook(
     authors: p.authors,
     series: p.series,
     hook: p.hook,
-    note: p.percent > 0 ? `${p.percent}% match` : null,
+    percent: p.percent > 0 ? p.percent : null,
     why: opts.showWhy === false ? null : p.why,
     marks:
       opts.marks && opts.userId

@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@rlr/ui": "workspace:*",
     "aws4fetch": "1.0.20",
     "zod": "4.6.5"
   },

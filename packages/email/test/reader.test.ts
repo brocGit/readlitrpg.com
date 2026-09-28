@@ -83,6 +83,20 @@ describe("reader templates", () => {
     expect(busy.subject).toBe("Patch Notes 2026-W40: Fresh Pick and more for you");
     expect(busy.text).toContain('NEW FOR "crafting"');
     expect(busy.text).toContain("91% match");
+    // A match percentage is a rarity pill, the same tiers as the site's badges (DESIGN §9.10).
+    const pills = renderDigest({
+      week: "2026-W40",
+      className: null,
+      outFromFollows: [],
+      newMatches: [book("Gold", { percent: 93 }), book("Purple", { percent: 84 })],
+      comingSoon: [],
+      savedSearches: [],
+      quiz: null,
+      footer,
+    });
+    expect(pills.html).toContain("93% · Legendary");
+    expect(pills.html).toContain("84% · Epic");
+    expect(pills.text).toContain("Gold (93% match, legendary)");
     const withAds = renderDigest({
       week: "2026-W40",
       className: null,

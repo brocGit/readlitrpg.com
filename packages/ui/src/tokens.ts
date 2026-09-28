@@ -36,6 +36,23 @@ export const rarity = {
   legendary: "#b7832a",
 } as const;
 
+/**
+ * Match percentages wear loot rarity (DESIGN §9.10), on the site and in email. Calibrated matches
+ * start at `match.min_display_score`, so the lowest shown tier is uncommon.
+ */
+export type MatchTier = "legendary" | "epic" | "rare" | "uncommon";
+
+export function matchTier(percent: number): MatchTier {
+  return percent >= 90 ? "legendary" : percent >= 80 ? "epic" : percent >= 70 ? "rare" : "uncommon";
+}
+
+export const MATCH_TIER_NAMES: Record<MatchTier, string> = {
+  legendary: "Legendary",
+  epic: "Epic",
+  rare: "Rare",
+  uncommon: "Uncommon",
+};
+
 export const font = {
   body: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   system: "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace",

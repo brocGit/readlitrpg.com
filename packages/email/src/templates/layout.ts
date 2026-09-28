@@ -33,7 +33,7 @@ export function layout({ preheader, bodyHtml, footerText, footerHtml = "" }: Lay
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f4ef;">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #e4dfd3;border-radius:10px;">
-<tr><td style="padding:24px 28px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;letter-spacing:.08em;color:#6b5f3f;">READLITRPG</td></tr>
+<tr><td style="padding:24px 28px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;font-weight:700;letter-spacing:.02em;color:#1b1a17;"><span style="color:#b7832a;">[</span>ReadLitRPG<span style="color:#b7832a;">]</span></td></tr>
 <tr><td style="padding:8px 28px 28px;font-size:16px;line-height:1.55;">${bodyHtml}</td></tr>
 </table>
 <p style="max-width:520px;margin:16px auto 0;font-size:12px;line-height:1.5;color:#6f6a60;">${escapeHtml(footerText)}${footerHtml}</p>

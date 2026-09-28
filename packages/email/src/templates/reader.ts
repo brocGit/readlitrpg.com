@@ -3,6 +3,7 @@
 // HTML with a plain-text part; every value is escaped. Links go to readlitrpg.com pages, never
 // straight to a retailer (§13.5).
 
+import { MATCH_TIER_NAMES, matchTier, rarity } from "@rlr/ui/tokens";
 import { button, escapeHtml, layout } from "./layout";
 
 export interface Rendered {
@@ -17,8 +18,10 @@ export interface EmailBook {
   authors: string;
   series?: string | null;
   hook?: string | null;
-  /** "92% match", "Out 3 Nov 2026", "Ebook release"… */
+  /** "Out 3 Nov 2026", "Ebook release"… */
   note?: string | null;
+  /** A match percentage, shown as a rarity pill (DESIGN §9.10). */
+  percent?: number | null;
   why?: string | null;
   /** One-click choices; each opens a page with the choice pre-selected (QUIZZES §3.4). */
   marks?: { loved: string; read: string; no: string } | null;
@@ -55,13 +58,23 @@ function footerParts(f: Footer) {
   return { html, text };
 }
 
+/** "91% · Legendary" in its rarity color, like the site's match badges. */
+function matchPill(percent: number): string {
+  const tier = matchTier(percent);
+  const color = rarity[tier];
+  return `<span style="${mono}display:inline-block;padding:0 6px;border:1px solid ${color};border-radius:4px;font-size:12px;font-weight:600;color:${color};">${percent}% · ${MATCH_TIER_NAMES[tier]}</span>`;
+}
+
+const matchText = (b: EmailBook) =>
+  b.percent ? ` (${b.percent}% match, ${MATCH_TIER_NAMES[matchTier(b.percent)].toLowerCase()})` : "";
+
 function bookHtml(b: EmailBook): string {
   const meta = [b.authors, b.series].filter(Boolean).join(" · ");
   const marks = b.marks
     ? `<div style="margin-top:6px;font-size:13px;">${a(b.marks.loved, "Loved it")} · ${a(b.marks.read, "Read it")} · ${a(b.marks.no, "Not for me")}</div>`
     : "";
   return `<tr><td style="padding:10px 0;border-top:1px solid #e4dfd3;">
-<div style="font-weight:600;">${a(b.url, b.title, "color:#1b1a17;text-decoration:none;")}${b.note ? ` <span style="${mono}font-size:12px;color:#1f5f4a;">${escapeHtml(b.note)}</span>` : ""}</div>
+<div style="font-weight:600;">${a(b.url, b.title, "color:#1b1a17;text-decoration:none;")}${b.percent ? ` ${matchPill(b.percent)}` : ""}${b.note ? ` <span style="${mono}font-size:12px;color:#1f5f4a;">${escapeHtml(b.note)}</span>` : ""}</div>
 <div style="font-size:13px;${muted}">${escapeHtml(meta)}</div>
 ${b.hook ? `<div style="font-size:14px;font-style:italic;margin-top:4px;">${escapeHtml(b.hook)}</div>` : ""}
 ${b.why ? `<div style="font-size:14px;margin-top:4px;">${escapeHtml(b.why)}</div>` : ""}
@@ -78,7 +91,7 @@ const bookText = (list: EmailBook[]) =>
   list
     .map((b) =>
       [
-        `- ${b.title}${b.note ? ` (${b.note})` : ""}`,
+        `- ${b.title}${matchText(b)}${b.note ? ` (${b.note})` : ""}`,
         `  ${[b.authors, b.series].filter(Boolean).join(" · ")}`,
         b.hook ? `  ${b.hook}` : "",
         `  ${b.url}`,
