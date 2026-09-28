@@ -3,9 +3,9 @@ import { encodeInputs } from "@rlr/core/match";
 import { getQuiz } from "@rlr/core/quiz";
 import { effectiveInputs, getReaderProfile } from "@rlr/core/readers";
 import AccountNav from "../../components/AccountNav.astro";
+import QuestLog from "../../components/site/QuestLog.astro";
 import Base from "../../layouts/Base.astro";
 import { runMatch } from "../../lib/match";
-import { classInfo, levelInfo } from "../../lib/readers";
 import { getDb } from "../../lib/runtime";
 import "../../styles/discover.css";
 import "../../styles/reader.css";
@@ -19,8 +19,6 @@ const settings = await Astro.locals.settings();
 const profile = await getReaderProfile(db, session.userId);
 const effective = await effectiveInputs(db, session.userId);
 const matches = await runMatch(effective, settings);
-const level = levelInfo(profile.level);
-const cls = classInfo(profile.readerClass);
 const stated = profile.inputs;
 const quiz = stated.quiz ? getQuiz(stated.quiz.slug) : undefined;
 const tuneUrl = `/match/r?p=${encodeInputs(stated)}`;
@@ -43,12 +41,7 @@ const FORMATS = [
     {cleared && <p class="notice" role="status">Your stated tastes are cleared. Book marks and imports still count.</p>}
     <p class="muted">Your tastes decide what we show and send you. We never sell or share your email.</p>
 
-    <section class="status-screen level">
-      <p class="label">[Level {level.level}: {level.title}]</p>
-      <progress max="100" value={level.xp} aria-label={`Profile level ${level.level} of 5`}></progress>
-      {cls && <p>Class: <strong>{cls.name}</strong></p>}
-      {level.next && <p>Next: <a href={level.next.href}>{level.next.text}</a></p>}
-    </section>
+    <QuestLog level={profile.level} readerClass={profile.readerClass} />
 
     <h2>Your top matches</h2>
     {

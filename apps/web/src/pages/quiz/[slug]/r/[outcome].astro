@@ -22,13 +22,13 @@ const card = mediaUrl(quizOgKey(quiz.slug, outcome.key));
 ---
 
 <Base title={`${outcome.name}: ${quiz.title}`} description={outcome.shareText} ogImage={card}>
-  <p class="label">[{quiz.title}]</p>
-  <section class="status-screen">
-    <h1>{outcome.name}</h1>
+  <section class="status-screen reveal">
+    <p class="label reveal-label">[{quiz.kind === "trivia" ? "Quest complete" : "Title acquired"} · {quiz.title}]</p>
+    <h1 class="reveal-name">{outcome.name}</h1>
     <p><strong>{outcome.tagline}</strong></p>
     <p>{outcome.description}</p>
-    {outcome.loves.length > 0 && <ul>{outcome.loves.map((l) => <li>{l}</li>)}</ul>}
-    {outcome.watchOut && <p class="muted">Watch out for: {outcome.watchOut}</p>}
+    {outcome.loves.length > 0 && <ul class="perks" aria-label="Loves">{outcome.loves.map((l) => <li>{l}</li>)}</ul>}
+    {outcome.watchOut && <p class="debuff"><span class="label">[Debuff]</span> Watch out for: {outcome.watchOut}</p>}
   </section>
 
   {quiz.kind === "fun" && (

@@ -1,0 +1,43 @@
+---
+// The reader's profile as a quest log (QUIZZES §4.2, DESIGN §9.10): the XP bar, levels done, the
+// one active quest (the page's single next step) and the locked levels, titles hidden as ???.
+import { classInfo, levelInfo } from "../../lib/readers";
+
+interface Props {
+  level: number;
+  readerClass: string | null;
+}
+const info = levelInfo(Astro.props.level);
+const cls = classInfo(Astro.props.readerClass);
+---
+
+<section class="status-screen quest-log" aria-labelledby="quest-log-label">
+  <p class="label" id="quest-log-label">[Profile · Level {info.level}: {info.title}]</p>
+  <div class="xp">
+    <progress max="5" value={info.level} aria-label={`Profile level ${info.level} of 5`}></progress>
+    <span class="xp-count" aria-hidden="true">{info.level}/5</span>
+  </div>
+  {cls && <p>Class: <strong>{cls.name}</strong>. {cls.tagline}</p>}
+  <ol class="quests" aria-label="Profile levels">
+    {
+      info.quests.map((q) => (
+        <li class={`quest ${q.state}`} aria-current={q.state === "active" ? "step" : undefined}>
+          <span class="mark" aria-hidden="true">
+            {q.state === "done" ? "✓" : q.state === "active" ? "▸" : "·"}
+          </span>
+          <span class="quest-name">
+            Lv {q.level} · {q.state === "locked" ? <span aria-label="locked">???</span> : q.title}
+          </span>
+          {q.state === "active" && q.href ? (
+            <span class="quest-how">
+              <a href={q.href}>{q.how}</a> <span class="muted">Unlocks: {q.improves}.</span>
+            </span>
+          ) : q.state === "done" ? (
+            <span class="quest-how muted">{q.improves}</span>
+          ) : null}
+        </li>
+      ))
+    }
+  </ol>
+  {info.level >= 5 && <p>Max level. Your appraisals help every reader's matches too.</p>}
+</section>

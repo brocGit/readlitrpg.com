@@ -60,19 +60,41 @@ export function classInfo(key: string | null) {
   return c ? { key: c.key, name: c.name, tagline: c.tagline } : null;
 }
 
-/** QUIZZES §4.2: the level title, the next step and a 0–100 XP bar. */
+/** QUIZZES §4.2: how each level is reached and what it improves. Level 1 comes with the account. */
+const QUESTS: Record<number, { how: string; href: string | null; improves: string }> = {
+  1: { how: "Create an account", href: null, improves: "Popular picks" },
+  2: { how: "Take a quick quiz to get your class", href: "/quiz", improves: "Picks for your class" },
+  3: { how: "Rate 5 books you've read", href: "/match/quiz", improves: "Real personalized matches" },
+  4: {
+    how: "Set your must-haves and hard no's",
+    href: "/match/quiz",
+    improves: "Heads-ups and precise filters",
+  },
+  5: {
+    how: "Appraise 3 books you've read, or import your Goodreads ratings",
+    href: "/account/import",
+    improves: "The best matches, and better ones for everyone",
+  },
+};
+
+export type QuestState = "done" | "active" | "locked";
+
+/**
+ * QUIZZES §4.2: the level title, an XP bar (level of 5), the one next step, and the quest log. A page
+ * asks for at most one next step, so only the active quest links anywhere; later ones stay "???".
+ */
 export function levelInfo(level: number) {
-  const next: Record<number, { text: string; href: string } | null> = {
-    1: { text: "Take a quick quiz to get your class", href: "/quiz" },
-    2: { text: "Rate 5 books you've read", href: "/match/quiz" },
-    3: { text: "Set your must-haves and hard no's", href: "/match/quiz" },
-    4: { text: "Appraise 3 books you've read, or import your Goodreads ratings", href: "/account/import" },
-    5: null,
-  };
+  const quests = [1, 2, 3, 4, 5].map((l) => {
+    const q = QUESTS[l] ?? { how: "", href: null, improves: "" };
+    const state: QuestState = l <= level ? "done" : l === level + 1 ? "active" : "locked";
+    return { level: l, title: LEVEL_TITLES[l] ?? "", ...q, state };
+  });
+  const active = quests.find((q) => q.state === "active");
   return {
     level,
     title: LEVEL_TITLES[level] ?? LEVEL_TITLES[1],
-    xp: Math.round(((level - 1) / 4) * 100),
-    next: next[level] ?? null,
+    xp: Math.round((level / 5) * 100),
+    next: active?.href ? { text: active.how, href: active.href } : null,
+    quests,
   };
 }

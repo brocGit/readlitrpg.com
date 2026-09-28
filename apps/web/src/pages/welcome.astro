@@ -29,7 +29,10 @@ const confirmed = Astro.url.searchParams.get("confirmed") === "1";
         {cls ? <>Welcome, <strong>{cls.name}</strong>. </> : "Welcome to ReadLitRPG. "}
         {confirmed ? "Your reading list is on its way. " : ""}Profile level {level.level}: {level.title}.
       </p>
-      <progress max="100" value={level.xp} aria-label={`Profile level ${level.level} of 5`}></progress>
+      <div class="xp">
+        <progress max="5" value={level.level} aria-label={`Profile level ${level.level} of 5`}></progress>
+        <span class="xp-count" aria-hidden="true">{level.level}/5</span>
+      </div>
     </div>
     <h1>How should we learn your taste?</h1>
     <p>Pick one. Each makes your matches sharper, and you can change everything later.</p>

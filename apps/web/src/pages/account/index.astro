@@ -4,8 +4,8 @@ import AccountNav from "../../components/AccountNav.astro";
 import AddPasskey from "../../components/AddPasskey";
 import AttachTakes from "../../components/AttachTakes";
 import SignOut from "../../components/SignOut";
+import QuestLog from "../../components/site/QuestLog.astro";
 import Base from "../../layouts/Base.astro";
-import { classInfo, levelInfo } from "../../lib/readers";
 import { getAuth, getDb } from "../../lib/runtime";
 import "../../styles/discover.css";
 import "../../styles/reader.css";
@@ -20,8 +20,6 @@ const [passkeys, profile, consents] = await Promise.all([
   getReaderProfile(db, session.userId),
   consentsFor(db, session.userId),
 ]);
-const level = levelInfo(profile.level);
-const cls = classInfo(profile.readerClass);
 const weekly = consents.some((c) => c.list === "weekly_digest" && c.status === "active");
 ---
 
@@ -31,16 +29,7 @@ const weekly = consents.some((c) => c.list === "weekly_digest" && c.status === "
     <p>Signed in as <strong>{session.email}</strong>.</p>
     <AccountNav />
 
-    <section class="status-screen level">
-      <p class="label">[Profile · Level {level.level}: {level.title}]</p>
-      <progress max="100" value={level.xp} aria-label={`Profile level ${level.level} of 5`}></progress>
-      {cls && <p>Class: <strong>{cls.name}</strong>. {cls.tagline}</p>}
-      {level.next ? (
-        <p>Next level: <a href={level.next.href}>{level.next.text}</a>. Each level sharpens your matches.</p>
-      ) : (
-        <p>Max level. Your appraisals help every reader's matches too.</p>
-      )}
-    </section>
+    <QuestLog level={profile.level} readerClass={profile.readerClass} />
 
     <p>
       <a class="button" href="/account/preferences">See my matches</a>

@@ -5,42 +5,44 @@ import { liveQuizzes } from "@rlr/core/quiz";
 import Base from "../../layouts/Base.astro";
 import { getDb } from "../../lib/runtime";
 import "../../styles/discover.css";
+import "../../styles/site.css";
 
 const quizzes = await liveQuizzes(getDb());
 const fun = quizzes.filter((q) => q.kind === "fun");
 const trivia = quizzes.filter((q) => q.kind === "trivia");
 Astro.cache.set({ tags: ["quizzes"] });
+const minutes = (q: (typeof quizzes)[number]) =>
+  q.estimated_seconds ? Math.max(1, Math.round(q.estimated_seconds / 60)) : null;
 ---
 
 <Base title="Quizzes" description="LitRPG quizzes: find your class, test your lore, and get three books picked for your result.">
   <h1>Quizzes</h1>
   <p class="muted">No email gate. Every result comes with three books picked for it.</p>
+
+  <section class="main-quest status-screen">
+    <p class="label">[Main quest]</p>
+    <h2><a href="/match/quiz">The Match Quiz</a></h2>
+    <p>Nine quick steps, every one skippable. It tunes every match you see, and the preview updates as you go.</p>
+    <p><a class="button" href="/match/quiz">Start the Match Quiz</a></p>
+  </section>
+
   {quizzes.length === 0 && <p class="status-screen">[Quest board empty] New quizzes are being prepared. Try the <a href="/match/quiz">Match Quiz</a> meanwhile.</p>}
-  {fun.length > 0 && (
-    <section>
-      <h2>Personality</h2>
-      <ul class="quiz-list">
-        {fun.map((q) => (
+  {[
+    { heading: "Personality", list: fun, reward: "A title and 3 books" },
+    { heading: "Trivia", list: trivia, reward: "A score and bragging rights" },
+  ].map((group) => group.list.length > 0 && (
+    <section class="strip">
+      <h2>{group.heading}</h2>
+      <ul class="cards quest-board">
+        {group.list.map((q) => (
           <li>
-            <a href={`/quiz/${q.slug}`}><strong>{q.title}</strong></a>
-            <div class="muted">{q.dek}</div>
+            <p class="label">[{q.questions.length} questions{minutes(q) ? ` · ${minutes(q)} min` : ""}]</p>
+            <h3><a href={`/quiz/${q.slug}`}>{q.title}</a></h3>
+            <p class="muted">{q.dek}</p>
+            <p class="reward">Reward: {group.reward}</p>
           </li>
         ))}
       </ul>
     </section>
-  )}
-  {trivia.length > 0 && (
-    <section>
-      <h2>Trivia</h2>
-      <ul class="quiz-list">
-        {trivia.map((q) => (
-          <li>
-            <a href={`/quiz/${q.slug}`}><strong>{q.title}</strong></a>
-            <div class="muted">{q.dek}</div>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )}
-  <p><a href="/match/quiz">The Match Quiz</a> is the one that tunes your recommendations.</p>
+  ))}
 </Base>

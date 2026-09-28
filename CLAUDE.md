@@ -185,3 +185,5 @@ Browser E2E (what CI runs): build, then `astro preview` web on 4321 and admin on
 - In the web app, DOM `append` type-checks as HTMLRewriter's `Element.append` (the Workers types are global). Use `appendChild` in island code.
 - Biome's `noDescendingSpecificity` compares selectors across the whole stylesheet: put lower-specificity rules for the same element first, or give the element its own class.
 - Motion lives in `styles/feel.css` (web) and `@rlr/ui` (tokens, buttons). `prefers-reduced-motion` must turn off anything new (base.css does it for all animations). The rules are in DESIGN §9.10.
+- Scroll-driven animations (`animation-timeline: view()`) leave everything below the fold at their first keyframe in print, full-page screenshots and tall-viewport crawlers. Don't use them for content.
+- Biome's a11y rules refuse `role="listbox"` on a `ul` (use a `div`), and flagged `aria-hidden` on a `kbd` inside a button (a `span` passes). Keep `.hits button` for tests: the combobox options are buttons with `role="option"`.

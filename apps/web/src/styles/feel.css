@@ -102,6 +102,7 @@
 .book-tile,
 .match-card,
 .ad-card,
+.option-card,
 .quiz-list li {
   transition:
     transform var(--dur) var(--ease-out),
@@ -112,6 +113,7 @@
 @media (hover: hover) {
   .cards li:hover,
   .book-tile:hover,
+  .option-card:hover,
   .ad-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--lift);
@@ -129,6 +131,7 @@
   position: relative;
 }
 
+.book-row h3 a::after,
 .book-tile h3 a::after,
 .cards li h3 a::after {
   content: "";
@@ -143,6 +146,34 @@
 .cards li a:not(h3 a) {
   position: relative;
   z-index: 1;
+}
+
+/* Book rows: the whole row is the link, and the cover slides off the shelf a little on hover. */
+.book-row {
+  position: relative;
+  padding: var(--space-2);
+  margin-inline: calc(-1 * var(--space-2));
+  border-radius: var(--radius-small);
+  transition: background-color var(--dur) var(--ease-out);
+}
+
+.book-row .cover {
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.book-row .meta {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) {
+  .book-row:hover {
+    background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  }
+
+  .book-row:hover .cover {
+    transform: translateY(-3px) rotate(-2deg);
+  }
 }
 
 /* Tags and chips: a clear chosen state that pops when picked. */
@@ -196,6 +227,36 @@
 
 .chip input {
   accent-color: var(--color-primary);
+}
+
+/* The book typeahead: hits drop open, and the highlighted one is marked like a menu cursor. */
+.hits {
+  animation: drop var(--dur) var(--ease-out) backwards;
+  box-shadow: var(--lift);
+  overflow: hidden;
+}
+
+.hits [role="option"] {
+  position: relative;
+  padding-left: var(--space-6);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.hits [role="option"][aria-selected="true"] {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+}
+
+.hits [role="option"][aria-selected="true"]::before {
+  content: "▸";
+  position: absolute;
+  left: var(--space-2);
+  color: var(--color-accent);
+}
+
+.no-hits {
+  font-family: var(--font-system);
+  font-size: 0.85rem;
+  margin: var(--space-1) 0 0;
 }
 
 /* Picking books for a match: each joins the party with a pop, and the button powers up. */
@@ -429,6 +490,114 @@ progress::-moz-progress-bar {
     glow 1.4s var(--ease-out) 150ms backwards;
 }
 
+/* The profile as a quest log: an XP bar, levels done, the one active quest, and locked ones. */
+.xp {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: var(--space-2);
+}
+
+.xp progress {
+  flex: 1;
+  inline-size: auto;
+  max-inline-size: 28rem;
+}
+
+.xp-count {
+  font-family: var(--font-system);
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.quests {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.quest {
+  display: grid;
+  grid-template-columns: 1.25rem 12rem 1fr;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-small);
+}
+
+.quest .mark {
+  font-weight: 700;
+  text-align: center;
+}
+
+.quest.done .mark {
+  color: var(--rarity-uncommon);
+}
+
+.quest.active {
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  animation: quest-pulse 2.4s var(--ease-out) 600ms 2 backwards;
+}
+
+.quest.active .mark {
+  color: var(--color-accent);
+}
+
+.quest.locked {
+  color: var(--color-muted);
+}
+
+@media (max-width: 40rem) {
+  .quest {
+    grid-template-columns: 1.25rem 1fr;
+  }
+
+  .quest .quest-how {
+    grid-column: 2;
+  }
+}
+
+@keyframes quest-pulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px var(--color-accent),
+      0 0 14px color-mix(in srgb, var(--color-accent) 35%, transparent);
+  }
+}
+
+/* The quiz hub as a quest board: the Match Quiz is the main quest, the rest are side quests. */
+.main-quest {
+  border-color: color-mix(in srgb, var(--color-accent) 60%, var(--color-line));
+  margin-block: var(--space-6);
+}
+
+.main-quest h2 {
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.main-quest h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.quest-board .label {
+  margin: 0 0 var(--space-1);
+}
+
+.quest-board .reward {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-system);
+  font-size: 0.8rem;
+  color: var(--color-accent);
+}
+
 /* Match Quiz: each book to rate is its own box, and a rated one shows its verdict. */
 .match-quiz > progress {
   inline-size: 100%;
@@ -508,6 +677,39 @@ progress::-moz-progress-bar {
 
 .options:not(.locked) .option:active {
   transform: scale(0.98);
+}
+
+/* Key hints, like a game menu's. Touch screens have no number row to press. */
+.option .key {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-2);
+  font-family: var(--font-system);
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  border: 1px solid var(--color-line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0 0.35em;
+  line-height: 1.4;
+  background: var(--color-paper);
+}
+
+@media (hover: hover) {
+  .option:has(.key) {
+    padding-right: 2.25rem;
+  }
+}
+
+@media (hover: none) {
+  .option .key {
+    display: none;
+  }
+}
+
+.option.chosen .key {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .option.chosen {
@@ -710,8 +912,35 @@ ul.perks > li::before {
   color: var(--rarity-legendary);
 }
 
+/* A level-up toast catches the light once. */
+.system-toast.level-up {
+  position: relative;
+  overflow: hidden;
+}
+
+.system-toast.level-up::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--rarity-legendary) 35%, transparent) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 1.1s var(--ease-out) 350ms 1 forwards;
+  pointer-events: none;
+}
+
 .system-toast.leaving {
   animation: toast-out var(--dur) var(--ease-out) forwards;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes pop {

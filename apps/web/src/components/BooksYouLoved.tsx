@@ -2,7 +2,7 @@
 // and see matches in under a second. Nothing is stored; the inputs go into a share link.
 
 import type { DislikeReason, HardNo, MatchInputs } from "@rlr/core/match";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useId, useRef, useState } from "preact/hooks";
 
 interface Hit {
   slug: string;
@@ -29,6 +29,10 @@ const NOES: { key: HardNo; label: string }[] = [
   { key: "grimdark", label: "Grimdark" },
 ];
 
+/**
+ * A book typeahead that plays like a game menu: arrows move the highlight, Enter picks (the first
+ * hit if none is highlighted), Escape closes. ARIA combobox: focus stays in the input.
+ */
 function BookSearch({
   placeholder,
   onPick,
@@ -40,39 +44,84 @@ function BookSearch({
 }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
+  const [active, setActive] = useState(-1);
+  const [empty, setEmpty] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const listId = useId();
   useEffect(() => {
     clearTimeout(timer.current);
+    setEmpty(false);
     if (q.trim().length < 2) {
       setHits([]);
       return;
     }
     timer.current = setTimeout(async () => {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      if (res.ok)
-        setHits(((await res.json()) as { books: Hit[] }).books.filter((h) => !exclude.includes(h.slug)));
+      if (!res.ok) return;
+      const found = ((await res.json()) as { books: Hit[] }).books.filter((h) => !exclude.includes(h.slug));
+      setHits(found);
+      setActive(-1);
+      setEmpty(found.length === 0);
     }, 180);
   }, [q]);
+
+  function pick(h: Hit) {
+    onPick(h);
+    setQ("");
+    setHits([]);
+    setActive(-1);
+  }
+
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      setHits([]);
+      setActive(-1);
+      return;
+    }
+    if (hits.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => (a + 1) % hits.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => (a <= 0 ? hits.length - 1 : a - 1));
+    } else if (e.key === "Enter") {
+      const h = hits[active >= 0 ? active : 0];
+      if (h) {
+        e.preventDefault();
+        pick(h);
+      }
+    }
+  }
+
+  const open = hits.length > 0;
   return (
     <div class="book-search">
       <input
         type="search"
+        role="combobox"
         placeholder={placeholder}
         aria-label={placeholder}
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
         value={q}
         onInput={(e) => setQ((e.target as HTMLInputElement).value)}
+        onKeyDown={onKeyDown}
       />
-      {hits.length > 0 && (
-        <ul class="hits">
-          {hits.map((h) => (
-            <li key={h.slug}>
+      {open && (
+        <div class="hits" id={listId} role="listbox" aria-label="Matching books">
+          {hits.map((h, i) => (
+            <div key={h.slug} role="presentation">
               <button
                 type="button"
-                onClick={() => {
-                  onPick(h);
-                  setQ("");
-                  setHits([]);
-                }}
+                id={`${listId}-${i}`}
+                role="option"
+                tabIndex={-1}
+                aria-selected={i === active}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => pick(h)}
               >
                 <strong>{h.title}</strong>
                 <span class="muted">
@@ -81,9 +130,14 @@ function BookSearch({
                   {h.series ? ` · ${h.series}${h.position ? ` #${h.position}` : ""}` : ""}
                 </span>
               </button>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
+      )}
+      {empty && (
+        <p class="no-hits muted" role="status">
+          [No loot found] Nothing matches that yet. Try the author's name.
+        </p>
       )}
     </div>
   );
@@ -218,8 +272,12 @@ export default function BooksYouLoved() {
           {error}
         </p>
       )}
-      <button class="button" type="submit" disabled={busy || loved.length === 0}>
-        {busy ? "Matching…" : "Find my next read"}
+      <button
+        class={busy ? "button calculating" : "button"}
+        type="submit"
+        disabled={busy || loved.length === 0}
+      >
+        {busy ? "Scanning the archives" : "Find my next read"}
       </button>
     </form>
   );

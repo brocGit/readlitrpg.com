@@ -1,7 +1,7 @@
 // Playing a quiz (QUIZZES.md §3.2): one question at a time, the server scores it, and the result
 // comes with three books, a share card, Party up and "Sharpen my matches". No email gate.
 
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import type { ResultCard } from "../lib/match";
 import type { PlayableQuiz } from "../lib/quiz";
 import { announce } from "../lib/system";
@@ -94,6 +94,30 @@ export default function QuizPlayer({
       reducedMotion() ? 0 : CHOSEN_MS,
     );
   }
+
+  // Game-menu keys: 1–9 pick an answer, Backspace or ← goes back. Never while typing in a field.
+  useEffect(() => {
+    if (result) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName) || t.isContentEditable)) return;
+      const q = quiz.questions[index];
+      if (!q) return;
+      const n = Number(e.key);
+      const option = Number.isInteger(n) && n >= 1 ? q.options[n - 1] : undefined;
+      if (option) {
+        e.preventDefault();
+        pick(option.id);
+      } else if ((e.key === "Backspace" || e.key === "ArrowLeft") && index > 0 && !busy && !chosen) {
+        e.preventDefault();
+        setBack(true);
+        setIndex(index - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [index, result, busy, chosen]);
 
   async function answer(optionId: string) {
     const next = [...answers.slice(0, index), optionId];
@@ -230,14 +254,20 @@ export default function QuizPlayer({
       <div class={back ? "question from-back" : "question"} key={index}>
         <h2>{q.prompt}</h2>
         <div class={locked ? "options locked" : "options"}>
-          {q.options.map((o) => (
+          {q.options.map((o, i) => (
             <button
               key={o.id}
               type="button"
               class={chosen === o.id ? "option chosen" : "option"}
               aria-pressed={chosen === o.id}
+              aria-keyshortcuts={i < 9 ? String(i + 1) : undefined}
               onClick={() => pick(o.id)}
             >
+              {i < 9 && (
+                <span class="key" aria-hidden="true">
+                  {i + 1}
+                </span>
+              )}
               {o.label}
             </button>
           ))}

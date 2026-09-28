@@ -1605,6 +1605,10 @@ The site should answer like a good game menu: every touch gets a response, and t
 - **The System speaks in toasts.** Short bracketed lines in the corner (`lib/system.ts`) confirm what happened: a copied link, a taste the match results learned, a book marked as read. They are polite live regions, never block a click, and at most three are shown.
 - **Levels are moments.** Marks, saved tastes and appraisals report `levelUp` when the reader's profile level rises (QUIZZES §4.2), and the page shows a gold "[Level up!]" toast. Appraising refreshes the level, so level 5 ("Appraiser") arrives when earned.
 - **Waiting looks like work.** Re-ranking dims the old list under a "[Recalculating]" line, a dismissed card slides out, and new cards drop in one after another. Unappraised `???` stats flicker now and then, like an item waiting to be identified.
+- **Keyboard play.** Quiz answers take the number keys (hints shown where there's a pointer), and Backspace or ← goes back. The book search is an ARIA combobox: arrows move a menu cursor, Enter picks (the first hit if none is highlighted), Escape closes, and an empty search says "[No loot found]".
+- **The profile is a quest log.** Account and Tastes show the XP bar (level of 5, never empty), levels done, the one active quest (the page's single next step, QUIZZES §4.2) and later levels locked as "???". The quiz hub is a quest board: the Match Quiz is the main quest; each quiz card shows its questions, minutes and reward.
+- **Placeholder covers look bound.** A book without a licensed cover gets a cloth color chosen from its title (six colors, so it's stable in cached pages), a spine, a frame and a rule above the author. In lists, a row is one link and its cover tilts off the shelf on hover.
+- **Content never waits on scrolling.** No scroll-driven reveals: they leave anything not yet scrolled to invisible in print, full-page captures and tall-viewport crawlers. Entrance animations run on load, and only above-the-fold elements need them.
 - **CSP holds.** Everything is classes and keyframes. Toasts are built with DOM calls, never inline styles or HTML strings.
 
 ---

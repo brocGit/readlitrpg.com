@@ -51,10 +51,73 @@
   justify-content: space-between;
   aspect-ratio: 2 / 3;
   padding: var(--space-2);
-  background: var(--color-primary);
-  color: var(--color-primary-ink);
   font-family: var(--font-system);
   overflow: hidden;
+}
+
+/* Placeholders look bound (DESIGN §9.10): a cloth color from the title, a spine, a frame and a rule. */
+.cover.placeholder {
+  position: relative;
+  background: linear-gradient(135deg, var(--cloth-a, var(--color-primary)), var(--cloth-b, #12382c));
+  color: #f4ecd8;
+  padding-left: calc(var(--space-2) + 6px);
+  box-shadow:
+    inset 6px 0 0 rgb(0 0 0 / 0.2),
+    inset 7px 0 0 rgb(255 255 255 / 0.12),
+    0 1px 3px rgb(0 0 0 / 0.25);
+}
+
+.cover.placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 5px 5px 5px 11px;
+  border: 1px solid rgb(244 236 216 / 0.28);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.cover.placeholder.tiny::before {
+  inset: 3px 3px 3px 9px;
+}
+
+.cover.placeholder .ph-author::before {
+  content: "";
+  display: block;
+  inline-size: 2em;
+  block-size: 1px;
+  margin-bottom: 0.35em;
+  background: currentcolor;
+  opacity: 0.5;
+}
+
+.cover.cloth-0 {
+  --cloth-a: #1f5f4a;
+  --cloth-b: #12382c;
+}
+
+.cover.cloth-1 {
+  --cloth-a: #24476b;
+  --cloth-b: #152a40;
+}
+
+.cover.cloth-2 {
+  --cloth-a: #5b3563;
+  --cloth-b: #36203b;
+}
+
+.cover.cloth-3 {
+  --cloth-a: #7a2e2a;
+  --cloth-b: #4a1b19;
+}
+
+.cover.cloth-4 {
+  --cloth-a: #3d4650;
+  --cloth-b: #242a30;
+}
+
+.cover.cloth-5 {
+  --cloth-a: #7a5a24;
+  --cloth-b: #4a3616;
 }
 
 .cover.placeholder .ph-title {

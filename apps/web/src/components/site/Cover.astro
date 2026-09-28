@@ -14,6 +14,9 @@ interface Props {
 const { cover, title, author, width = 120, eager = false } = Astro.props;
 const img = cover ? coverImage(cover, width) : null;
 const size = width >= 200 ? "large" : width <= 80 ? "tiny" : "small";
+// Placeholders are bound like books in one of six cloth colors, chosen from the title so a book
+// always gets the same one (the page is cached and shared, DESIGN §9.10).
+const cloth = [...title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 6;
 ---
 
 {
@@ -30,7 +33,7 @@ const size = width >= 200 ? "large" : width <= 80 ? "tiny" : "small";
       decoding="async"
     />
   ) : (
-    <div class={`cover placeholder ${size}`} role="img" aria-label={`No cover yet for ${title}`}>
+    <div class={`cover placeholder cloth-${cloth} ${size}`} role="img" aria-label={`No cover yet for ${title}`}>
       <span class="ph-title">{title}</span>
       {author && <span class="ph-author">{author}</span>}
     </div>
