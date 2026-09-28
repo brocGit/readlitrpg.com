@@ -44,7 +44,7 @@ const upToDate = synced === TAXONOMY_HASH && inDb.length >= TAGS.length;
   <div class="status-screen">
     <p class="label">[Vocabulary {TAXONOMY_HASH}]</p>
     <p>
-      {TAGS.length} tags in data/taxonomy.yaml · {inDb.length} in the database ·
+      {TAGS.length} tags in data/taxonomy.yaml · {inDb.length} in the database ·{" "}
       {upToDate ? " up to date." : " needs a sync (the hourly job will do it, or sync now)."}
     </p>
     <form method="post"><button class="button small" type="submit">Sync now</button></form>

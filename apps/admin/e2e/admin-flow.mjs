@@ -133,6 +133,9 @@ async function signUpWithPasskey({ page, hydrated }, email) {
 
 // Test runs sign in many times from one IP; start each run with fresh rate-limit windows.
 sql("DELETE FROM rate_counters");
+// Each run adds a passkey for the owner. Clear the earlier runs' first: past 64, the browser refuses
+// to register another (excludeCredentials), and the old ones would satisfy "added" on their own.
+sql(`DELETE FROM passkeys WHERE user_id IN (SELECT id FROM users WHERE email = '${OWNER}')`);
 
 const browser = await chromium.launch({ executablePath: CHROMIUM, args: ["--no-sandbox"] });
 try {

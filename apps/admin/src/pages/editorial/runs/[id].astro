@@ -17,7 +17,7 @@ const when = (iso: string | null) => (iso ? iso.slice(0, 16).replace("T", " ") :
 
 <Console title={`Run ${run.kind}${run.label ? ` · ${run.label}` : ""}`}>
   <p class="muted">
-    {run.status} · started {when(run.startedAt)} · finished {when(run.finishedAt)} · {run.itemsClaimed} claimed ·
+    {run.status} · started {when(run.startedAt)} · finished {when(run.finishedAt)} · {run.itemsClaimed} claimed ·{" "}
     {run.proposalsAccepted} accepted · {run.proposalsRejected} rejected · {run.proposalsHeld} held
   </p>
   {run.circuitOpen && (

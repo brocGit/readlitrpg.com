@@ -44,7 +44,7 @@ const percent = job.total ? Math.round((job.processed / job.total) * 100) : 100;
   <div class="status-screen">
     <p class="label">[{job.status === "done" ? "Import complete" : `Importing · ${percent}%`}]</p>
     <p>
-      {job.processed} of {job.total} rows · {job.created} new · {job.matched} matched existing books · {job.flagged} possible duplicates ·
+      {job.processed} of {job.total} rows · {job.created} new · {job.matched} matched existing books · {job.flagged} possible duplicates ·{" "}
       {job.failed} failed
     </p>
     {job.status !== "done" && <p class="muted">A job works through about 20 rows at a time. Refresh to see progress.</p>}

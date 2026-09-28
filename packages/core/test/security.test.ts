@@ -1,6 +1,6 @@
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { beforeAll, describe, expect, it } from "vitest";
-import { buildCsp, securityHeaders, verifyAccessJwt } from "../src/security";
+import { buildCsp, reroutesToErrorPage, securityHeaders, verifyAccessJwt } from "../src/security";
 
 const TEAM = "https://readlitrpg.cloudflareaccess.com";
 const AUD = "aud-tag-123";
@@ -95,5 +95,13 @@ describe("security headers", () => {
     expect(securityHeaders({ hsts: true })["Strict-Transport-Security"]).toContain("max-age=63072000");
     expect(securityHeaders()["Strict-Transport-Security"]).toBeUndefined();
     expect(securityHeaders({ noReferrer: true })["Referrer-Policy"]).toBe("no-referrer");
+  });
+
+  it("knows which responses Astro replaces with the error page", () => {
+    expect(reroutesToErrorPage(new Response(null, { status: 404 }))).toBe(true);
+    expect(reroutesToErrorPage(new Response(null, { status: 500 }))).toBe(true);
+    // A body means the handler answered itself (an API's JSON 404), and a 403 is never replaced.
+    expect(reroutesToErrorPage(Response.json({ error: "not_found" }, { status: 404 }))).toBe(false);
+    expect(reroutesToErrorPage(new Response(null, { status: 403 }))).toBe(false);
   });
 });

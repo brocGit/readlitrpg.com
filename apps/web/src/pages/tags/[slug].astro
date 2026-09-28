@@ -79,7 +79,7 @@ Astro.cache.set({ tags: ["tags", `tag:${t.slug}`] });
   <FollowButton client:idle type="tag" slug={t.slug} name={t.name} />
   {t.includeWhen && <p class="muted prose">Tagged when: {t.includeWhen}</p>}
   <p class="feeds">
-    <a href={`/find?inc=${t.slug}`}>Filter these books</a> · <a href={`/feeds/tags/${t.slug}.xml`}>RSS</a> ·
+    <a href={`/find?inc=${t.slug}`}>Filter these books</a> · <a href={`/feeds/tags/${t.slug}.xml`}>RSS</a> ·{" "}
     <a href={`/feeds/tags/${t.slug}.ics`}>Release calendar (ICS)</a>
   </p>
 

@@ -126,6 +126,9 @@ export interface SearchHit {
   series: string | null;
   position: number | null;
   authors: string;
+  hook: string | null;
+  /** The approved cover, if any; the search page shows it, the typeahead doesn't need it. */
+  cover: { key: string; width: number | null; height: number | null } | null;
 }
 
 /** Typeahead over published books: title, series or author (DESIGN §9.1 Flow A). */
@@ -153,6 +156,10 @@ export async function searchPublished(db: Db, q: string, limit = 8): Promise<Sea
       title: books.title,
       series: series.name,
       position: books.seriesPosition,
+      hook: books.hookAi,
+      coverKey: media.key,
+      coverWidth: media.width,
+      coverHeight: media.height,
       authors:
         sql<string>`(select group_concat(${authors.name}, ', ') from ${bookAuthors} join ${authors} on ${authors.id} = ${bookAuthors.authorId} where ${bookAuthors.bookId} = ${books.id})`.as(
           "author_names",
@@ -162,8 +169,13 @@ export async function searchPublished(db: Db, q: string, limit = 8): Promise<Sea
     })
     .from(books)
     .leftJoin(series, eq(series.id, books.seriesId))
+    .leftJoin(media, and(eq(media.id, books.coverMediaId), eq(media.status, "approved")))
     .where(and(eq(books.visibility, "published"), isNull(books.redirectTo), or(...matchers)))
     .orderBy(sql`rank`, sql`coalesce(${books.seriesPosition}, 1)`, books.titleKey)
     .limit(limit);
-  return rows.map(({ rank: _rank, ...r }) => ({ ...r, authors: r.authors ?? "" }));
+  return rows.map(({ rank: _rank, coverKey, coverWidth, coverHeight, ...r }) => ({
+    ...r,
+    authors: r.authors ?? "",
+    cover: coverKey ? { key: coverKey, width: coverWidth, height: coverHeight } : null,
+  }));
 }

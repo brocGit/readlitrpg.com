@@ -290,7 +290,7 @@ const fieldRows: [BookField, unknown][] = [
   <p class="muted">
     {detail.authors.map((a) => a.name).join(", ")}
     {detail.series && ` · ${detail.series.name}${book.seriesPosition != null ? ` #${book.seriesPosition}` : ""} (${detail.series.status})`}
-    · <code>{book.slug}</code> · {book.origin}
+    {" "}· <code>{book.slug}</code> · {book.origin}
   </p>
 
   {book.redirectTo && <p class="notice error">Merged into <a href={`/catalog/books/${book.redirectTo}`}>another book</a>. Its URL redirects there.</p>}

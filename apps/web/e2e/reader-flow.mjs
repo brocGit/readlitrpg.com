@@ -64,7 +64,10 @@ try {
   const context = await browser.newContext();
   const page = await context.newPage();
   page.on("console", (m) => {
-    if (m.type() === "error") problems.push(m.text());
+    // The 404 step asks for a missing page on purpose; the browser logs its status as an error.
+    // Only that status line is expected: a CSP violation on the 404 page still counts.
+    const expected404 = m.location().url.endsWith("-nope") && m.text().includes("status of 404");
+    if (m.type() === "error" && !expected404) problems.push(m.text());
   });
   page.on("pageerror", (e) => problems.push(e.message));
   const hydrated = () =>
@@ -122,6 +125,26 @@ try {
   check(me.signedIn === true, "the reader has a session");
   const [user] = rows(`SELECT id, state FROM users WHERE email = '${email}'`);
   check(user?.state === "active", "the subscriber became an account");
+
+  // Search shows covers and marks the searched words; a wrong link offers a search (DESIGN §9.10).
+  const words = bookSlug.replaceAll("-", " ");
+  await page.goto(`${BASE}/search?q=${encodeURIComponent(words)}`);
+  check(
+    (await page.isVisible(`.search-hits a[href="/books/${bookSlug}"]`)) &&
+      (await page.locator(".search-hits mark").count()) > 0 &&
+      (await page.isVisible(".search-count")),
+    "search lists the book with the searched words marked",
+  );
+  const lost = await page.goto(`${BASE}/books/${bookSlug}-nope`);
+  check(
+    lost?.status() === 404 && (await page.inputValue(".lost input[name=q]")).includes("nope"),
+    "a missing page offers a search filled from its address",
+  );
+  // A missing book used to get the API's CSP (default-src 'none') and render without styles.
+  check(
+    (await page.$eval(".lost", (el) => getComputedStyle(el).borderTopStyle)) !== "none",
+    "a missing book's page keeps its styles",
+  );
 
   // Book marks and follows (DESIGN §9.6)
   await page.goto(`${BASE}/books/${bookSlug}`);

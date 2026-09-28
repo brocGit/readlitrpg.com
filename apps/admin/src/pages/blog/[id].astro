@@ -151,7 +151,7 @@ const words = wordCount(post.bodyMd);
     {POST_TYPE_LABEL[post.type]} · <strong>{STATUS_LABEL[post.status]}</strong>
     {post.status === "scheduled" && post.publishAt && <> for {post.publishAt.slice(0, 16).replace("T", " ")} UTC</>}
     {post.status === "published" && <> · <a href={`${site}${postPath(post)}`} rel="noopener">View on the site</a></>}
-    · {words} words · <a href="/blog">All posts</a>
+    {" "}· {words} words · <a href="/blog">All posts</a>
   </p>
 
   {
@@ -188,7 +188,7 @@ const words = wordCount(post.bodyMd);
       <textarea name="body" rows="22">{post.bodyMd}</textarea>
     </label>
     <p class="muted small">
-      Shortcodes: <code>[[book:slug-or-id]]</code> alone on a line is a live book card, inside a sentence a link;
+      Shortcodes: <code>[[book:slug-or-id]]</code> alone on a line is a live book card, inside a sentence a link;{" "}
       <code>[[series:…]]</code>, <code>[[author:…]]</code>, <code>[[releases tag="dungeon-core" month="2026-11"]]</code>,
       <code>[[newsletter-signup]]</code>.
     </p>

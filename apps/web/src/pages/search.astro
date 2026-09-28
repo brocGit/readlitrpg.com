@@ -1,14 +1,19 @@
 ---
 // Title, series and author lookup (Appendix A /search). Results pages stay out of search engines.
+// Each hit is a book row with its cover, and the searched words are marked (DESIGN §9.10).
 import { searchPublished } from "@rlr/core/match";
+import Cover from "../components/site/Cover.astro";
 import Base from "../layouts/Base.astro";
+import { highlight } from "../lib/highlight";
 import { getDb } from "../lib/runtime";
 import "../styles/discover.css";
 import "../styles/site.css";
 
+const LIMIT = 30;
 const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 80);
-const hits = q.length >= 2 ? await searchPublished(getDb(), q, 30) : [];
+const hits = q.length >= 2 ? await searchPublished(getDb(), q, LIMIT) : [];
 Astro.cache.set({ tags: ["search"] });
+const found = hits.length === LIMIT ? `${LIMIT}+` : String(hits.length);
 ---
 
 <Base title={q ? `Search: ${q}` : "Search"} description="Find a LitRPG book by title, series or author." noIndex>
@@ -17,17 +22,38 @@ Astro.cache.set({ tags: ["search"] });
     <input type="search" name="q" value={q} placeholder="Title, series or author" aria-label="Title, series or author" />
     <button class="button" type="submit">Search</button>
   </form>
-  {q.length >= 2 && hits.length === 0 && <p class="status-screen">[No loot found] Nothing matches "{q}" yet. Try a shorter title or the author's name.</p>}
+  {
+    q.length >= 2 && hits.length === 0 && (
+      <div class="status-screen">
+        <p class="label">[No loot found]</p>
+        <p>Nothing matches "{q}" yet. Try a shorter title or the author's name.</p>
+      </div>
+    )
+  }
   {
     hits.length > 0 && (
-      <ul class="book-list">
-        {hits.map((h) => (
-          <li>
-            <a href={`/books/${h.slug}`}><strong>{h.title}</strong></a>
-            <span class="muted"> {h.authors}{h.series && ` · ${h.series}${h.position ? ` #${h.position}` : ""}`}</span>
-          </li>
-        ))}
-      </ul>
+      <>
+        <h2 class="label search-count">[{found} found for "{q}"]</h2>
+        <ul class="book-list search-hits">
+          {hits.map((h) => (
+            <li class="book-row" data-book={h.slug}>
+              <Cover cover={h.cover} title={h.title} width={56} />
+              <div>
+                <h3>
+                  <a href={`/books/${h.slug}`}>{highlight(h.title, q).map((p) => (p.hit ? <mark>{p.text}</mark> : p.text))}</a>
+                </h3>
+                <p class="muted meta">
+                  {highlight(h.authors, q).map((p) => (p.hit ? <mark>{p.text}</mark> : p.text))}
+                  {h.series && " · "}
+                  {h.series && highlight(h.series, q).map((p) => (p.hit ? <mark>{p.text}</mark> : p.text))}
+                  {h.series && h.position && ` #${h.position}`}
+                </p>
+                {h.hook && <p class="hook">{h.hook}</p>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </>
     )
   }
   <p class="muted">Looking for something to read, not a particular book? <a href="/match">Get matched</a> or <a href="/find">filter the catalog</a>.</p>

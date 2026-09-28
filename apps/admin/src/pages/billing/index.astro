@@ -123,7 +123,7 @@ const settings = await Astro.locals.settings();
 <Console title="Billing">
   {!stripeReady && <p class="notice error">Stripe isn't set up: card payments and refunds are off. See docs/runbooks/stripe-setup.md.</p>}
   <p class="muted">
-    Selling is {settings["flags.ads_paid"] ? "on" : "off"} (<code>flags.ads_paid</code>); Author Pro is {settings["flags.author_pro"] ? "on" : "off"}
+    Selling is {settings["flags.ads_paid"] ? "on" : "off"} (<code>flags.ads_paid</code>); Author Pro is {settings["flags.author_pro"] ? "on" : "off"}{" "}
     (<code>flags.author_pro</code>).
   </p>
   <section>

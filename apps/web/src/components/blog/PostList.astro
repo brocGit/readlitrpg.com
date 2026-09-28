@@ -2,6 +2,7 @@
 // A list of posts, newest first (blog, news and author pages).
 import { POST_TYPE_LABEL, type PostSummary, postPath } from "@rlr/core/content";
 import { formatDate } from "@rlr/core/site";
+import { patchTag } from "../../lib/site";
 
 interface Props {
   posts: PostSummary[];
@@ -16,6 +17,7 @@ const { posts, showType = true } = Astro.props;
       <li>
         <p class="muted small">
           {showType && <span class="post-type">{POST_TYPE_LABEL[p.type]}</span>}
+          {p.type === "daily" && <span class="patch-tag">{patchTag(p.publishedAt)}</span>}
           {showType && " · "}
           <time datetime={p.publishedAt}>{formatDate(p.publishedAt.slice(0, 10), "day")}</time>
           {p.byline ? <> · {p.byline.name}</> : p.bylineName ? <> · {p.bylineName}</> : null}

@@ -137,6 +137,9 @@ const [book, other] = books;
 const browser = await chromium.launch({ executablePath: CHROMIUM, args: ["--no-sandbox"] });
 try {
   // The owner turns selling on (settings need a fresh passkey: we just signed in).
+  // Each run adds a passkey for the owner. Clear the earlier runs' first: past 64, the browser refuses
+  // to register another (excludeCredentials), and the old ones would satisfy "added" on their own.
+  sql(`DELETE FROM passkeys WHERE user_id IN (SELECT id FROM users WHERE email = '${OWNER}')`);
   const owner = await newUser(browser, { passkey: true });
   await signIn(owner, OWNER);
   await owner.page.goto(`${WEB}/account`);

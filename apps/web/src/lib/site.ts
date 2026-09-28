@@ -33,6 +33,9 @@ export const coverOgUrl = (cover: Cover | null) => (cover ? mediaUrl(variantKey(
 /** The site's own link preview, for pages without one of their own. */
 export const siteOgUrl = () => mediaUrl(siteOgKey());
 
+/** A daily issue's patch number, from its date: "Patch 26.09.28" (DESIGN §9.10). */
+export const patchTag = (isoDate: string) => `Patch ${isoDate.slice(2, 10).replaceAll("-", ".")}`;
+
 export const notFound = () => new Response(null, { status: 404 });
 export const movedTo = (path: string) =>
   new Response(null, { status: 301, headers: { location: path, "cache-control": "public, max-age=3600" } });

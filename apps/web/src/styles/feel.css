@@ -221,6 +221,20 @@ html {
   color: var(--color-muted);
 }
 
+/* A daily issue's patch number, like a game's version string (patchTag in lib/site.ts). */
+.patch-tag {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 0 0.45em;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 60%, transparent);
+  border-radius: var(--radius-small);
+  color: var(--color-accent);
+  font-family: var(--font-system);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
 /* The System sounds switch (lib/sound.ts): a footer link that says whether it's on. */
 .sound-toggle {
   background: none;

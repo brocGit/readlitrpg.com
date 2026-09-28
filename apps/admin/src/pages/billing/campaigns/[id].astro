@@ -60,7 +60,7 @@ const report = await campaignReport(db, id);
 
 <Console title={c.name}>
   <p>
-    <strong>{c.status}</strong> · {d.product.name} · {c.startAt.slice(0, 10)}{c.endAt ? ` to ${c.endAt.slice(0, 10)}` : ""} ·
+    <strong>{c.status}</strong> · {d.product.name} · {c.startAt.slice(0, 10)}{c.endAt ? ` to ${c.endAt.slice(0, 10)}` : ""} ·{" "}
     {d.advertiser.ownerType === "author" && d.advertiser.ownerId ? <a href={`/catalog/authors/${d.advertiser.ownerId}`}>{d.advertiser.name}</a> : d.advertiser.name}
     {d.book && <> · <a href={`/catalog/books/${c.bookId}`}>{d.book.title}</a></>}
   </p>

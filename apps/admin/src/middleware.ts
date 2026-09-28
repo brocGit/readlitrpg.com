@@ -5,7 +5,13 @@ import { defineMiddleware, sequence } from "astro:middleware";
 import { ulid } from "@rlr/core";
 import { openInboxItem } from "@rlr/core/inbox";
 import { type Actor, checkRoute, type RouteAccess } from "@rlr/core/policy";
-import { type AccessIdentity, applyHeaders, buildCsp, securityHeaders } from "@rlr/core/security";
+import {
+  type AccessIdentity,
+  applyHeaders,
+  buildCsp,
+  reroutesToErrorPage,
+  securityHeaders,
+} from "@rlr/core/security";
 import { loadSettings, type Settings } from "@rlr/core/settings";
 import type { APIContext, MiddlewareNext } from "astro";
 import { checkAccess } from "./lib/access";
@@ -105,7 +111,12 @@ const headers = defineMiddleware(async (ctx, next) => {
   const production = isProduction();
   const base = securityHeaders({ hsts: production });
   const isHtml = (response.headers.get("content-type") ?? "").includes("text/html");
-  if (!production || (isHtml && response.headers.has("content-security-policy"))) {
+  // A bodiless 404 or 500 becomes the error page, which brings its own policy (reroutesToErrorPage).
+  if (
+    !production ||
+    reroutesToErrorPage(response) ||
+    (isHtml && response.headers.has("content-security-policy"))
+  ) {
     delete (base as Record<string, string>)["Content-Security-Policy"];
   } else {
     base["Content-Security-Policy"] = buildCsp({});

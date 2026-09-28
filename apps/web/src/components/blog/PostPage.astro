@@ -4,7 +4,7 @@ import { POST_TYPE_LABEL, type PublishedPost, postJsonLd, postPath, renderBody }
 import { breadcrumbJsonLd, formatDate } from "@rlr/core/site";
 import Base from "../../layouts/Base.astro";
 import { getDb } from "../../lib/runtime";
-import { mediaUrl, origin } from "../../lib/site";
+import { mediaUrl, origin, patchTag } from "../../lib/site";
 import Breadcrumbs from "../site/Breadcrumbs.astro";
 import PostBody from "./PostBody.astro";
 import "../../styles/site.css";
@@ -46,7 +46,9 @@ const description = post.seoDescription ?? post.dek ?? `${POST_TYPE_LABEL[post.t
   <article>
     <header class="post-head">
       <p class="muted small">
-        <span class="post-type">{post.isSponsored ? "Sponsored" : POST_TYPE_LABEL[post.type]}</span> ·
+        <span class="post-type">{post.isSponsored ? "Sponsored" : POST_TYPE_LABEL[post.type]}</span>
+        {post.type === "daily" && post.publishedAt && <span class="patch-tag">{patchTag(post.publishedAt)}</span>}
+        {" · "}
         <time datetime={post.publishedAt ?? ""}>{formatDate((post.publishedAt ?? "").slice(0, 10), "day")}</time>
       </p>
       <h1>{post.title}</h1>

@@ -4,6 +4,7 @@ import { listPosts, NEWS_SECTION_TYPES, postPath } from "@rlr/core/content";
 import PostList from "../../components/blog/PostList.astro";
 import Base from "../../layouts/Base.astro";
 import { getDb } from "../../lib/runtime";
+import { patchTag } from "../../lib/site";
 import "../../styles/blog.css";
 
 const db = getDb();
@@ -26,7 +27,10 @@ Astro.cache.set({ tags: ["posts"] });
   {
     today && (
       <div class="today-card">
-        <p class="post-type">Today in LitRPG</p>
+        <p>
+          <span class="post-type">Today in LitRPG</span>
+          <span class="patch-tag">{patchTag(today.publishedAt)}</span>
+        </p>
         <h2>
           <a href={postPath(today)}>{today.title}</a>
         </h2>

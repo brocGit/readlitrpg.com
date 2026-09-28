@@ -4,7 +4,13 @@
 import { defineMiddleware, sequence } from "astro:middleware";
 import { ulid } from "@rlr/core";
 import { checkRoute, type RouteAccess } from "@rlr/core/policy";
-import { apiSecurityHeaders, applyHeaders, buildCsp, securityHeaders } from "@rlr/core/security";
+import {
+  apiSecurityHeaders,
+  applyHeaders,
+  buildCsp,
+  reroutesToErrorPage,
+  securityHeaders,
+} from "@rlr/core/security";
 import { loadSettings, type Settings } from "@rlr/core/settings";
 import { log } from "./lib/log";
 import { isCrossSiteFormPost } from "./lib/origin";
@@ -88,6 +94,10 @@ const headers = defineMiddleware(async (ctx, next) => {
       base["Content-Security-Policy"] = buildCsp({});
     }
     result = applyHeaders(response, base);
+  } else if (reroutesToErrorPage(response)) {
+    // The 404 or 500 page takes this response's place and brings its own headers (it passes
+    // through here too); a policy set now would win over them (reroutesToErrorPage).
+    result = applyHeaders(response, {});
   } else {
     result = applyHeaders(response, {
       ...apiSecurityHeaders(),

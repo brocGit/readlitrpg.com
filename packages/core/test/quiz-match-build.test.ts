@@ -201,6 +201,7 @@ describe("building the model from the catalog", () => {
     const hits = await searchPublished(db, "crunch");
     expect(hits.map((h) => h.title).sort()).toEqual(["Quiet Farm", "The Crunch Tower"]);
     expect(hits.find((h) => h.title === "Quiet Farm")?.authors).toBe("Bo Crunchley");
+    expect(hits.find((h) => h.title === "Quiet Farm")?.cover).toBeNull();
     expect(await searchPublished(db, "c")).toEqual([]);
   });
 });

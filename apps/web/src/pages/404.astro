@@ -1,11 +1,36 @@
 ---
+// Off the map (DESIGN §9.10): the System says so, then offers a way on. The search is filled from
+// the path's last part, so /books/the-tower-ledgr offers a search for "the tower ledgr".
 import Base from "../layouts/Base.astro";
+import "../styles/discover.css";
+import "../styles/site.css";
+
+const segment = Astro.url.pathname.split("/").filter(Boolean).at(-1) ?? "";
+let decoded = segment;
+try {
+  decoded = decodeURIComponent(segment);
+} catch {
+  // A malformed escape: search the raw text instead.
+}
+const last = decoded
+  .replace(/\.[a-z0-9]+$/i, "")
+  .replace(/[-_+]+/g, " ")
+  .replace(/[^\p{L}\p{N}' ]/gu, "")
+  .trim()
+  .slice(0, 60);
+const guess = /\p{L}{2}/u.test(last) && last !== "404" ? last : "";
 ---
 
-<Base title="Page not found">
-  <div class="status-screen prose">
+<Base title="Page not found" noIndex>
+  <div class="status-screen prose lost">
     <p class="label">[Error 404]</p>
     <p>You have wandered off the map. This page does not exist, or it respawned somewhere else.</p>
-    <p><a href="/">Return to the safe zone</a></p>
+    <form class="search-form" method="get" action="/search" role="search">
+      <input type="search" name="q" value={guess} placeholder="Search for a book, series or author" aria-label="Search for a book, series or author" />
+      <button class="button" type="submit">Search</button>
+    </form>
+    <p>
+      Or take a road you know: <a href="/">the safe zone</a> · <a href="/match">get matched</a> · <a href="/new">new releases</a> · <a href="/news">today's news</a>
+    </p>
   </div>
 </Base>

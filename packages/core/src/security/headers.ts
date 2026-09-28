@@ -128,6 +128,15 @@ export function apiSecurityHeaders(): Record<string, string> {
 }
 
 /**
+ * A page's bodiless 404 or 500 is replaced by the error page, and Astro keeps this response's headers
+ * over the error page's own. Middleware must not give it a Content-Security-Policy: the API policy
+ * (`default-src 'none'`) left every "book not found" page without its styles.
+ */
+export function reroutesToErrorPage(response: Response): boolean {
+  return (response.status === 404 || response.status === 500) && response.body === null;
+}
+
+/**
  * Apply headers without overwriting any a handler set on purpose. Always returns a copy with
  * mutable headers: redirects and fetched responses have immutable ones.
  */
