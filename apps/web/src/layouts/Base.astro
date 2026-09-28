@@ -41,6 +41,7 @@ const NAV = [
   { href: "/quiz", label: "Quizzes" },
   { href: "/lists", label: "Lists" },
   { href: "/news", label: "News" },
+  { href: "/search", label: "Search" },
   { href: "/account", label: "Account" },
 ];
 // The section you're in (the same for every reader of this URL, so it's safe in cached HTML).
@@ -85,7 +86,14 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
       <div class="container bar">
         <a class="wordmark" href="/" aria-label="ReadLitRPG home"><span aria-hidden="true">[</span>ReadLitRPG<span aria-hidden="true">]</span></a>
         <nav class="site-nav" aria-label="Site">
-          {NAV.map((n) => <a href={n.href} aria-current={current(n.href)}>{n.label}</a>)}
+          {
+            NAV.map((n) => (
+              <a href={n.href} aria-current={current(n.href)} aria-keyshortcuts={n.href === "/search" ? "/" : undefined}>
+                {n.label}
+                {n.href === "/search" && <span class="key" aria-hidden="true">/</span>}
+              </a>
+            ))
+          }
         </nav>
       </div>
     </header>
@@ -141,6 +149,21 @@ const affiliate = Boolean((await Astro.locals.settings())["affiliate.amazon_tag_
           for (const el of document.querySelectorAll("[data-ad]")) io.observe(el);
         }
       }
+    </script>
+    <script>
+      // "/" jumps to search, like most sites with a search box (DESIGN §9.10): the page's own search
+      // field if it has one, otherwise the search page. Never while typing in a field.
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+        const t = e.target as HTMLElement | null;
+        if (t && (["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName) || t.isContentEditable)) return;
+        e.preventDefault();
+        const field = document.querySelector<HTMLInputElement>('main input[type="search"]');
+        if (field) {
+          field.focus();
+          field.select();
+        } else location.assign("/search");
+      });
     </script>
   </body>
 </html>

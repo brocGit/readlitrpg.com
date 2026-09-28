@@ -22,6 +22,51 @@
   }
 }
 
+/* The home page is a title screen: the System boots with a blinking cursor over a faint status
+   grid, and the book picker is the "[New game]" panel. */
+.home-hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.home-hero::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--space-8)) calc(-1 * var(--space-4));
+  z-index: -1;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-line) 70%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-line) 70%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 60% 70% at 30% 40%, #000 20%, transparent 75%);
+  pointer-events: none;
+}
+
+.boot-line::after {
+  content: "▍";
+  margin-left: 0.15em;
+  animation: blink 1s steps(1) 6;
+}
+
+.start-panel {
+  border: 1.5px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--lift);
+  padding: var(--space-4) var(--space-6) var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.start-panel h2 {
+  margin-top: 0;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* Selecting text and the scrollbar wear the brand too. */
 ::selection {
   background: color-mix(in srgb, var(--color-accent) 35%, transparent);
@@ -52,6 +97,32 @@ html {
 .site-nav a:hover::after,
 .site-nav a[aria-current]::after {
   transform: scaleX(1);
+}
+
+/* Phones: the nav wraps to a second, tight row. Base's scoped nav style outranks one class. */
+@media (max-width: 40rem) {
+  .site-header .site-nav {
+    row-gap: 0;
+    column-gap: var(--space-3);
+    font-size: 0.95rem;
+  }
+}
+
+.site-nav .key {
+  margin-left: var(--space-1);
+  padding: 0 0.35em;
+  border: 1px solid var(--color-line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--font-system);
+  font-size: 0.7rem;
+  color: var(--color-muted);
+}
+
+@media (hover: none), (max-width: 40rem) {
+  .site-nav .key {
+    display: none;
+  }
 }
 
 .site-nav a[aria-current] {
@@ -89,6 +160,50 @@ html {
 
 .wordmark:hover span:last-child {
   transform: translateX(3px);
+}
+
+/* Settings are switches, like a game's options menu (still checkboxes underneath). */
+.toggles input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  inline-size: 2.5rem;
+  block-size: 1.4rem;
+  margin: 0.15rem 0 0;
+  border-radius: 999px;
+  background: var(--color-line);
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease-out);
+}
+
+.toggles input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  inline-size: calc(1.4rem - 6px);
+  block-size: calc(1.4rem - 6px);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.toggles input[type="checkbox"]:checked {
+  background: var(--color-primary);
+}
+
+.toggles input[type="checkbox"]:checked::before {
+  transform: translateX(1.1rem);
+}
+
+.toggles input[type="checkbox"]:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.toggles + form {
+  margin-top: var(--space-3);
 }
 
 /* Footer links as a list, so the separators never lose their spaces. */
@@ -640,6 +755,43 @@ progress::-moz-progress-bar {
   border-radius: 999px;
 }
 
+/* The author dashboard's to-dos are side quests; a finished listing gets the gold check. */
+.quests-todo {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+ul.quests-todo > li::before {
+  content: "◇ ";
+  color: var(--color-accent);
+}
+
+.quests-todo a {
+  text-decoration: none;
+}
+
+.quests-todo a:hover {
+  text-decoration: underline;
+}
+
+.listing-complete {
+  font-family: var(--font-system);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--rarity-legendary);
+}
+
+.complete.full meter::-webkit-meter-optimum-value {
+  background: var(--rarity-legendary);
+}
+
+.complete.full meter::-moz-meter-bar {
+  background: var(--rarity-legendary);
+}
+
 /* Stats nobody has appraised yet flicker, like something waiting to be identified. */
 .unknown {
   display: inline-block;
@@ -1044,6 +1196,42 @@ ul.perks > li::before {
   }
   75% {
     content: "...";
+  }
+}
+
+/* Reading a post fills a thin XP bar at the top of the window. It's decoration, tied to the
+   scroll position, so it shows only where scroll timelines exist and motion is welcome. */
+.read-progress {
+  display: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .read-progress {
+      display: block;
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 60;
+      block-size: 3px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+      transform-origin: left;
+      transform: scaleX(0);
+      animation: read-progress linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+}
+
+@media print {
+  .read-progress,
+  .system-toasts {
+    display: none;
+  }
+}
+
+@keyframes read-progress {
+  to {
+    transform: scaleX(1);
   }
 }
 

@@ -7,6 +7,7 @@ import { PUBLIC, type RouteRegistry, SIGNED_IN } from "@rlr/core/policy";
 export const ROUTES = {
   "/": PUBLIC,
   "/404": PUBLIC,
+  "/500": PUBLIC,
   "/healthz": PUBLIC,
   "/signin": PUBLIC,
   "/signin/confirm": PUBLIC,

@@ -31,10 +31,13 @@ const savedUrl = (s: { kind: string; params: string }) =>
     <h2>Saved matches and searches</h2>
     {
       saved.length === 0 ? (
-        <p class="muted">
-          None yet. Under any <a href="/match">match</a> or <a href="/find">search</a>, choose "Alert me" and new books
-          that fit show up in your email.
-        </p>
+        <div class="status-screen empty">
+          <p class="label">[No saved searches]</p>
+          <p>
+            Under any <a href="/match">match</a> or <a href="/find">search</a>, choose "Alert me" and new books that fit
+            show up in your email.
+          </p>
+        </div>
       ) : (
         <ul class="rows">
           {saved.map((s) => (
@@ -63,10 +66,13 @@ const savedUrl = (s: { kind: string; params: string }) =>
     <h2>Marked books</h2>
     {
       marks.length === 0 ? (
-        <p class="muted">
-          Mark books you've read from their pages, or <a href="/account/import">import your Goodreads or StoryGraph
-          library</a>.
-        </p>
+        <div class="status-screen empty">
+          <p class="label">[Inventory empty]</p>
+          <p>
+            Mark books you've read from their pages, or <a href="/account/import">import your Goodreads or StoryGraph
+            library</a>.
+          </p>
+        </div>
       ) : (
         <ul class="rows">
           {marks.map((m) => (

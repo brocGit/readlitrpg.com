@@ -42,6 +42,7 @@ const description = post.seoDescription ?? post.dek ?? `${POST_TYPE_LABEL[post.t
   jsonLd={[postJsonLd(post, origin()), breadcrumbJsonLd(crumbs, origin())]}
 >
   <Breadcrumbs crumbs={crumbs} />
+  <div class="read-progress" aria-hidden="true"></div>
   <article>
     <header class="post-head">
       <p class="muted small">

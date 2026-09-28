@@ -33,10 +33,10 @@ Astro.response.headers.set("Referrer-Policy", "same-origin");
     {saved && <p class="notice" role="status">Saved.</p>}
     {
       list.length === 0 ? (
-        <p class="muted">
-          Nothing yet. Follow a series, author, narrator or tag from its page and we'll tell you when something new is
-          out.
-        </p>
+        <div class="status-screen empty">
+          <p class="label">[Nothing tracked yet]</p>
+          <p>Follow a series, author, narrator or tag from its page and we'll tell you when something new is out.</p>
+        </div>
       ) : (
         <ul class="rows">
           {list.map((f) => (

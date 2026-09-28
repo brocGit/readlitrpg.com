@@ -149,8 +149,17 @@ const title = (p: unknown) =>
                 <td><a href={`/dashboard/books/${b.id}`}>{b.title}</a>{b.series && <div class="muted small">{b.series}{b.position ? ` #${b.position}` : ""}</div>}</td>
                 <td>{STATUS[b.visibility] ?? b.visibility}</td>
                 <td>{b.nextRelease ? `${RELEASE_LABEL[b.nextRelease.kind] ?? b.nextRelease.kind}: ${formatDate(b.nextRelease.date, b.nextRelease.precision)}` : <span class="muted">—</span>}</td>
-                <td><meter class="meter" min="0" max="100" value={b.completeness} aria-label={`${b.completeness}% complete`} /> {b.completeness}%</td>
-                <td>{b.todos.length ? <ul class="small">{b.todos.slice(0, 3).map((t) => <li>{t}</li>)}</ul> : <span class="muted">Nothing</span>}</td>
+                <td class={b.completeness === 100 ? "complete full" : "complete"}><meter class="meter" min="0" max="100" value={b.completeness} aria-label={`${b.completeness}% complete`} /> {b.completeness}%</td>
+                <td>
+                  {b.todos.length ? (
+                    <ul class="small quests-todo">
+                      {b.todos.slice(0, 3).map((t) => <li><a href={`/dashboard/books/${b.id}`}>{t}</a></li>)}
+                      {b.todos.length > 3 && <li class="muted">and {b.todos.length - 3} more</li>}
+                    </ul>
+                  ) : (
+                    <span class="listing-complete">✓ Listing complete</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

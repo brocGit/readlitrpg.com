@@ -41,14 +41,18 @@ Astro.cache.set({ tags: ["home"] });
 
 <Base title="ReadLitRPG" description="Tell it the books you loved. It finds your next LitRPG, progression fantasy or cultivation read." canonical="/">
   <section class="home-hero">
+    <p class="label boot-line">[System online] Welcome, reader.</p>
     <h1>Tell it the books you loved. It finds your next read.</h1>
     <p class="lead muted">
       A free discovery engine for LitRPG, progression fantasy, GameLit and cultivation. It matches on what matters in
       this genre: how crunchy the system is, how fast the power climbs, how dark it gets, and whether the MC is competent.
     </p>
   </section>
-  <BooksYouLoved client:load />
-  <p>Prefer questions? <a href="/match/quiz">Take the Match Quiz</a> (about two minutes). Or <a href="/find">filter the catalog</a>.</p>
+  <section class="start-panel" aria-label="Find your next read">
+    <p class="label">[New game]</p>
+    <BooksYouLoved client:load />
+    <p class="muted">Prefer questions? <a href="/match/quiz">Take the Match Quiz</a> (about two minutes). Or <a href="/find">filter the catalog</a>.</p>
+  </section>
 
   {
     spotlight.length > 0 && (

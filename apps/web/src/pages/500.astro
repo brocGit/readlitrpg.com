@@ -1,0 +1,47 @@
+---
+// A server error: Astro renders this when a page throws. It stands alone, without Base, because
+// the layout reads settings and the error may be the database. Nothing about the error is shown.
+import "@rlr/ui/tokens.css";
+import "@rlr/ui/base.css";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Something broke · ReadLitRPG</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main class="container">
+      <p class="wordmark"><a href="/">[ReadLitRPG]</a></p>
+      <div class="status-screen prose">
+        <p class="label">[Critical error]</p>
+        <p>The System tripped over its own code. Nothing you did: try again in a moment.</p>
+        <p class="actions">
+          <a class="button" href="">Try again</a>
+          <a class="button secondary" href="/">Return to the safe zone</a>
+        </p>
+      </div>
+    </main>
+  </body>
+</html>
+
+<style>
+  main {
+    padding-block: var(--space-8);
+  }
+  .wordmark a {
+    font-family: var(--font-system);
+    font-weight: 700;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+</style>
