@@ -1,0 +1,36 @@
+---
+// A living list as a loot bundle (DESIGN §9.10): its first three covers fanned out, how many books
+// it holds, and its title. The whole card is the link (feel.css).
+import type { ListPreview } from "../../lib/match";
+import Cover from "./Cover.astro";
+
+interface Props {
+  slug: string;
+  title: string;
+  blurb?: string | undefined;
+  preview?: ListPreview | undefined;
+}
+const { slug, title, blurb, preview } = Astro.props;
+const total = preview?.total ?? 0;
+---
+
+<li class="list-card">
+  {
+    preview && preview.covers.length > 0 ? (
+      <div class="cover-fan" aria-hidden="true">
+        {preview.covers.map((c) => (
+          <Cover cover={c.cover} title={c.title} width={56} />
+        ))}
+      </div>
+    ) : (
+      <div class="cover-fan empty" aria-hidden="true">
+        <span class="cover" />
+        <span class="cover" />
+        <span class="cover" />
+      </div>
+    )
+  }
+  <p class="label">[Living list{total > 0 ? ` · ${total} ${total === 1 ? "book" : "books"}` : ""}]</p>
+  <h3><a href={`/lists/${slug}`}>{title}</a></h3>
+  {blurb && <p class="muted">{blurb}</p>}
+</li>

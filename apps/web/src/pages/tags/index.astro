@@ -34,9 +34,16 @@ Astro.cache.set({ tags: ["tags"] });
         <ul class="tag-list">
           {list.map((t) => (
             <li>
-              <a href={`/tags/${t.slug}`} title={t.description}>
-                {t.name} <span class="count">{t.books}</span>
-              </a>
+              {t.books > 0 ? (
+                <a href={`/tags/${t.slug}`} title={t.description}>
+                  {t.name} <span class="count">{t.books}</span>
+                </a>
+              ) : (
+                <a class="undiscovered" href={`/tags/${t.slug}`} title={`${t.description} No books yet.`}>
+                  {t.name}
+                  <span class="visually-hidden"> (no books yet)</span>
+                </a>
+              )}
             </li>
           ))}
         </ul>

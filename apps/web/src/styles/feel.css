@@ -965,6 +965,65 @@ ul.quests-todo > li::before {
   margin: 0 0 var(--space-1);
 }
 
+/* A living list's first covers, fanned like a hand of cards (ListCard); pointing at the card spreads
+   them. No z-index: the card's stretched link must stay on top so the covers click through. */
+.cover-fan {
+  display: flex;
+  margin: 0 0 var(--space-3);
+  padding-inline-start: var(--space-2);
+}
+
+.cover-fan .cover {
+  inline-size: 56px;
+  block-size: 84px;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.cover-fan .cover + .cover {
+  margin-inline-start: -20px;
+}
+
+/* Placeholder titles are long numbers in tests and long words in life: wrap anywhere, clip the rest. */
+.cover-fan .placeholder {
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* A list with no books yet shows an unfilled bundle: three empty slots. */
+.cover-fan.empty .cover {
+  border: 1.5px dashed var(--color-line);
+  background: transparent;
+  box-shadow: none;
+}
+
+.cover-fan .cover:nth-child(1) {
+  transform: rotate(-7deg);
+}
+
+.cover-fan .cover:nth-child(2) {
+  transform: translateY(-3px);
+}
+
+.cover-fan .cover:nth-child(3) {
+  transform: rotate(7deg);
+}
+
+@media (hover: hover) {
+  .list-card:hover .cover-fan .cover:nth-child(1) {
+    transform: translateX(-6px) rotate(-12deg);
+  }
+
+  .list-card:hover .cover-fan .cover:nth-child(2) {
+    transform: translateY(-7px);
+  }
+
+  .list-card:hover .cover-fan .cover:nth-child(3) {
+    transform: translateX(6px) rotate(12deg);
+  }
+}
+
 .quest-board .reward {
   margin: var(--space-2) 0 0;
   font-family: var(--font-system);

@@ -8,9 +8,11 @@ import { newAndUpcoming, tagIndex } from "@rlr/core/site";
 import { and, count, eq, isNull } from "drizzle-orm";
 import AdSlot from "../components/ads/AdSlot.astro";
 import BooksYouLoved from "../components/BooksYouLoved";
+import ListCard from "../components/site/ListCard.astro";
 import ReleaseList from "../components/site/ReleaseList.astro";
 import Base from "../layouts/Base.astro";
 import { placements } from "../lib/ads";
+import { listPreviews } from "../lib/match";
 import { getDb } from "../lib/runtime";
 import { pageOptions } from "../lib/site";
 import "../styles/discover.css";
@@ -36,6 +38,11 @@ const popular = tagsAll
   .filter((t) => t.books > 0 && t.facet !== "tone")
   .sort((a, b) => b.books - a.books)
   .slice(0, 18);
+const homeLists = LIVING_LISTS.slice(0, 6);
+const previews = await listPreviews(
+  homeLists.map((l) => l.slug),
+  settings,
+);
 Astro.cache.set({ tags: ["home"] });
 ---
 
@@ -103,11 +110,9 @@ Astro.cache.set({ tags: ["home"] });
       <h2>Reading lists</h2>
       <a href="/lists">All lists</a>
     </div>
-    <ul class="cards">
-      {LIVING_LISTS.slice(0, 6).map((l) => (
-        <li>
-          <h3><a href={`/lists/${l.slug}`}>{l.title}</a></h3>
-        </li>
+    <ul class="cards lists-board">
+      {homeLists.map((l) => (
+        <ListCard slug={l.slug} title={l.title} preview={previews.get(l.slug)} />
       ))}
     </ul>
   </section>

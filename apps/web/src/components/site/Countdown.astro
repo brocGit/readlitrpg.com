@@ -1,0 +1,28 @@
+---
+// A release countdown chip (lib/countdown.ts, DESIGN §9.10). The server renders it from its own date
+// so it shows without scripts; the script below redoes every chip in the reader's own date, so a
+// page cached from yesterday doesn't count from yesterday. Astro includes the script once a page.
+import { countdown } from "../../lib/countdown";
+
+interface Props {
+  /** YYYY-MM-DD: only releases whose day is known get a countdown. */
+  date: string;
+}
+const { date } = Astro.props;
+const c = countdown(date, new Date().toISOString().slice(0, 10));
+---
+
+<time class={`countdown ${c?.tone ?? ""}`} datetime={date} hidden={!c}>{c?.text}</time>
+
+<script>
+  import { countdown, localToday } from "../../lib/countdown";
+
+  const today = localToday();
+  for (const el of document.querySelectorAll<HTMLTimeElement>("time.countdown[datetime]")) {
+    const c = countdown(el.dateTime, today);
+    el.hidden = !c;
+    if (!c) continue;
+    el.textContent = c.text;
+    el.className = `countdown ${c.tone}`;
+  }
+</script>

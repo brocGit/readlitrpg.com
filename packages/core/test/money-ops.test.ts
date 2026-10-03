@@ -48,7 +48,7 @@ const settings: Settings = { ...defaultSettings(), "flags.ads_paid": true };
 beforeEach(async () => {
   db = createDb(createTestD1().asD1());
   kv = new TestKV();
-  stripe = fakeStripe(kv.asKV(), "https://readlitrpg.com");
+  stripe = fakeStripe(kv.asKV(), "https://readlitrpg.com", { clock: () => now });
   await syncTaxonomy(db);
   await ensureAdCatalog(db);
   await generateInventory(db, now);
@@ -161,7 +161,7 @@ describe("reconciliation", () => {
     });
     await stripe.completeCheckout(r.redirect.split("/").pop() ?? "");
     // No events delivered: reconciliation finds the paid session and confirms the order.
-    const result = await reconcileStripe(db, stripe, settings, new Date());
+    const result = await reconcileStripe(db, stripe, settings, now);
     expect(result).toMatchObject({ repaired: 1, mismatches: 0 });
     expect((await db.select().from(orders))[0]?.status).toBe("paid");
     // A paid session with no order of ours.
@@ -178,7 +178,7 @@ describe("reconciliation", () => {
       "orphan",
     );
     await stripe.completeCheckout(orphan.id);
-    expect((await reconcileStripe(db, stripe, settings, new Date())).mismatches).toBe(1);
+    expect((await reconcileStripe(db, stripe, settings, now)).mismatches).toBe(1);
     expect((await db.select().from(inboxItems).where(eq(inboxItems.type, "billing_mismatch"))).length).toBe(
       1,
     );

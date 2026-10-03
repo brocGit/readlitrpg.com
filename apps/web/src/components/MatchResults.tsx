@@ -4,6 +4,7 @@
 
 import type { MatchInputs } from "@rlr/core/match";
 import { useEffect, useState } from "preact/hooks";
+import { authorLine } from "../lib/format";
 import type { MatchResponse, ResultCard } from "../lib/match";
 import type { SponsoredCard } from "../lib/sponsored";
 import { announce } from "../lib/system";
@@ -87,7 +88,7 @@ function Card({
         </p>
       </header>
       <p class="muted">
-        {card.authors.join(", ")}
+        {authorLine(card.authors)}
         {card.series && ` · ${card.series.name}${card.series.position ? ` #${card.series.position}` : ""}`}
         {card.series?.status === "complete" && " · complete"}
         {card.formats.includes("audiobook") && " · audio"}

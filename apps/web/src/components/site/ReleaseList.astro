@@ -1,8 +1,8 @@
 ---
 // Releases grouped by month, each with the date at the precision we know (DESIGN §9.4). A release
-// whose day is known gets a countdown chip (lib/countdown.ts), redone in the reader's own date.
+// whose day is known gets a countdown chip (Countdown.astro), redone in the reader's own date.
 import { bookNumber, formatDate, RELEASE_LABEL, type UpcomingRelease } from "@rlr/core/site";
-import { countdown } from "../../lib/countdown";
+import Countdown from "./Countdown.astro";
 
 interface Props {
   releases: UpcomingRelease[];
@@ -14,8 +14,6 @@ for (const r of releases) {
   const month = r.precision === "day" || r.precision === "month" ? formatDate(r.date, "month") : "Later";
   groups.set(month, [...(groups.get(month) ?? []), r]);
 }
-const today = new Date().toISOString().slice(0, 10);
-const chip = (r: UpcomingRelease) => (r.precision === "day" ? countdown(r.date, today) : null);
 ---
 
 <div class="release-list">
@@ -39,11 +37,7 @@ const chip = (r: UpcomingRelease) => (r.precision === "day" ? countdown(r.date, 
               {r.status === "slipped" && r.previousDate && (
                 <span class="badge warn">Delayed from {formatDate(r.previousDate, "day")}</span>
               )}
-              {r.precision === "day" && (
-                <time class={`countdown ${chip(r)?.tone ?? ""}`} datetime={r.date} hidden={!chip(r)}>
-                  {chip(r)?.text}
-                </time>
-              )}
+              {r.precision === "day" && <Countdown date={r.date} />}
             </li>
           ))}
         </ul>
@@ -51,17 +45,3 @@ const chip = (r: UpcomingRelease) => (r.precision === "day" ? countdown(r.date, 
     ))
   }
 </div>
-
-<script>
-  import { countdown, localToday } from "../../lib/countdown";
-
-  // The page may be cached from another day, or rendered in another time zone: count from here.
-  const today = localToday();
-  for (const el of document.querySelectorAll<HTMLTimeElement>(".release-list time.countdown")) {
-    const c = countdown(el.dateTime, today);
-    el.hidden = !c;
-    if (!c) continue;
-    el.textContent = c.text;
-    el.className = `countdown ${c.tone}`;
-  }
-</script>

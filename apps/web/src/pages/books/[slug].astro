@@ -27,6 +27,7 @@ import FollowButton from "../../components/FollowButton";
 import MarkButtons from "../../components/MarkButtons";
 import BookRow from "../../components/site/BookRow.astro";
 import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
+import Countdown from "../../components/site/Countdown.astro";
 import Cover from "../../components/site/Cover.astro";
 import StatusScreen from "../../components/site/StatusScreen.astro";
 import Base from "../../layouts/Base.astro";
@@ -204,6 +205,7 @@ Astro.cache.set({ tags: [`book:${b.id}`] });
               {upcoming.map((r) => (
                 <li>
                   {RELEASE_LABEL[r.kind] ?? r.kind}: {formatDate(r.date, r.precision)}
+                  {r.precision === "day" && <Countdown date={r.date} />}
                   {r.status === "slipped" && r.previousDate && <span class="badge warn">Delayed from {formatDate(r.previousDate, "day")}</span>}
                 </li>
               ))}

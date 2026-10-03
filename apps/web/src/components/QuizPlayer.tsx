@@ -2,6 +2,7 @@
 // comes with three books, a share card, Party up and "Sharpen my matches". No email gate.
 
 import { useEffect, useRef, useState } from "preact/hooks";
+import { authorLine } from "../lib/format";
 import type { ResultCard } from "../lib/match";
 import type { PlayableQuiz } from "../lib/quiz";
 import { play } from "../lib/sound";
@@ -52,7 +53,7 @@ function Books({ books }: { books: ResultCard[] }) {
           <a href={`/books/${b.slug}`}>
             <strong>{b.title}</strong>
           </a>{" "}
-          <span class="muted">{b.authors.join(", ")}</span>
+          <span class="muted">{authorLine(b.authors)}</span>
           {b.hook && <div>{b.hook}</div>}
         </li>
       ))}

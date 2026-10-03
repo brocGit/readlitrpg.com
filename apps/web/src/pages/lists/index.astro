@@ -1,12 +1,18 @@
 ---
 import { LIVING_LISTS } from "@rlr/core/match";
+import ListCard from "../../components/site/ListCard.astro";
 import Base from "../../layouts/Base.astro";
+import { listPreviews } from "../../lib/match";
 import "../../styles/discover.css";
 import "../../styles/site.css";
 
 Astro.cache.set({ tags: ["lists"] });
 // Cards show the intro's first sentence; the list page has the rest.
 const firstSentence = (text: string) => text.match(/^.*?[.!?](\s|$)/)?.[0]?.trim() ?? text;
+const previews = await listPreviews(
+  LIVING_LISTS.map((l) => l.slug),
+  await Astro.locals.settings(),
+);
 ---
 
 <Base title="Reading lists" description="LitRPG and progression fantasy lists that update themselves as the catalog grows.">
@@ -15,11 +21,7 @@ const firstSentence = (text: string) => text.match(/^.*?[.!?](\s|$)/)?.[0]?.trim
   <ul class="cards lists-board">
     {
       LIVING_LISTS.map((l) => (
-        <li>
-          <p class="label">[Living list]</p>
-          <h3><a href={`/lists/${l.slug}`}>{l.title}</a></h3>
-          <p class="muted">{firstSentence(l.intro)}</p>
-        </li>
+        <ListCard slug={l.slug} title={l.title} blurb={firstSentence(l.intro)} preview={previews.get(l.slug)} />
       ))
     }
   </ul>

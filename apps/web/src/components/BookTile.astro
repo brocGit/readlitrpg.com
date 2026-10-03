@@ -1,6 +1,7 @@
 ---
 // A book in a server-rendered list (find, living lists, books like X). Same HTML for everyone.
 import type { BookCard } from "@rlr/core/match";
+import { authorLine } from "../lib/format";
 import type { StatusRow } from "../lib/match";
 import Cover from "./site/Cover.astro";
 
@@ -19,7 +20,7 @@ const shown = status.filter((s) => s.value !== null).slice(0, 3);
     <div>
       <h3><a href={`/books/${card.slug}`}>{card.title}</a></h3>
       <p class="muted">
-        {card.authors.map((a) => a.name).join(", ")}
+        {authorLine(card.authors.map((a) => a.name))}
         {card.series && ` · ${card.series.name}${card.series.position ? ` #${card.series.position}` : ""}`}
         {card.series?.status === "complete" && " · complete"}
         {card.formats.includes("audiobook") && " · audio"}

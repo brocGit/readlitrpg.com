@@ -23,7 +23,7 @@ const KEY = "fakestripe";
 let counter = 0;
 const fakeId = (prefix: string) =>
   `${prefix}_fake_${Date.now().toString(36)}${(counter++).toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-const unix = (d = new Date()) => Math.floor(d.getTime() / 1000);
+const toUnix = (d: Date) => Math.floor(d.getTime() / 1000);
 
 export interface FakeStripe extends StripeApi {
   /** "Pay" on the local checkout page: completes the session and returns the events Stripe would send. */
@@ -36,7 +36,13 @@ export interface FakeStripe extends StripeApi {
   subscriptionsFor(customer: string): Promise<StripeSubscription[]>;
 }
 
-export function fakeStripe(kv: KVNamespace, origin: string): FakeStripe {
+/**
+ * `clock` lets tests pin the fake to their own date. Sessions are created with expiry times from the
+ * caller's clock, so checking them against the real one made the tests fail once their fixed date
+ * was more than 30 minutes in the past.
+ */
+export function fakeStripe(kv: KVNamespace, origin: string, opts: { clock?: () => Date } = {}): FakeStripe {
+  const unix = () => toUnix(opts.clock?.() ?? new Date());
   const get = async <T>(id: string): Promise<T> => {
     const raw = await kv.get(`${KEY}:obj:${id}`);
     if (!raw) throw new StripeError(404, "resource_missing", `No such object: ${id}`);

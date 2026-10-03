@@ -198,8 +198,15 @@ describe("new and upcoming", () => {
 describe("tags", () => {
   it("counts books per tag and follows retired tags to their replacement", async () => {
     await book("Core One", { tags: [{ slug: "dungeon-core", confidence: 0.9 }] });
+    await book("Core Two", {
+      primaryGenre: "progression-fantasy",
+      tags: [{ slug: "dungeon-core", confidence: 0.9 }],
+    });
     const index = await tagIndex(db, opts);
-    expect(index.find((t) => t.slug === "dungeon-core")?.books).toBe(1);
+    expect(index.find((t) => t.slug === "dungeon-core")?.books).toBe(2);
+    // A primary genre counts as its genre tag, as in the match matrix, without being counted twice.
+    expect(index.find((t) => t.slug === "litrpg")?.books).toBe(1);
+    expect(index.find((t) => t.slug === "progression-fantasy")?.books).toBe(1);
     expect((await tagLookup(db, "dungeon-core")).kind).toBe("found");
 
     const [target] = await db.select().from(tags).where(eq(tags.slug, "dungeon-core"));

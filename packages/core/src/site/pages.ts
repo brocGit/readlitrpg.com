@@ -859,7 +859,11 @@ export interface TagInfo {
   books: number;
 }
 
-/** The tag index: every active tag with how many published books carry it strongly. */
+/**
+ * The tag index: every active tag with how many published books carry it strongly. A book's primary
+ * genre counts as its genre tag, as it does in the match matrix (match/build.ts), so the index, the
+ * tag page and the sitemap agree: "LitRPG" once showed 0 here and 62 on its own page.
+ */
 export async function tagIndex(db: Db, opts: PageOptions): Promise<TagInfo[]> {
   const now = opts.now ?? new Date().toISOString();
   const rows = await db
@@ -871,10 +875,11 @@ export async function tagIndex(db: Db, opts: PageOptions): Promise<TagInfo[]> {
       includeWhen: tags.includeWhen,
       // Written out with aliases: in a one-table select Drizzle drops the table names from
       // interpolated columns, which makes a correlated subquery ambiguous.
-      books: sql<number>`(select count(*) from book_tags bt join books b on b.id = bt.book_id
-        where bt.tag_id = "tags"."id" and bt.score >= ${opts.displayMin}
-        and b.visibility = 'published' and b.redirect_to is null
-        and (b.embargo_until is null or b.embargo_until <= ${now}))`,
+      books: sql<number>`(select count(*) from books b
+        where b.visibility = 'published' and b.redirect_to is null
+        and (b.embargo_until is null or b.embargo_until <= ${now})
+        and (b.primary_genre = "tags"."slug" or exists (select 1 from book_tags bt
+          where bt.book_id = b.id and bt.tag_id = "tags"."id" and bt.score >= ${opts.displayMin})))`,
     })
     .from(tags)
     .where(eq(tags.status, "active"))

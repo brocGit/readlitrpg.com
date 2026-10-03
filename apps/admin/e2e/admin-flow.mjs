@@ -501,6 +501,15 @@ try {
   );
   const books = await (await fetch(`${WEB}/sitemaps/books-1.xml`)).text();
   check(books.includes(`/books/${firstSlug}</loc>`), "the sitemap lists the book");
+  // A primary genre counts as its genre tag, so the genre pages are in the tag sitemap (DESIGN §9.10).
+  const tagMap = await (await fetch(`${WEB}/sitemaps/tags.xml`)).text();
+  check(tagMap.includes("/tags/litrpg</loc>"), "the tag sitemap lists the LitRPG genre page");
+  await reader2.page.goto(`${WEB}/lists`);
+  check(
+    (await reader2.page.locator(".list-card .cover-fan").count()) > 0 &&
+      /\[Living list · \d+ books?\]/.test((await reader2.page.textContent(".lists-board")) ?? ""),
+    "the reading lists show their covers and how many books they hold",
+  );
   if (withJobs) {
     const src = await eventually(async () => {
       const page = await (await fetch(`${WEB}/books/${firstSlug}`)).text();

@@ -26,7 +26,8 @@ const s = found.data;
 const first = s.books[0];
 const n = s.books.length;
 const byline = s.authors.map((a) => a.name).join(" and ");
-const status = SERIES_STATUS_LABEL[s.status] ?? s.status;
+// Under a "Status" heading, "Status unknown" says it twice.
+const status = s.status === "unknown" ? "Not known yet" : (SERIES_STATUS_LABEL[s.status] ?? s.status);
 const lead = `${s.name} is ${s.status === "complete" ? "a complete" : s.status === "ongoing" ? "an ongoing" : "a"} series by ${byline}, with ${n} ${n === 1 ? "book" : "books"} listed here.`;
 const crumbs = [
   { name: "Home", path: "/" },

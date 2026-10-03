@@ -11,6 +11,9 @@ import {
   explain,
   type FeatureMatrix,
   type FunQuizSignal,
+  findBooks,
+  findQuerySchema,
+  getList,
   headsUps,
   loadMatrix,
   type MatchInputs,
@@ -36,12 +39,49 @@ import {
   takeQuiz,
 } from "@rlr/core/quiz";
 import type { Settings } from "@rlr/core/settings";
+import type { Cover } from "@rlr/core/site";
 import { STATS } from "@rlr/core/taxonomy";
 import { env, getDb } from "./runtime";
 
 export const matchOptions = (s: Settings): MatchOptions => matchOptionsFrom(s);
 
 export const getMatrix = (): Promise<FeatureMatrix | null> => loadMatrix(env.CONFIG);
+
+export interface ListPreview {
+  total: number;
+  covers: { title: string; cover: Cover | null }[];
+}
+
+/**
+ * Each living list's size and first three covers, for the list cards (DESIGN §9.10): the saved
+ * searches run against the in-memory model, then one lookup fetches the covers for all of them.
+ */
+export async function listPreviews(slugs: string[], settings: Settings): Promise<Map<string, ListPreview>> {
+  const out = new Map<string, ListPreview>();
+  const m = await getMatrix();
+  if (!m) return out;
+  const tops = new Map<string, string[]>();
+  for (const slug of slugs) {
+    const list = getList(slug);
+    if (!list) continue;
+    const { total, hits } = findBooks(m, findQuerySchema.parse(list.query), null, matchOptions(settings));
+    tops.set(
+      slug,
+      hits.slice(0, 3).map((h) => m.ids[h.i] ?? ""),
+    );
+    out.set(slug, { total, covers: [] });
+  }
+  const cards = await bookCards(getDb(), [...tops.values()].flat());
+  for (const [slug, ids] of tops) {
+    const preview = out.get(slug);
+    if (!preview) continue;
+    preview.covers = ids.flatMap((id) => {
+      const c = cards.get(id);
+      return c ? [{ title: c.title, cover: c.cover }] : [];
+    });
+  }
+  return out;
+}
 
 export function quizSignal(inputs: MatchInputs, s: Settings): FunQuizSignal | null {
   if (!inputs.quiz) return null;

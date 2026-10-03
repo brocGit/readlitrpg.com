@@ -67,7 +67,7 @@ const settings: Settings = { ...defaultSettings(), "flags.ads_paid": true };
 beforeEach(async () => {
   db = createDb(createTestD1().asD1());
   kv = new TestKV();
-  stripe = fakeStripe(kv.asKV(), "https://readlitrpg.com");
+  stripe = fakeStripe(kv.asKV(), "https://readlitrpg.com", { clock: () => now });
   await syncTaxonomy(db);
   await ensureAdCatalog(db);
   await generateInventory(db, now);

@@ -292,6 +292,13 @@
   font-size: 0.8rem;
 }
 
+/* A tag no published book carries yet is undiscovered territory: dashed and quiet, still a link. */
+.tag-list a.undiscovered {
+  border-style: dashed;
+  background: transparent;
+  color: var(--color-muted);
+}
+
 /* Lists of books */
 .book-list {
   list-style: none;
