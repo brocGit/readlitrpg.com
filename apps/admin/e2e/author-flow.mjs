@@ -250,7 +250,8 @@ try {
   const authorPage = await (await fetch(`${WEB}/authors/${authorSlug}`)).text();
   check(authorPage.includes("Verified author"), "the author page shows the verified badge");
   check((await fetch(`${WEB}/books/${book.slug}`)).status === 200, "the book has a public page");
-  await owner.page.goto(`${ADMIN}/catalog/authors`);
+  // Search by name: the list shows 50 a page, and earlier local runs leave their authors behind.
+  await owner.page.goto(`${ADMIN}/catalog/authors?q=${encodeURIComponent(penName)}`);
   await owner.page.click(`a:has-text("${penName}")`);
   const profile = await owner.page.textContent("main");
   check(

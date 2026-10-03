@@ -127,6 +127,11 @@ sql("DELETE FROM rate_counters");
 const [book] = rows(
   "SELECT id, slug, title FROM books WHERE visibility = 'published' AND redirect_to IS NULL AND in_scope != 'no' AND content_flags = '[]' ORDER BY published_at LIMIT 1",
 );
+// The house ad's book must not already be in today's spotlight: the homepage never shows a book
+// twice, and money runs on earlier days book spotlight dates that eventually arrive.
+const [adBook] = rows(
+  "SELECT id, slug FROM books WHERE visibility = 'published' AND redirect_to IS NULL AND in_scope != 'no' AND content_flags = '[]' AND id NOT IN (SELECT c.book_id FROM bookings b JOIN inventory_units u ON u.id = b.inventory_unit_id JOIN ad_slots s ON s.id = u.slot_id JOIN campaigns c ON c.id = b.campaign_id WHERE s.key LIKE 'home_spotlight%' AND b.status = 'confirmed' AND c.book_id IS NOT NULL AND u.period_start <= date('now') AND u.period_end >= date('now')) ORDER BY published_at LIMIT 1",
+);
 check(Boolean(book), "the console E2E left a published book to write about");
 
 const browser = await chromium.launch({ executablePath: CHROMIUM, args: ["--no-sandbox"] });
@@ -292,7 +297,7 @@ try {
   await page.fill('input[name="name"]', `E2E ${tag}`);
   await page.selectOption('select[name="product"]', "home_spotlight");
   await page.selectOption('select[name="mode"]', "backfill");
-  await page.fill('input[name="book"]', book.slug);
+  await page.fill('input[name="book"]', adBook.slug);
   await page.fill('input[name="headline"]', adHeadline);
   await page.fill('input[name="body"]', "A house campaign from the E2E run.");
   await page.fill('input[name="url"]', `https://example.com/e2e-${tag}`);
